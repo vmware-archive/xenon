@@ -1,0 +1,14 @@
+<div ng-controller="SingletonHomeController as ctrl">
+    <h1 class="page-header">Service: {{path}}/{{service}}/{{instance}}</h1>
+
+    <table class="table table-striped">
+        <tr ng-repeat="(key, value) in ctrl.serviceInstance">
+            <td class="medium">
+                {{key}}
+            </td>
+            <td>
+                {{value}}
+            </td>
+        </tr>
+    </table>
+</div>

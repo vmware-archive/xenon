@@ -1,0 +1,15 @@
+action: post
+
+path: /core/query-tasks
+
+body:
+  taskInfo:
+    isDirect: true
+  querySpec:
+    query:
+      term:
+        matchType: WILDCARD
+        matchValue: "*"
+        propertyName: path
+      occurance: MUST_OCCUR
+  indexLink: /core/operation-index

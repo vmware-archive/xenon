@@ -1,0 +1,20 @@
+# OS X FS metadata
+.DS_Store
+# vim backups of files that are open at time of commit
+*.swp
+.settings/*
+/bin
+target
+.classpath
+.project
+.idea
+.settings
+*.iml
+*/tmp
+tmp/
+*.git.properties
+*.espressostorage
+
+# maven-release-plugin artifacts
+/release.properties
+pom.xml.releaseBackup

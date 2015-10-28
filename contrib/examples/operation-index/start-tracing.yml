@@ -1,0 +1,7 @@
+action: patch
+
+path: /core/management
+
+body:
+  enable: {{ .enable }}
+  kind: com:vmware:dcp:services:common:ServiceHostManagementService:ConfigureOperationTracingRequest

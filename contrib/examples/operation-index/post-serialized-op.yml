@@ -1,0 +1,11 @@
+action: post
+
+path: /core/operation-index
+
+body:
+  documentSelfLink: {{ uuid }}
+  jsonBody: "test body"
+  documentKind: com:vmware:dcp:common:Operation:SerializedOperation
+  path: foo-path
+
+select: .documentSelfLink
