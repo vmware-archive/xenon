@@ -1293,6 +1293,18 @@ public class ServiceModelTest {
     }
 
     @Test
+    public void verifyOptionsRequest() throws Throwable {
+        URI serviceUri = UriUtils.buildUri(this.host, UriUtils.buildUriPath(ServiceUriPaths.CORE, "test-service"));
+        MinimalTestServiceState state = new MinimalTestServiceState();
+        state.id = UUID.randomUUID().toString();
+        this.host.startServiceAndWait(new MinimalTestService(), serviceUri.getPath(), state);
+        this.host.testStart(1);
+        this.host.sendRequest(Operation.createOperation(Action.OPTIONS, serviceUri)
+                .setCompletion((o, e) -> this.host.completeIteration()));
+        this.host.testWait();
+    }
+
+    @Test
     public void sendWrongContentType() throws Throwable {
         URI factoryUri = this.host.startServiceAndWait(
                 MinimalFactoryTestService.class, UUID.randomUUID().toString()).getUri();
