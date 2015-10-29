@@ -2702,6 +2702,11 @@ public class ServiceHost {
                 new IllegalArgumentException("Action not supported: " + request.getAction()));
     }
 
+    void failRequestLimitExceeded(Operation request) {
+        // a specific ServiceErrorResponse will be added in the future with retry hints
+        request.fail(new CancellationException("queue limit exceeded"));
+    }
+
     private void failForwardRequest(Operation op, Operation fo, Throwable fe) {
         op.setStatusCode(fo.getStatusCode());
         op.setBodyNoCloning(fo.getBodyRaw()).fail(fe);

@@ -14,6 +14,7 @@
 package com.vmware.dcp.common;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.EnumSet;
 
 /**
@@ -51,6 +52,10 @@ class OperationQueue {
         return this.options;
     }
 
+    public boolean isEmpty() {
+        return this.store.isEmpty();
+    }
+
     /**
      * Adds an element to the queue if the limit has not been reached.
      * If the queue is configured to evict queued operations, the operation
@@ -77,4 +82,11 @@ class OperationQueue {
         return this.store.poll();
     }
 
+    public Collection<Operation> toCollection() {
+        return this.store.clone();
+    }
+
+    public void clear() {
+        this.store.clear();
+    }
 }

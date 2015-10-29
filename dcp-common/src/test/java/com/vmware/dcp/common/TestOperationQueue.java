@@ -17,7 +17,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -44,6 +46,8 @@ public class TestOperationQueue {
 
         assertEquals(this.count, q.getLimit());
 
+        assertTrue(q.isEmpty());
+
         List<Operation> ops = new ArrayList<>();
 
         for (int i = 0; i < this.count; i++) {
@@ -51,6 +55,8 @@ public class TestOperationQueue {
             ops.add(op);
             q.offer(op);
         }
+
+        assertTrue(!q.isEmpty());
 
         // verify operations beyond limit are not queued
         assertTrue(false == q.offer(Operation.createGet(null)));
@@ -66,4 +72,25 @@ public class TestOperationQueue {
         // verify no more operations remain
         assertTrue(q.poll() == null);
     }
+
+    @Test
+    public void toCollection() {
+        OperationQueue q = OperationQueue.create(this.count, null);
+        final String pragma = UUID.randomUUID().toString();
+        for (int i = 0; i < this.count; i++) {
+            Operation op = Operation.createPost(null).addPragmaDirective(pragma);
+            q.offer(op);
+        }
+
+        Collection<Operation> ops = q.toCollection();
+        assertTrue(ops.size() == this.count);
+        assertTrue(!q.isEmpty());
+        for (Operation op : ops) {
+            assertEquals(pragma, op.getRequestHeader(Operation.PRAGMA_HEADER));
+        }
+
+        q.clear();
+        assertTrue(q.isEmpty());
+    }
+
 }

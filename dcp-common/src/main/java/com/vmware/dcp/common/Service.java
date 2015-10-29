@@ -255,6 +255,11 @@ public interface Service {
      */
     int MAX_SERIALIZED_SIZE_BYTES = 8192;
 
+    /**
+     * Default operation queue limit
+     */
+    int OPERATION_QUEUE_DEFAULT_LIMIT = 1000000;
+
     void handleStart(Operation startPost);
 
     /**

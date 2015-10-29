@@ -14,13 +14,12 @@
 package com.vmware.dcp.common;
 
 import java.net.URI;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,21 +44,25 @@ import com.vmware.dcp.services.common.TransactionService.ResolutionRequest;
 public class StatefulService implements Service {
 
     private static class RuntimeContext {
-        public UtilityService utilityService;
-        public ConcurrentLinkedQueue<Operation> pendingOps = new ConcurrentLinkedQueue<>();
-        public boolean isUpdateActive;
-        public int getActiveCount;
+        public ProcessingStage processingStage = ProcessingStage.CREATED;
+        public String selfLink;
         public long version;
         public long epoch;
-        public String selfLink;
-        public transient OperationProcessingChain opProcessingChain;
-        public ProcessingStage processingStage = ProcessingStage.CREATED;
-        public transient ServiceHost host;
+
         public EnumSet<ServiceOption> options = EnumSet.noneOf(ServiceOption.class);
         public Class<? extends ServiceDocument> stateType;
-        public String nodeSelectorLink = ServiceUriPaths.DEFAULT_NODE_SELECTOR;
         public long maintenanceInterval;
-        public Set<String> pendingTransactions;
+        public OperationQueue operationQueue;
+        public boolean isUpdateActive;
+        public int getActiveCount;
+
+        public transient ServiceHost host;
+        public transient OperationProcessingChain opProcessingChain;
+
+        public UtilityService utilityService;
+        public String nodeSelectorLink = ServiceUriPaths.DEFAULT_NODE_SELECTOR;
+
+        public Set<String> txCoordinatorLinks;
     }
 
     private static boolean isCommitRequest(Operation op) {
@@ -86,6 +89,8 @@ public class StatefulService implements Service {
             throw new IllegalArgumentException("stateType is required");
         }
         this.context.stateType = stateType;
+        this.context.operationQueue = OperationQueue.create(Service.OPERATION_QUEUE_DEFAULT_LIMIT,
+                null);
     }
 
     @Override
@@ -163,16 +168,18 @@ public class StatefulService implements Service {
 
         // even if service is stopped, check the pending queue for operations
         setProcessingStage(Service.ProcessingStage.STOPPED);
-        List<Operation> opsToCancel = null;
+        Collection<Operation> opsToCancel = null;
+        Set<String> txCoordinators = null;
         synchronized (this.context) {
-            opsToCancel = new ArrayList<>(this.context.pendingOps);
-            this.context.pendingOps.clear();
-            // for now, notifying transaction coordinators to abort
+            opsToCancel = this.context.operationQueue.toCollection();
+            this.context.operationQueue.clear();
             if (hasPendingTransactions()) {
-                abortTransactions(ResolutionKind.ABORT);
-                this.context.pendingTransactions.clear();
+                txCoordinators = new HashSet<>(this.context.txCoordinatorLinks);
+                txCoordinators.clear();
             }
         }
+
+        abortTransactions(txCoordinators);
 
         for (Operation o : opsToCancel) {
             if (o.isFromReplication() && o.getAction() == Action.DELETE) {
@@ -197,7 +204,10 @@ public class StatefulService implements Service {
                 if (this.context.processingStage == ProcessingStage.STOPPED) {
                     // skip queuing
                 } else if ((this.context.isUpdateActive || this.context.getActiveCount != 0)) {
-                    this.context.pendingOps.add(op);
+                    if (!this.context.operationQueue.offer(op)) {
+                        getHost().failRequestLimitExceeded(op);
+                        return true;
+                    }
                     return true;
                 }
                 this.context.isUpdateActive = true;
@@ -214,7 +224,7 @@ public class StatefulService implements Service {
                 if (this.context.processingStage == ProcessingStage.STOPPED) {
                     // skip queuing
                 } else if (this.context.isUpdateActive) {
-                    this.context.pendingOps.add(op);
+                    this.context.operationQueue.offer(op);
                     return true;
                 }
                 this.context.getActiveCount++;
@@ -784,16 +794,16 @@ public class StatefulService implements Service {
     protected void notifyTransactionCoordinator(Operation op, Throwable e) {
         OperationTransactionRecord operationsLogRecord = new OperationTransactionRecord();
         operationsLogRecord.action = op.getAction();
-        operationsLogRecord.pendingTransactions = this.context.pendingTransactions;
+        operationsLogRecord.pendingTransactions = this.context.txCoordinatorLinks;
         operationsLogRecord.isSuccessful = e == null;
 
         URI transactionCoordinator = UriUtils.buildTransactionUri(getHost(), op.getTransactionId());
 
         synchronized (this.context) {
-            if (this.context.pendingTransactions == null) {
-                this.context.pendingTransactions = new HashSet<>();
+            if (this.context.txCoordinatorLinks == null) {
+                this.context.txCoordinatorLinks = new HashSet<>();
             }
-            this.context.pendingTransactions.add(transactionCoordinator.toString());
+            this.context.txCoordinatorLinks.add(transactionCoordinator.toString());
         }
 
         sendRequest(Operation.createPut(transactionCoordinator).setBody(operationsLogRecord));
@@ -924,8 +934,10 @@ public class StatefulService implements Service {
         // will be behind. Here we re-issue the current state (committed) when we notice the
         // pending operation queue is empty
 
-        if (!this.context.pendingOps.isEmpty()) {
-            return;
+        synchronized (this.context) {
+            if (!this.context.operationQueue.isEmpty()) {
+                return;
+            }
         }
 
         ServiceDocument latestState = op.getLinkedState();
@@ -1058,7 +1070,9 @@ public class StatefulService implements Service {
 
     @Override
     public Operation dequeueRequest() {
-        return this.context.pendingOps.poll();
+        synchronized (this.context) {
+            return this.context.operationQueue.poll();
+        }
     }
 
     private boolean applyUpdate(Operation op) throws Throwable {
@@ -1617,16 +1631,15 @@ public class StatefulService implements Service {
         return;
     }
 
-    /**
-     * Notify all transaction coordinators responsible for pending transactions about an interesting
-     * event (for now, it's only abort, but it is parametrizable)
-     */
-    private void abortTransactions(ResolutionKind kind) {
+    private void abortTransactions(Set<String> coordinators) {
+        if (coordinators == null || coordinators.isEmpty()) {
+            return;
+        }
         ResolutionRequest resolution = new ResolutionRequest();
-        resolution.kind = kind;
-        for (String coordinator : this.context.pendingTransactions) {
-            sendRequest(Operation.createPatch(UriUtils.buildUri(coordinator)).setBody(resolution));
-
+        resolution.kind = ResolutionKind.ABORT;
+        for (String coordinator : coordinators) {
+            sendRequest(Operation.createPatch(UriUtils.buildUri(coordinator))
+                    .setBodyNoCloning(resolution));
         }
     }
 
@@ -1668,8 +1681,8 @@ public class StatefulService implements Service {
      * idea is to check whether the service has pending transactions
      */
     private boolean hasPendingTransactions() {
-        return this.context.pendingTransactions != null
-                && !this.context.pendingTransactions.isEmpty();
+        return this.context.txCoordinatorLinks != null
+                && !this.context.txCoordinatorLinks.isEmpty();
     }
 
     /**
@@ -1685,7 +1698,7 @@ public class StatefulService implements Service {
                 Operation.TX_COMMIT)) {
             // commit should expose latest state, i.e., remove shadow and bump the version
             // and remove transaction from pending
-            this.context.pendingTransactions.remove(request.getReferer().toString());
+            this.context.txCoordinatorLinks.remove(request.getReferer().toString());
 
             QueryTask.QuerySpecification q = new QueryTask.QuerySpecification();
             q.query.setTermPropertyName(ServiceDocument.FIELD_NAME_TRANSACTION_ID);
@@ -1702,7 +1715,7 @@ public class StatefulService implements Service {
         } else if (request.getRequestHeader(Operation.VMWARE_DCP_TRANSACTION_HEADER).equals(
                 Operation.TX_ABORT)) {
             // abort should just remove transaction from pending
-            this.context.pendingTransactions.remove(request.getReferer().toString());
+            this.context.txCoordinatorLinks.remove(request.getReferer().toString());
             request.complete();
         } else {
             request.fail(new IllegalArgumentException(
