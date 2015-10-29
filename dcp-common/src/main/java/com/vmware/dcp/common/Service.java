@@ -20,7 +20,7 @@ import com.vmware.dcp.common.ServiceStats.ServiceStat;
 
 public interface Service {
     enum Action {
-        GET, POST, PATCH, PUT, DELETE
+        GET, POST, PATCH, PUT, DELETE, OPTIONS
     }
 
     /**
