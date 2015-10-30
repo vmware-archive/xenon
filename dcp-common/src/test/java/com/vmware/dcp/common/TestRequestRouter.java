@@ -29,12 +29,22 @@ public class TestRequestRouter {
     private RequestRouter router;
     private int xCount;
     private int yCount;
+    private int zCount;
+
+    public static class RequestBody {
+        public enum Kind {
+            X, Y
+        }
+
+        public Kind kind;
+    }
 
     @Before
     public void setUp() throws Exception {
         this.router = new RequestRouter();
         this.xCount = 0;
         this.yCount = 0;
+        this.zCount = 0;
     }
 
     @After
@@ -42,7 +52,7 @@ public class TestRequestRouter {
     }
 
     @Test
-    public void test() throws Exception {
+    public void testUriMatcher() throws Exception {
         int NUM = 10;
 
         this.router.register(Action.PATCH, new RequestRouter.RequestUriMatcher("action=doX"),
@@ -60,6 +70,40 @@ public class TestRequestRouter {
 
         assertEquals(NUM / 2, this.xCount);
         assertEquals(NUM / 2, this.yCount);
+    }
+
+    @Test
+    public void testBodyMatcher() throws Exception {
+        int NUM = 9;
+
+        this.router.register(Action.PATCH,
+                new RequestRouter.RequestBodyMatcher<RequestBody>(RequestBody.class, "kind", RequestBody.Kind.X),
+                this::doX, "perform X");
+        this.router.register(Action.PATCH,
+                new RequestRouter.RequestBodyMatcher<RequestBody>(RequestBody.class, "kind", RequestBody.Kind.Y),
+                this::doY, "perform Y");
+
+        for (int i = 0; i < NUM; i++) {
+            RequestBody body = new RequestBody();
+            switch (i % 3) {
+            case 0:
+                body.kind = RequestBody.Kind.X;
+                break;
+            case 1:
+                body.kind = RequestBody.Kind.Y;
+                break;
+            default:
+                break;
+            }
+
+            if (this.router.test(Operation.createPatch(new URI("http://localhost/")).setBody(body))) {
+                this.zCount++;
+            }
+        }
+
+        assertEquals(NUM / 3, this.xCount);
+        assertEquals(NUM / 3, this.yCount);
+        assertEquals(NUM / 3, this.zCount);
     }
 
     private void doX(Operation op) {

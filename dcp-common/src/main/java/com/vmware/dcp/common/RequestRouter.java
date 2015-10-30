@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -87,7 +88,7 @@ public class RequestRouter implements Predicate<Operation> {
             try {
                 Field field = this.typeParameterClass.getField(this.fieldName);
                 T body = op.getBody(this.typeParameterClass);
-                return body != null && field.get(body).equals(this.fieldValue);
+                return body != null && Objects.equals(field.get(body), this.fieldValue);
             } catch (NoSuchFieldException | IllegalAccessException ex) {
                 return false;
             }
