@@ -127,7 +127,7 @@ class GetIllegalDocumentService extends StatefulService {
     }
 }
 
-public class ServiceModelTest {
+public class TestServiceModel {
 
     /**
      * Parameter that specifies if this run should be a stress test.
