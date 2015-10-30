@@ -223,42 +223,41 @@ public class AuthorizationContextService extends StatelessService {
         URI getUserGroupsUri = UriUtils.buildUri(getHost(), ServiceUriPaths.CORE_AUTHZ_USER_GROUPS);
         getUserGroupsUri = UriUtils.buildExpandLinksQueryUri(getUserGroupsUri);
         Operation get = Operation.createGet(getUserGroupsUri)
-                .setCompletion(
-                        (o, e) -> {
-                            if (e != null) {
-                                failThrowable(claims.getSubject(), e);
-                                return;
+                .setCompletion((o, e) -> {
+                    if (e != null) {
+                        failThrowable(claims.getSubject(), e);
+                        return;
+                    }
+
+                    ServiceDocumentQueryResult result = o
+                            .getBody(ServiceDocumentQueryResult.class);
+                    Collection<UserGroupState> userGroupStates = new ArrayList<>();
+                    for (Object doc : result.documents.values()) {
+                        UserGroupState userGroupState = Utils.fromJson(doc,
+                                UserGroupState.class);
+
+                        try {
+                            QueryFilter f = QueryFilter.create(userGroupState.query);
+                            if (f.evaluate(userState, this.userStateDescription)) {
+                                userGroupStates.add(userGroupState);
                             }
-
-                            ServiceDocumentQueryResult result = o
-                                    .getBody(ServiceDocumentQueryResult.class);
-                            Collection<UserGroupState> userGroupStates = new ArrayList<>();
-                            for (Object doc : result.documents.values()) {
-                                UserGroupState userGroupState = Utils.fromJson(doc,
-                                        UserGroupState.class);
-
-                                try {
-                                    QueryFilter f = QueryFilter.create(userGroupState.query);
-                                    if (f.evaluate(userState, this.userStateDescription)) {
-                                        userGroupStates.add(userGroupState);
-                                    }
-                                } catch (QueryFilterException qfe) {
-                                    logWarning("Error creating query filter: %s", qfe.toString());
-                                    failThrowable(claims.getSubject(), qfe);
-                                    return;
-                                }
-                            }
-
-                            // If no user groups apply to this user, we can safely say
-                            // this operation is not authorized.
-                        if (userGroupStates.isEmpty()) {
-                            // TODO(DCP-782): Add negative cache
-                            failForbidden(claims.getSubject());
+                        } catch (QueryFilterException qfe) {
+                            logWarning("Error creating query filter: %s", qfe.toString());
+                            failThrowable(claims.getSubject(), qfe);
                             return;
                         }
+                    }
 
-                        loadRoles(ctx, claims, userGroupStates);
-                    });
+                    // If no user groups apply to this user, we can safely say
+                    // this operation is not authorized.
+                    if (userGroupStates.isEmpty()) {
+                        // TODO(DCP-782): Add negative cache
+                        failForbidden(claims.getSubject());
+                        return;
+                    }
+
+                    loadRoles(ctx, claims, userGroupStates);
+                });
 
         setAuthorizationContext(get, getSystemAuthorizationContext());
         sendRequest(get);
