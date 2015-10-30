@@ -36,11 +36,11 @@ public class OperationContext {
      */
     private static final ThreadLocal<String> threadContextId = new ThreadLocal<>();
 
-    static void setContextId(String contextId) {
+    public static void setContextId(String contextId) {
         threadContextId.set(contextId);
     }
 
-    static String getContextId() {
+    public static String getContextId() {
         return threadContextId.get();
     }
 
