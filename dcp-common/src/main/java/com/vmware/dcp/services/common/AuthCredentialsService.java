@@ -14,6 +14,7 @@
 package com.vmware.dcp.services.common;
 
 import java.net.URI;
+import java.util.List;
 
 import com.vmware.dcp.common.Operation;
 import com.vmware.dcp.common.ServiceDocument;
@@ -48,6 +49,12 @@ public class AuthCredentialsService extends StatefulService {
 
         /** Type of credentials */
         public String type;
+
+        /**
+         * A list of tenant links which can access this service.
+         */
+        public List<String> tenantLinks;
+
     }
 
     public AuthCredentialsService() {
