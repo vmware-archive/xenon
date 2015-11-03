@@ -358,7 +358,7 @@ public class TestStatefulService extends BasicReusableHostTestCase {
         // one of them failing with the proper error
 
         AtomicInteger cancelledOpCount = new AtomicInteger();
-        int count = limit * 100;
+        int count = 2000;
         Operation patch = Operation.createPatch(serviceUri)
                 .setBody(this.host.buildMinimalTestState())
                 .setCompletion((o, e) -> {
