@@ -544,9 +544,11 @@ public class TestUtils {
         class MyService extends StatelessService {
         }
 
-        Path path = Paths.get(Utils.UI_DIRECTORY_NAME,
-                Utils.buildServicePath(MyService.class));
-        assertEquals(path, Utils.getServiceUiResourcePath(new MyService()));
+        Service s = new MyService();
+        s.setHost(new VerificationHost());
+
+        Path path = Paths.get(Utils.UI_DIRECTORY_NAME, Utils.buildServicePath(MyService.class));
+        assertEquals(path, Utils.getServiceUiResourcePath(s));
     }
 
     @Test
