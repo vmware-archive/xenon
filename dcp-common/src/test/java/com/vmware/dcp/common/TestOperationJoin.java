@@ -23,6 +23,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.junit.Before;
@@ -85,8 +86,35 @@ public class TestOperationJoin extends BasicReportTestCase {
         this.host.testWait();
     }
 
+    private class JoinWithBatchParams {
+        Collection<Operation> ops;
+        int batchSize;
+
+        JoinWithBatchParams(Collection<Operation> ops, int batchSize) {
+            this.ops = ops;
+            this.batchSize = batchSize;
+        }
+    }
+
     @Test
-    public void testJoinWithBatch() throws Throwable {
+    public void testJoinWithBatchOnServiceClient() throws Throwable {
+        testJoinWithBatch((params) ->
+                OperationJoin.create(params.ops).sendWith(this.host.getClient(), params.batchSize));
+    }
+
+    @Test
+    public void testJoinWithBatchOnService() throws Throwable {
+        testJoinWithBatch((params) ->
+                OperationJoin.create(params.ops).sendWith(this.services.get(0), params.batchSize));
+    }
+
+    @Test
+    public void testJoinWithBatchOnHost() throws Throwable {
+        testJoinWithBatch((params) ->
+                OperationJoin.create(params.ops).sendWith(this.host, params.batchSize));
+    }
+
+    public void testJoinWithBatch(Consumer<JoinWithBatchParams> createJoinOperation) throws Throwable {
         for (int numberOfOperations = 1; numberOfOperations < 5; numberOfOperations++) {
             for (int batchSize = 1; batchSize < numberOfOperations; batchSize++) {
                 Collection<Operation> ops = getOperations(
@@ -100,7 +128,7 @@ public class TestOperationJoin extends BasicReportTestCase {
                             }
                         });
                 host.testStart(numberOfOperations);
-                OperationJoin.create(ops).sendWith(host, batchSize);
+                createJoinOperation.accept(new JoinWithBatchParams(ops, batchSize));
                 host.testWait();
             }
         }
