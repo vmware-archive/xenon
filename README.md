@@ -14,20 +14,20 @@ service instances even on a memory constrained environment.
 Service authors annotate their services with various service options, acting
 as requirements on the runtime, and the framework implements the appropriate
 algorithms to enforce them. The runtime exposes each service with a URI
-and provides stats, reflection, subscriptions, per instance. A built-in load balancer
-routes client requests between nodes, according to service options and plug-able
-node selection algorithms.
+and provides utility services per instance, for stats, reflection, subscriptions and configuration.
+A built-in load balancer routes client requests between nodes, according to service options and plug-able
+node selection algorithms. Xenon supports multiple, independent node groups, maintaining node group state using
+a scalable gossip scheme.
 
-A powerful index service, invoked state changes on a service, provides a multi version
+A powerful index service, invoked as part of the I/O pipeline for persisted services, provides a multi version
 document store with a rich query language.
 
 High availability and scale-out is enabled through the use of a consensus and replication
-algorithm.
+algorithm and is also integrated in the I/O processing.
 
 ## What is it for?
 
-The lightweight runtime (each service is less than 500 bytes of memory overhead) enables
-the creation of highly available and scalable applications in the form of cooperating light
+The lightweight runtime enables the creation of highly available and scalable applications in the form of cooperating light
 weight services. The operation model for a cluster of Xenon nodes is the same for both on
 premise, and service deployments.
 
