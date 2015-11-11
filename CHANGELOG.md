@@ -2,6 +2,10 @@
 
 ## 0.2.0-SNAPSHOT
 
+* Request rate limiting support using authorization subject.
+New serviceHost.setRequestRateLimit method and rate tracking
+logic added to ServiceHost.
+
 * Remove Operation.joinWith and associated support code in service
 client. Joins are created and sent with OperationJoin.create() and
 sendWith.
