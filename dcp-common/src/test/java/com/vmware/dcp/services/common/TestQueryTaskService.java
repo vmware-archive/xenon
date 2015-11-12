@@ -856,8 +856,6 @@ public class TestQueryTaskService {
                 QueryTask resultNextLink = this.host.getServiceState(null,
                         QueryTask.class, nextLinkUri);
 
-                assertEquals(pageSize, resultNextLink.results.documentLinks.size());
-
                 URI prevLinkUri = UriUtils.buildUri(h, resultNextLink.results.prevPageLink);
                 QueryTask resultPrevLink = this.host.getServiceState(null,
                         QueryTask.class, prevLinkUri);
