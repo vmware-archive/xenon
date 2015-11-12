@@ -33,6 +33,23 @@ premise, and service deployments.
 
 ## Getting started
 
-Please refer to the [wiki](https://github.com/vmware/xenon/wiki). Tutorials for each
-Xenon service patterns will be made available in the coming months. Various samples
-are under the dcp-samples directory.
+For detailed information please refer to the [wiki](https://github.com/vmware/xenon/wiki). Tutorials for each
+Xenon service patterns will be made available in the coming months. Various samples are under the dcp-samples directory.
+
+### Building the code
+
+A detailed list of pre-requisite tools can be found in the
+[developer guide](https://github.com/vmware/xenon/wiki/dcp-DeveloperGuide#prerequisites).
+
+Once you have installed all the pre-requisites from the root of the repository execute the following command:
+
+~~~bash
+  mvn clean test
+~~~
+
+The above command will compile the code, run checkstyle and run unit-tests.
+
+### Editing the code
+
+The team uses Eclipse or IntelliJ. Formatting style settings for both these editors can be found in the
+[contrib](https://github.com/vmware/xenon/tree/master/contrib) folder.
