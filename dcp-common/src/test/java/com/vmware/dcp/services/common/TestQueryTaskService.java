@@ -317,7 +317,7 @@ public class TestQueryTaskService {
 
     private QueryValidationServiceState createContinuousQueryTasks(Throwable[] failure,
             CountDownLatch stateUpdates)
-                    throws Throwable, InterruptedException {
+            throws Throwable, InterruptedException {
         QueryValidationServiceState newState = new QueryValidationServiceState();
         final String stringValue = UUID.randomUUID().toString();
         Query query = Query.Builder.create()
@@ -455,7 +455,7 @@ public class TestQueryTaskService {
 
     private void doComplexStateQueries(List<URI> services, int versionCount,
             QueryValidationServiceState newState)
-                    throws Throwable {
+            throws Throwable {
 
         for (int i = 0; i < 5; i++) {
             this.host.log("%d", i);
@@ -542,7 +542,7 @@ public class TestQueryTaskService {
     @SuppressWarnings({ "rawtypes" })
     private void doInCollectionQuery(String collName, Collection coll, long documentCount,
             long expectedResultCount)
-                    throws Throwable {
+            throws Throwable {
         for (Object val : coll) {
             QuerySpecification spec = new QuerySpecification();
             spec.query = Query.Builder.create().addInCollectionItemClause(
@@ -798,59 +798,82 @@ public class TestQueryTaskService {
                 }
             }
             if (!isConverged) {
-                Thread.sleep(1000);
+                Thread.sleep(250);
                 continue;
             }
             break;
         }
 
-        // issue a paginated task query on one of the nodes. Then use the next page links verifying th elinks
-        // are forwarded to the node that executed the query
-        QueryTask remoteTask = QueryTask.Builder.create().setQuery(query).build();
-        remoteTask.documentExpirationTimeMicros = Utils.getNowMicrosUtc()
-                + TimeUnit.DAYS.toMicros(1);
-        int pageSize = exampleStates.size() / 10;
-        remoteTask.querySpec.resultLimit = pageSize;
-        QueryTask results = QueryTask.Builder.create().build();
-        URI taskUri = this.host.createQueryTaskService(null, remoteTask, false, false, results,
-                null);
+        exp = this.host.getTestExpiration();
 
-        results = this.host.waitForQueryTaskCompletion(remoteTask.querySpec, exampleStates.size(),
-                1, taskUri,
-                false, false);
+        while (new Date().before(exp)) {
+            // issue a paginated task query on one of the nodes. Then use the next page links verifying th elinks
+            // are forwarded to the node that executed the query
+            QueryTask remoteTask = QueryTask.Builder.create().setQuery(query).build();
+            remoteTask.documentExpirationTimeMicros = Utils.getNowMicrosUtc()
+                    + TimeUnit.DAYS.toMicros(1);
+            int pageSize = exampleStates.size() / 10;
+            remoteTask.querySpec.resultLimit = pageSize;
+            QueryTask results = QueryTask.Builder.create().build();
+            URI taskUri = this.host.createQueryTaskService(null, remoteTask, false, false, results,
+                    null);
 
-        assertTrue(results.results.nextPageLink != null);
-        URI nextLink = UriUtils.buildUri(targetHost, results.results.nextPageLink);
-        QueryTask resultsFirstPage = this.host.getServiceState(null,
-                QueryTask.class, nextLink);
+            results = this.host.waitForQueryTaskCompletion(remoteTask.querySpec,
+                    exampleStates.size(),
+                    1, taskUri,
+                    false, false);
 
-        assertEquals(resultsFirstPage.results.documentLinks.size(), pageSize);
-        assertEquals(resultsFirstPage.results.prevPageLink, null);
+            assertTrue(results.results.nextPageLink != null);
+            URI nextLink = UriUtils.buildUri(targetHost, results.results.nextPageLink);
+            QueryTask resultsFirstPage = this.host.getServiceState(null,
+                    QueryTask.class, nextLink);
 
-        QueryTask resultsFirstPageSecondTime = this.host.getServiceState(null, QueryTask.class, nextLink);
-        assertEquals(resultsFirstPage.results.documentLinks.size(),
-                resultsFirstPageSecondTime.results.documentLinks.size());
-        assertEquals(resultsFirstPage.results.documentCount, resultsFirstPageSecondTime.results.documentCount);
-        assertEquals(resultsFirstPage.results.prevPageLink, null);
+            assertEquals(resultsFirstPage.results.documentLinks.size(), pageSize);
+            assertEquals(resultsFirstPage.results.prevPageLink, null);
 
-        // verify that using the next page link and prev page link on each host works
-        for (VerificationHost h : this.host.getInProcessHostMap().values()) {
-            URI nextLinkUri = UriUtils.buildUri(h, resultsFirstPage.results.nextPageLink);
-            QueryTask resultNextLink = this.host.getServiceState(null,
-                    QueryTask.class, nextLinkUri);
+            QueryTask resultsFirstPageSecondTime = this.host.getServiceState(null, QueryTask.class,
+                    nextLink);
 
-            assertEquals(resultNextLink.results.documentCount.compareTo((long)pageSize), 0);
-            assertEquals(resultNextLink.results.documentLinks.size(), pageSize);
+            // if synchronization kicks in, the results might be affected, so we might need to repeat the query task
+            // until results settle
+            if (resultsFirstPage.results.documentLinks.size() != resultsFirstPageSecondTime.results.documentLinks
+                    .size()) {
+                this.host.log("Query links not converged yet");
+                Thread.sleep(250);
+                continue;
+            }
+            if (resultsFirstPage.results.documentCount != resultsFirstPageSecondTime.results.documentCount) {
+                this.host.log("Query result count not converged yet");
+                Thread.sleep(250);
+                continue;
+            }
 
-            URI prevLinkUri = UriUtils.buildUri(h, resultNextLink.results.prevPageLink);
-            QueryTask resultPrevLink = this.host.getServiceState(null,
-                    QueryTask.class, prevLinkUri);
+            assertEquals(resultsFirstPage.results.prevPageLink, null);
 
-            assertEquals(resultPrevLink.results.documentCount.compareTo((long)pageSize), 0);
-            assertEquals(resultPrevLink.results.documentLinks.size(), pageSize);
+            // verify that using the next page link and prev page link on each host works
+            for (VerificationHost h : this.host.getInProcessHostMap().values()) {
+                URI nextLinkUri = UriUtils.buildUri(h, resultsFirstPage.results.nextPageLink);
+                QueryTask resultNextLink = this.host.getServiceState(null,
+                        QueryTask.class, nextLinkUri);
 
-            // TODO; verify that firstPage results and secondPage->prevPageLink results are same.
+                assertEquals(pageSize, resultNextLink.results.documentLinks.size());
+
+                URI prevLinkUri = UriUtils.buildUri(h, resultNextLink.results.prevPageLink);
+                QueryTask resultPrevLink = this.host.getServiceState(null,
+                        QueryTask.class, prevLinkUri);
+
+                assertEquals(resultPrevLink.results.documentCount.compareTo((long) pageSize), 0);
+                assertEquals(resultPrevLink.results.documentLinks.size(), pageSize);
+            }
+
+            // everything converged, all done
+            break;
         }
+
+        if (new Date().after(exp)) {
+            throw new TimeoutException();
+        }
+
     }
 
     @Test
@@ -1040,7 +1063,8 @@ public class TestQueryTaskService {
         List<URI> toDelete = new ArrayList<>(exampleServices);
         List<URI> pageLinks = new ArrayList<>();
         this.host.testStart(1);
-        getNextPageResults(nextPageLink, resultLimit, numberOfDocumentLinks, toDelete, documents, pageLinks);
+        getNextPageResults(nextPageLink, resultLimit, numberOfDocumentLinks, toDelete, documents,
+                pageLinks);
         this.host.testWait();
 
         assertEquals(serviceCount, numberOfDocumentLinks[0]);
@@ -1071,7 +1095,8 @@ public class TestQueryTaskService {
         toDelete = new ArrayList<>(exampleServices);
         pageLinks.clear();
         this.host.testStart(1);
-        getNextPageResults(nextPageLink, resultLimit, numberOfDocumentLinks, toDelete, documents, pageLinks);
+        getNextPageResults(nextPageLink, resultLimit, numberOfDocumentLinks, toDelete, documents,
+                pageLinks);
         this.host.testWait();
 
         assertEquals(serviceCount, numberOfDocumentLinks[0]);
@@ -1882,7 +1907,7 @@ public class TestQueryTaskService {
 
     private void createWaitAndValidateQueryTask(long versionCount,
             List<URI> services, QueryTask.QuerySpecification q, boolean forceRemote)
-                    throws Throwable {
+            throws Throwable {
         createWaitAndValidateQueryTask(versionCount, services, q, forceRemote, false);
     }
 
@@ -1944,7 +1969,7 @@ public class TestQueryTaskService {
     private void createWaitAndValidateQueryTask(long versionCount,
             List<URI> services, QueryTask.QuerySpecification q, boolean forceRemote,
             boolean isDirect)
-                    throws Throwable {
+            throws Throwable {
         QueryTask task = QueryTask.create(q).setDirect(isDirect);
         if (isDirect) {
             task.documentExpirationTimeMicros = Utils.getNowMicrosUtc()
@@ -2117,7 +2142,7 @@ public class TestQueryTaskService {
 
     private List<URI> startQueryTargetServices(int serviceCount,
             QueryValidationServiceState initState)
-                    throws Throwable {
+            throws Throwable {
         List<URI> queryValidationServices = new ArrayList<>();
         List<Service> services = this.host.doThroughputServiceStart(
                 serviceCount, QueryValidationTestService.class,
@@ -2174,15 +2199,19 @@ public class TestQueryTaskService {
                 .build();
         this.host.createAndWaitSimpleDirectQuery(spec, 2, 2);
 
-        spec.query = Query.Builder.create()
-                .addCompositeFieldClause(ExampleServiceState.FIELD_NAME_KEY_VALUES, "exampleKey", "exampleValue",
+        spec.query = Query.Builder
+                .create()
+                .addCompositeFieldClause(ExampleServiceState.FIELD_NAME_KEY_VALUES, "exampleKey",
+                        "exampleValue",
                         Occurance.SHOULD_OCCUR)
                 .addKindFieldClause(TenantState.class, Occurance.SHOULD_OCCUR)
                 .build();
         this.host.createAndWaitSimpleDirectQuery(spec, 2, 2);
 
-        spec.query = Query.Builder.create()
-                .addCompositeFieldClause(ExampleServiceState.FIELD_NAME_KEY_VALUES, "exampleKey", "exampleValue",
+        spec.query = Query.Builder
+                .create()
+                .addCompositeFieldClause(ExampleServiceState.FIELD_NAME_KEY_VALUES, "exampleKey",
+                        "exampleValue",
                         Occurance.SHOULD_OCCUR)
                 .addKindFieldClause(TenantState.class, Occurance.MUST_OCCUR)
                 .build();
