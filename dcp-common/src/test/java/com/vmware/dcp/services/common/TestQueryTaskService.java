@@ -72,7 +72,6 @@ import com.vmware.dcp.services.common.QueryTask.Query;
 import com.vmware.dcp.services.common.QueryTask.Query.Occurance;
 import com.vmware.dcp.services.common.QueryTask.QuerySpecification;
 import com.vmware.dcp.services.common.QueryTask.QuerySpecification.QueryOption;
-import com.vmware.dcp.services.common.QueryTask.QuerySpecification.SortOrder;
 import com.vmware.dcp.services.common.QueryTask.QueryTerm.MatchType;
 import com.vmware.dcp.services.common.QueryValidationTestService.QueryValidationServiceState;
 import com.vmware.dcp.services.common.TenantService.TenantState;
@@ -327,7 +326,7 @@ public class TestQueryTaskService {
         newState.stringValue = stringValue;
 
         QueryTask task = QueryTask.Builder.create()
-                .setOptions(EnumSet.of(QueryOption.CONTINUOUS, QueryOption.EXPAND_CONTENT))
+                .addOptions(EnumSet.of(QueryOption.CONTINUOUS, QueryOption.EXPAND_CONTENT))
                 .setQuery(query)
                 .build();
         URI updateQueryTask = this.host.createQueryTaskService(
@@ -878,18 +877,16 @@ public class TestQueryTaskService {
 
         }
         this.host.testWait();
-        QueryTask.QuerySpecification q = new QueryTask.QuerySpecification();
-        Query kindClause = new Query();
-        kindClause.setTermPropertyName(ServiceDocument.FIELD_NAME_KIND)
-                .setTermMatchValue(Utils.buildKind(ExampleServiceState.class));
-        q.query = kindClause;
-        q.options = EnumSet.of(QueryOption.SORT);
-        q.sortOrder = QuerySpecification.SortOrder.ASC;
-        q.sortTerm = new QueryTask.QueryTerm();
-        q.sortTerm.propertyType = TypeName.STRING;
-        q.sortTerm.propertyName = ExampleServiceState.FIELD_NAME_NAME;
-        QueryTask task = QueryTask.create(q);
-        task.setDirect(isDirect);
+        Query kindClause = Query.Builder.create()
+                .addKindFieldClause(ExampleServiceState.class)
+                .build();
+
+        QueryTask.Builder queryTaskBuilder = isDirect ? QueryTask.Builder.createDirectTask()
+                : QueryTask.Builder.create();
+        QueryTask task = queryTaskBuilder
+                .setQuery(kindClause)
+                .orderAscending(ExampleServiceState.FIELD_NAME_NAME, TypeName.STRING)
+                .build();
 
         if (task.documentExpirationTimeMicros != 0) {
             // the value was set as an interval by the calling test. Make absolute here so
@@ -1002,19 +999,20 @@ public class TestQueryTaskService {
 
         }
         this.host.testWait();
-        QueryTask.QuerySpecification q = new QueryTask.QuerySpecification();
-        Query kindClause = new Query();
-        kindClause.setTermPropertyName(ServiceDocument.FIELD_NAME_KIND)
-                .setTermMatchValue(Utils.buildKind(ExampleServiceState.class));
-        q.query = kindClause;
-        q.options = EnumSet.of(QueryOption.SORT, QueryOption.EXPAND_CONTENT);
-        q.sortOrder = QuerySpecification.SortOrder.DESC;
-        q.resultLimit = resultLimit;
-        q.sortTerm = new QueryTask.QueryTerm();
-        q.sortTerm.propertyType = TypeName.LONG;
-        q.sortTerm.propertyName = ExampleServiceState.FIELD_NAME_COUNTER;
-        QueryTask task = QueryTask.create(q);
-        task.setDirect(isDirect);
+
+        Query kindClause = Query.Builder.create()
+                .addKindFieldClause(ExampleServiceState.class)
+                .build();
+
+        QueryTask.Builder queryTaskBuilder = isDirect ? QueryTask.Builder.createDirectTask()
+                : QueryTask.Builder.create();
+        queryTaskBuilder
+                .setQuery(kindClause)
+                .orderDescending(ExampleServiceState.FIELD_NAME_COUNTER, TypeName.LONG)
+                .addOption(QueryOption.EXPAND_CONTENT)
+                .setResultLimit(resultLimit);
+
+        QueryTask task = queryTaskBuilder.build();
 
         if (task.documentExpirationTimeMicros != 0) {
             // the value was set as an interval by the calling test. Make absolute here so
@@ -1050,12 +1048,14 @@ public class TestQueryTaskService {
 
         // do another query but sort on self links
         numberOfDocumentLinks[0] = 0;
-        q.sortOrder = SortOrder.ASC;
-        q.sortTerm = new QueryTask.QueryTerm();
-        q.sortTerm.propertyType = TypeName.STRING;
-        q.sortTerm.propertyName = ServiceDocument.FIELD_NAME_SELF_LINK;
-        task = QueryTask.create(q);
-        task.setDirect(isDirect);
+
+        queryTaskBuilder = isDirect ? QueryTask.Builder.createDirectTask() : QueryTask.Builder.create();
+        queryTaskBuilder
+                .setQuery(kindClause)
+                .orderAscending(ServiceDocument.FIELD_NAME_SELF_LINK, TypeName.STRING)
+                .addOption(QueryOption.EXPAND_CONTENT)
+                .setResultLimit(resultLimit);
+        task = queryTaskBuilder.build();
         taskURI = this.host.createQueryTaskService(task, false,
                 task.taskInfo.isDirect, task, null);
         if (!task.taskInfo.isDirect) {
@@ -1149,7 +1149,7 @@ public class TestQueryTaskService {
                 .addFieldClause(ServiceDocument.FIELD_NAME_SELF_LINK, delete.getUri().getPath())
                 .build();
         queryTask = QueryTask.Builder.create()
-                .setOptions(EnumSet.of(QueryOption.EXPAND_CONTENT))
+                .addOption(QueryOption.EXPAND_CONTENT)
                 .setQuery(query)
                 .build();
         u = this.host.createQueryTaskService(queryTask, forceRemote);
@@ -1186,7 +1186,7 @@ public class TestQueryTaskService {
                 .addFieldClause(ServiceDocument.FIELD_NAME_SELF_LINK, services.get(0).getPath())
                 .build();
 
-        queryTask = QueryTask.Builder.create().setOptions(currentOptions).setQuery(query).build();
+        queryTask = QueryTask.Builder.create().addOptions(currentOptions).setQuery(query).build();
         u = this.host.createQueryTaskService(queryTask, forceRemote);
         finishedTaskState = this.host.waitForQueryTaskCompletion(queryTask.querySpec,
                 services.size(), 1, u, forceRemote, true);
@@ -1433,8 +1433,10 @@ public class TestQueryTaskService {
                 .addFieldClause("serviceLink", SERVICE_LINK_VALUE)
                 .build();
 
-        queryTask = QueryTask.Builder.create().setOptions(EnumSet.of(QueryOption.EXPAND_CONTENT))
-                .setQuery(query).build();
+        queryTask = QueryTask.Builder.create()
+                .addOption(QueryOption.EXPAND_CONTENT)
+                .setQuery(query)
+                .build();
         u = this.host.createQueryTaskService(queryTask);
         finishedTaskState = this.host.waitForQueryTaskCompletion(queryTask.querySpec,
                 serviceCount, versionCount, u, false, true);
@@ -2138,6 +2140,7 @@ public class TestQueryTaskService {
 
         ExampleServiceState exampleServiceState = new ExampleServiceState();
         exampleServiceState.name = "Foo";
+        exampleServiceState.counter = 5L;
         exampleServiceState.keyValues.put("exampleKey", "exampleValue");
         Operation postExample = Operation.createPost(exampleFactoryUri)
                 .setBody(exampleServiceState)
@@ -2184,5 +2187,12 @@ public class TestQueryTaskService {
                 .addKindFieldClause(TenantState.class, Occurance.MUST_OCCUR)
                 .build();
         this.host.createAndWaitSimpleDirectQuery(spec, 2, 1);
+
+        spec.query = Query.Builder.create()
+                .addRangeClause(ExampleServiceState.FIELD_NAME_COUNTER,
+                        NumericRange.createEqualRange(exampleServiceState.counter), Occurance.SHOULD_OCCUR)
+                .addKindFieldClause(TenantState.class, Occurance.SHOULD_OCCUR)
+                .build();
+        this.host.createAndWaitSimpleDirectQuery(spec, 2, 2);
     }
 }
