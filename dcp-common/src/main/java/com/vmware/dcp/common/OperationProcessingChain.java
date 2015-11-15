@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
+import com.vmware.dcp.common.Service.OperationProcessingStage;
+
 /**
  * A chain of filters, each of them is a {@link Predicate<Operation>}. When {@link processRequest} is called
  * the filters are evaluated sequentially, where each filter's {@link Predicate<Operation>#test} can return
@@ -24,9 +26,11 @@ import java.util.function.Predicate;
  * <code>false</code> to stop processing.
  */
 public class OperationProcessingChain {
+    private Service service;
     private List<Predicate<Operation>> filters;
 
-    public OperationProcessingChain() {
+    public OperationProcessingChain(Service service) {
+        this.service = service;
         this.filters = new ArrayList<>();
     }
 
@@ -47,5 +51,33 @@ public class OperationProcessingChain {
         }
 
         return true;
+    }
+
+    /**
+     * A reentrant method to allow a filter to resume processing the request by chain filters.
+     * The filters in the chain after the invoking one are invoked sequentially, as usual,
+     * and if the chain end is reached, i.e. the request has not been dropped by any
+     * filter, the request is passed to the service for continued processing.
+     */
+    public void resumeProcessingRequest(Operation op, Predicate<Operation> invokingFilter) {
+        int invokingFilterPosition = this.filters.indexOf(invokingFilter);
+        if (invokingFilterPosition < 0) {
+            return;
+        }
+
+        for (int i = invokingFilterPosition + 1; i < this.filters.size(); i++) {
+            Predicate<Operation> filter = this.filters.get(i);
+            if (!filter.test(op)) {
+                return;
+            }
+        }
+
+        this.service.getHost().run(() -> {
+            this.service
+                    .handleRequest(
+                            op,
+                            OperationProcessingStage.EXECUTING_SERVICE_HANDLER);
+
+        });
     }
 }

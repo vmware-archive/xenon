@@ -60,7 +60,7 @@ public class BankAccountService extends StatefulService {
                         BankAccountServiceRequest.class, "kind",
                         BankAccountServiceRequest.Kind.WITHDRAW),
                 this::handlePatchForWithdraw, "Withdraw");
-        OperationProcessingChain opProcessingChain = new OperationProcessingChain();
+        OperationProcessingChain opProcessingChain = new OperationProcessingChain(this);
         opProcessingChain.add(myRouter);
         setOperationProcessingChain(opProcessingChain);
         return opProcessingChain;

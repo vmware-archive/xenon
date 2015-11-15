@@ -125,7 +125,7 @@ public class TestOperationProcessingChain extends BasicTestCase {
     @Test
     public void testCounterServiceWithOperationFilters() throws Throwable {
         Service counterService = createCounterService();
-        OperationProcessingChain opProcessingChain = new OperationProcessingChain();
+        OperationProcessingChain opProcessingChain = new OperationProcessingChain(counterService);
 
         opProcessingChain.add(new OperationLogger());
         counterService.setOperationProcessingChain(opProcessingChain);
@@ -146,8 +146,7 @@ public class TestOperationProcessingChain extends BasicTestCase {
     @Test
     public void testCounterServiceJumpOperationProcessingStage() throws Throwable {
         Service counterService = createCounterService();
-        OperationProcessingChain opProcessingChain = new OperationProcessingChain();
-        opProcessingChain = new OperationProcessingChain();
+        OperationProcessingChain opProcessingChain = new OperationProcessingChain(counterService);
         opProcessingChain.add(new OperationLogger());
         opProcessingChain.add(new OperationNextFiltersBypasser(counterService));
         opProcessingChain.add(new OperationSilentPatchDropper());

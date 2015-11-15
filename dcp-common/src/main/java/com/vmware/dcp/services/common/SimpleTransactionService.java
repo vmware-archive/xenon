@@ -333,15 +333,8 @@ public class SimpleTransactionService extends StatefulService {
                                     request.fail(e);
                                     return;
                                 }
-                                this.service
-                                        .getHost()
-                                        .run(() -> {
-                                            this.service
-                                                    .handleRequest(
-                                                            request,
-                                                            OperationProcessingStage.EXECUTING_SERVICE_HANDLER);
-
-                                        });
+                                this.service.getOperationProcessingChain()
+                                    .resumeProcessingRequest(request, this);
                             });
             this.service.sendRequest(enrollRequest);
         }
@@ -390,7 +383,7 @@ public class SimpleTransactionService extends StatefulService {
                         EndTransactionRequest.class, "kind",
                         EndTransactionRequest.KIND),
                 this::handlePatchForEndTransaction, "Commit or abort transaction");
-        OperationProcessingChain opProcessingChain = new OperationProcessingChain();
+        OperationProcessingChain opProcessingChain = new OperationProcessingChain(this);
         opProcessingChain.add(myRouter);
         setOperationProcessingChain(opProcessingChain);
         return opProcessingChain;

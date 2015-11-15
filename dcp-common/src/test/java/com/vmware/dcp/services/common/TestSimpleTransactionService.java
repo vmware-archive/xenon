@@ -27,6 +27,7 @@ import com.vmware.dcp.common.BasicTestCase;
 import com.vmware.dcp.common.FactoryService;
 import com.vmware.dcp.common.Operation;
 import com.vmware.dcp.common.OperationProcessingChain;
+import com.vmware.dcp.common.RequestRouter;
 import com.vmware.dcp.common.Service;
 import com.vmware.dcp.common.ServiceDocument;
 import com.vmware.dcp.common.StatefulService;
@@ -529,7 +530,7 @@ public class TestSimpleTransactionService extends BasicTestCase {
                 return super.getOperationProcessingChain();
             }
 
-            OperationProcessingChain opProcessingChain = new OperationProcessingChain();
+            OperationProcessingChain opProcessingChain = new OperationProcessingChain(this);
             opProcessingChain.add(new TransactionalRequestFilter(this));
             setOperationProcessingChain(opProcessingChain);
             return opProcessingChain;
@@ -565,8 +566,22 @@ public class TestSimpleTransactionService extends BasicTestCase {
                 return super.getOperationProcessingChain();
             }
 
-            OperationProcessingChain opProcessingChain = new OperationProcessingChain();
+            RequestRouter myRouter = new RequestRouter();
+            myRouter.register(
+                    Action.PATCH,
+                    new RequestRouter.RequestBodyMatcher<BankAccountServiceRequest>(
+                            BankAccountServiceRequest.class, "kind",
+                            BankAccountServiceRequest.Kind.DEPOSIT),
+                    this::handlePatchForDeposit, "Deposit");
+            myRouter.register(
+                    Action.PATCH,
+                    new RequestRouter.RequestBodyMatcher<BankAccountServiceRequest>(
+                            BankAccountServiceRequest.class, "kind",
+                            BankAccountServiceRequest.Kind.WITHDRAW),
+                    this::handlePatchForWithdraw, "Withdraw");
+            OperationProcessingChain opProcessingChain = new OperationProcessingChain(this);
             opProcessingChain.add(new TransactionalRequestFilter(this));
+            opProcessingChain.add(myRouter);
             setOperationProcessingChain(opProcessingChain);
             return opProcessingChain;
         }
@@ -581,29 +596,26 @@ public class TestSimpleTransactionService extends BasicTestCase {
             }
         }
 
-        @Override
-        public void handlePatch(Operation patch) {
+        void handlePatchForDeposit(Operation patch) {
             BankAccountServiceState currentState = getState(patch);
             BankAccountServiceRequest body = patch.getBody(BankAccountServiceRequest.class);
 
-            switch (body.kind) {
-            case DEPOSIT:
-                currentState.balance += body.amount;
-                break;
+            currentState.balance += body.amount;
 
-            case WITHDRAW:
-                if (body.amount > currentState.balance) {
-                    patch.fail(new IllegalArgumentException("Not enough funds to withdraw"));
-                    return;
-                }
-                currentState.balance -= body.amount;
-                break;
+            setState(patch, currentState);
+            patch.setBody(currentState);
+            patch.complete();
+        }
 
-            default:
-                patch.fail(new IllegalArgumentException(String.format("Unknown request kind: %s",
-                        body.kind)));
+        void handlePatchForWithdraw(Operation patch) {
+            BankAccountServiceState currentState = getState(patch);
+            BankAccountServiceRequest body = patch.getBody(BankAccountServiceRequest.class);
+
+            if (body.amount > currentState.balance) {
+                patch.fail(new IllegalArgumentException("Not enough funds to withdraw"));
                 return;
             }
+            currentState.balance -= body.amount;
 
             setState(patch, currentState);
             patch.setBody(currentState);
