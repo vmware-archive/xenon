@@ -1789,8 +1789,10 @@ public class LuceneDocumentIndexService extends StatelessService {
                 return;
             }
 
-            if (this.indexUpdateTimeMicros <= this.indexWriterCreationTimeMicros) {
-                logInfo("Writer was recently created, skipping");
+            long now = Utils.getNowMicrosUtc();
+            if (now - this.indexWriterCreationTimeMicros < getHost()
+                    .getMaintenanceIntervalMicros()) {
+                logInfo("Skipping writer re-open, it was created recently");
                 return;
             }
 
