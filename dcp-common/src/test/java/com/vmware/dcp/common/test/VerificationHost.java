@@ -2344,13 +2344,14 @@ public class VerificationHost extends ExampleServiceHost {
                 : ServiceHostManagementService.OperationTracingEnable.STOP;
         r.kind = ServiceHostManagementService.ConfigureOperationTracingRequest.KIND;
 
-        testStart(1);
-        send(Operation
-                .createPatch(
-                        UriUtils.extendUri(baseHostURI, ServiceHostManagementService.SELF_LINK))
+        this.setSystemAuthorizationContext();
+        this.testStart(1);
+        this.send(Operation
+                .createPatch(UriUtils.extendUri(baseHostURI, ServiceHostManagementService.SELF_LINK))
                 .setBody(r)
                 .setCompletion(getCompletion()));
-        testWait();
+        this.testWait();
+        this.resetAuthorizationContext();
     }
 
     public CompletionHandler getSuccessOrFailureCompletion() {

@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -58,6 +59,17 @@ public class TestAuthorization extends BasicTestCase {
         // Enable authorization service; this is an end to end test
         host.setAuthorizationService(new AuthorizationContextService());
         host.setAuthorizationEnabled(true);
+    }
+
+    @Before
+    public void enableTracing() throws Throwable {
+        // Enable operation tracing to verify tracing does not error out with auth enabled.
+        this.host.toggleOperationTracing(this.host.getUri(), true);
+    }
+
+    @After
+    public void disableTracing() throws Throwable {
+        this.host.toggleOperationTracing(this.host.getUri(), false);
     }
 
     @Before
@@ -204,8 +216,6 @@ public class TestAuthorization extends BasicTestCase {
                 }));
         this.host.testWait();
 
-        // enable operation tracing to verify tracing does not error out with auth enabled
-        this.host.toggleOperationTracing(this.host.getUri(), true);
         // Assume Jane's identity
         this.host.assumeIdentity(this.userServicePath, null);
         // add docs accessible by jane
@@ -243,8 +253,6 @@ public class TestAuthorization extends BasicTestCase {
 
         // Make sure only the authorized services were returned
         assertAuthorizedServicesInResult("jane", exampleServices, task.results);
-
-        this.host.toggleOperationTracing(this.host.getUri(), false);
 
         // reset the auth context
         OperationContext.setAuthorizationContext(null);
