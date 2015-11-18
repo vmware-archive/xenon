@@ -47,7 +47,6 @@ public class Operation implements Cloneable {
     }
 
     public static class SocketContext {
-        public static final int MAX_REQUEST_SIZE = 1024 * 1024 * 16;
 
         public SocketContext() {
         }
@@ -68,6 +67,20 @@ public class Operation implements Cloneable {
 
         public void close() {
             throw new IllegalStateException();
+        }
+
+        private static int maxRequestSize = 1024 * 1024 * 16;
+        /**
+         * Set maximum Netty request/response size.
+         * Note that this has to called very early before netty initializes.
+         * @param max size in bytes
+         */
+        public static void setMaxRequestSize(int max) {
+            maxRequestSize = max;
+        }
+
+        public static int getMaxRequestSize() {
+            return maxRequestSize;
         }
     }
 
