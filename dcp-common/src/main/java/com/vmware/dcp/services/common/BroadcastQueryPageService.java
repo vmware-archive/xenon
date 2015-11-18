@@ -15,6 +15,7 @@ package com.vmware.dcp.services.common;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -59,7 +60,7 @@ public class BroadcastQueryPageService extends StatelessService {
 
     @Override
     public void handleGet(Operation get) {
-        List<QueryTask> responses = new ArrayList<>();
+        List<QueryTask> responses = Collections.synchronizedList(new ArrayList<>());
         AtomicInteger remainingQueries = new AtomicInteger(this.pageLinks.size());
 
         for (String indexLink : this.pageLinks) {
@@ -82,7 +83,7 @@ public class BroadcastQueryPageService extends StatelessService {
                         }
 
                         if (remainingQueries.decrementAndGet() == 0) {
-                            rsp.results = collectPagesAndStartNewServices(responses, get);
+                            rsp.results = collectPagesAndStartNewServices(responses);
                             get.setBodyNoCloning(rsp).complete();
                         }
                     });
@@ -90,7 +91,7 @@ public class BroadcastQueryPageService extends StatelessService {
         }
     }
 
-    private ServiceDocumentQueryResult collectPagesAndStartNewServices(List<QueryTask> responses, Operation origOperation) {
+    private ServiceDocumentQueryResult collectPagesAndStartNewServices(List<QueryTask> responses) {
         List<ServiceDocumentQueryResult> queryResults = new ArrayList<>();
         List<String> nextPageLinks = new ArrayList<>();
         List<String> prevPageLinks = new ArrayList<>();
