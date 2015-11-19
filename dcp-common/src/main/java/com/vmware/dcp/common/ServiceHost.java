@@ -65,7 +65,6 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
@@ -1170,9 +1169,11 @@ public class ServiceHost {
         }
 
         for (Entry<Path, String> e : pathToURIPath.entrySet()) {
-            String uriPath = e.getValue();
+            Operation post = Operation
+                    .createPost(UriUtils.buildUri(this, e.getValue()))
+                    .setAuthorizationContext(this.getSystemAuthorizationContext());
             FileContentService fcs = new FileContentService(e.getKey().toFile());
-            startService(Operation.createPost(UriUtils.buildUri(this, uriPath)), fcs);
+            startService(post, fcs);
         }
     }
 
@@ -1540,7 +1541,9 @@ public class ServiceHost {
 
         request.reference = subscriptionUri;
         subscribe.setBody(request);
-        Operation startServicePost = Operation.createPost(subscriptionUri)
+        Operation post = Operation
+                .createPost(subscriptionUri)
+                .setAuthorizationContext(this.getSystemAuthorizationContext())
                 .setCompletion((o, e) -> {
                     if (e != null) {
                         subscribe.fail(e);
@@ -1551,9 +1554,9 @@ public class ServiceHost {
                 });
 
         if (notificationTarget.getProcessingStage() == ProcessingStage.CREATED) {
-            this.startService(startServicePost, notificationTarget);
+            this.startService(post, notificationTarget);
         } else {
-            startServicePost.complete();
+            post.complete();
         }
         return subscriptionUri;
     }

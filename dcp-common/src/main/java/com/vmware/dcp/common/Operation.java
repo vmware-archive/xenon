@@ -591,8 +591,9 @@ public class Operation implements Cloneable {
      *
      * @param ctx the authorization context to set.
      */
-    void setAuthorizationContext(AuthorizationContext ctx) {
+    Operation setAuthorizationContext(AuthorizationContext ctx) {
         this.authorizationCtx = ctx;
+        return this;
     }
 
     public String getTransactionId() {
