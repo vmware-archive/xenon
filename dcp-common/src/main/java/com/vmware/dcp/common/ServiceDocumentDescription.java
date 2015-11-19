@@ -270,6 +270,10 @@ public class ServiceDocumentDescription {
                 buildPropertyDescription(fd, f.getType(), f.getGenericType(), f.getAnnotations(),
                         visited, depth);
 
+                if (ServiceDocument.isBuiltInDocumentFieldWithNullExampleValue(f.getName())) {
+                    fd.exampleValue = null;
+                }
+
                 fd.accessor = f;
                 pd.fieldDescriptions.put(f.getName(), fd);
             }

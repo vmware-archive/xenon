@@ -353,6 +353,19 @@ public class ServiceDocument {
         }
     }
 
+    public static boolean isBuiltInDocumentFieldWithNullExampleValue(String name) {
+        switch (name) {
+        case ServiceDocument.FIELD_NAME_AUTH_PRINCIPAL_LINK:
+        case ServiceDocument.FIELD_NAME_SOURCE_LINK:
+        case ServiceDocument.FIELD_NAME_OWNER:
+        case ServiceDocument.FIELD_NAME_TRANSACTION_ID:
+        case ServiceDocument.FIELD_NAME_EPOCH:
+            return true;
+        default:
+            return false;
+        }
+    }
+
     public static boolean isLink(String name) {
         return name.endsWith(FIELD_NAME_SUFFIX_LINK);
     }

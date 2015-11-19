@@ -126,6 +126,22 @@ public class TestQueryTaskService {
         // Verify the reflection of the root document
         assertTrue(sdd.propertyDescriptions != null && !sdd.propertyDescriptions.isEmpty());
         assertTrue(sdd.propertyDescriptions.size() == expectedCustomFields + expectedBuiltInFields);
+
+        pd = sdd.propertyDescriptions.get(ServiceDocument.FIELD_NAME_SOURCE_LINK);
+        assertTrue(pd.exampleValue == null);
+
+        pd = sdd.propertyDescriptions.get(ServiceDocument.FIELD_NAME_OWNER);
+        assertTrue(pd.exampleValue == null);
+
+        pd = sdd.propertyDescriptions.get(ServiceDocument.FIELD_NAME_AUTH_PRINCIPAL_LINK);
+        assertTrue(pd.exampleValue == null);
+
+        pd = sdd.propertyDescriptions.get(ServiceDocument.FIELD_NAME_TRANSACTION_ID);
+        assertTrue(pd.exampleValue == null);
+
+        pd = sdd.propertyDescriptions.get(ServiceDocument.FIELD_NAME_EPOCH);
+        assertTrue(pd.exampleValue == null);
+
         assertTrue(sdd.serviceCapabilities.contains(ServiceOption.PERSISTENCE));
         Map<ServiceDocumentDescription.TypeName, Long> descriptionsPerType = countReflectedFieldTypes(
                 sdd);
