@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.Phaser;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -231,8 +230,7 @@ public class TestSimpleTransactionService extends BasicReusableHostTestCase {
             txids[k] = newTransaction();
         }
 
-        // each transaction will issue at least 2 operations: withdraw, (potentially deposit) and commit/abort
-        Phaser phaser = new Phaser(numOfTransfers * 2);
+        this.host.testStart(numOfTransfers);
         Collection<Operation> requests = new ArrayList<Operation>(numOfTransfers);
         Random rand = new Random();
         for (int k = 0; k < numOfTransfers; k++) {
@@ -246,25 +244,22 @@ public class TestSimpleTransactionService extends BasicReusableHostTestCase {
             int amount = 1 + rand.nextInt(3);
             Operation withdraw = createWithdrawOperation(tid, buildAccountId(i), amount);
             withdraw.setCompletion((o, e) -> {
-                phaser.arrive();
                 if (e != null) {
                     Operation abort = SimpleTransactionService.TxUtils.buildAbortRequest(this.host,
                             tid);
                     abort.setCompletion((op, ex) -> {
-                        phaser.arrive();
+                        this.host.completeIteration();
                     });
                     this.host.send(abort);
                     return;
                 }
-                phaser.register();
                 Operation deposit = createDepositOperation(tid, buildAccountId(final_j), amount);
                 deposit.setCompletion((op, ex) -> {
-                    phaser.arrive();
                     if (ex != null) {
                         Operation abort = SimpleTransactionService.TxUtils.buildAbortRequest(
                                 this.host, tid);
                         abort.setCompletion((op2, ex2) -> {
-                            phaser.arrive();
+                            this.host.completeIteration();
                         });
                         this.host.send(abort);
                         return;
@@ -273,7 +268,7 @@ public class TestSimpleTransactionService extends BasicReusableHostTestCase {
                     Operation commit = SimpleTransactionService.TxUtils.buildCommitRequest(
                             this.host, tid);
                     commit.setCompletion((op2, ex2) -> {
-                        phaser.arrive();
+                        this.host.completeIteration();
                     });
                     this.host.send(commit);
                 });
@@ -285,7 +280,7 @@ public class TestSimpleTransactionService extends BasicReusableHostTestCase {
         for (Operation withdraw : requests) {
             this.host.send(withdraw);
         }
-        phaser.awaitAdvance(0);
+        this.host.testWait();
 
         sumAccounts(null, 100.0 * ACCOUNTS);
 
