@@ -977,6 +977,8 @@ public class ServiceHost {
         this.transactionServiceUri = UriUtils.updateUriPort(this.transactionServiceUri,
                 this.state.httpPort);
 
+        configureLogging(new File(getStorageSandbox()));
+
         // Use the class name and prefix of GIT commit ID as the user agent name and version
         String commitID = (String) this.state.codeProperties
                 .get(GIT_COMMIT_SOURCE_PROPERTY_COMMIT_ID);
@@ -997,10 +999,15 @@ public class ServiceHost {
             clientContext.init(null, trustManagerFactory.getTrustManagers(), null);
             this.client.setSSLContext(clientContext);
         }
-        this.client.start();
 
-        configureLogging(new File(getStorageSandbox()));
+        // Start client as system user; it starts a callback service
+        AuthorizationContext ctx = OperationContext.getAuthorizationContext();
+        OperationContext.setAuthorizationContext(getSystemAuthorizationContext());
+        this.client.start();
+        OperationContext.setAuthorizationContext(ctx);
+
         scheduleMaintenance();
+
         log(Level.INFO, "%s listening on %s:%d", userAgent, getPreferredAddress(), getPort());
 
         this.cachedUri = null;

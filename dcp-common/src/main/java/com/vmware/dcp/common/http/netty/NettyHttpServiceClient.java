@@ -23,6 +23,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.net.ssl.SSLContext;
@@ -140,8 +141,15 @@ public class NettyHttpServiceClient implements ServiceClient {
         }
 
         if (this.host != null) {
-            Operation startCallbackPost = Operation.createPost(UriUtils.buildUri(this.host,
-                    ServiceUriPaths.CORE_CALLBACKS));
+            Operation startCallbackPost = Operation
+                    .createPost(UriUtils.buildUri(this.host, ServiceUriPaths.CORE_CALLBACKS))
+                    .setCompletion((o, e) -> {
+                        if (e != null) {
+                            this.host.log(Level.WARNING, "Failed to start %s: %s",
+                                    ServiceUriPaths.CORE_CALLBACKS,
+                                    e.toString());
+                        }
+                    });
             this.callbackService = new HttpRequestCallbackService();
             this.host.startService(startCallbackPost, this.callbackService);
         }
