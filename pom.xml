@@ -6,32 +6,58 @@
   <artifactId>dcp-parent</artifactId>
   <version>0.2.0-SNAPSHOT</version>
   <packaging>pom</packaging>
+
+  <name>Xenon</name>
   <description>
     Xenon is both a set of software components and a service oriented design pattern. The runtime is
     implemented in Java and acts as the host for the lightweight, asynchronous services. The programming
     model is language agnostic (does not rely on Java specific constructs) so implementations in other
     languages are encouraged.
   </description>
+  <url>https://github.com/vmware/xenon</url>
 
   <licenses>
     <license>
       <name>License</name>
-      <url>https://github.com/vmware/xenon/blob/master/License.txt</url>
+      <url>https://github.com/vmware/xenon/blob/master/LICENSE</url>
     </license>
     <license>
       <name>Notice</name>
-      <url>https://github.com/vmware/xenon/blob/master/Notice.txt</url>
+      <url>https://github.com/vmware/xenon/blob/master/NOTICE</url>
     </license>
   </licenses>
 
+  <developers>
+    <developer>
+      <name>George Chrysanthakopoulos</name>
+      <email>georgec@vmware.com</email>
+      <organization>VMware</organization>
+      <organizationUrl>https://www.vmware.com/</organizationUrl>
+    </developer>
+    <developer>
+      <name>Pieter Noordhuis</name>
+      <email>pnoordhuis@vmware.com</email>
+      <organization>VMware</organization>
+      <organizationUrl>https://www.vmware.com/</organizationUrl>
+    </developer>
+    <developer>
+      <name>Mihnea Olteanu</name>
+      <email>molteanu@vmware.com</email>
+      <organization>VMware</organization>
+      <organizationUrl>https://www.vmware.com/</organizationUrl>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:git@github.com:vmware/xenon.git</connection>
+    <developerConnection>scm:git:git@github.com:vmware/xenon.git</developerConnection>
+    <url>git@github.com:vmware/xenon.git</url>
+  </scm>
+
   <modules>
     <module>dcp-common</module>
-    <module>dcp-host</module>
-    <module>dcp-ui</module>
-    <module>dcp-loader-test</module>
     <module>dcp-loader</module>
-    <module>dcp-samples</module>
-    <module>dcp-websocket-test</module>
+    <module>dcp-ui</module>
   </modules>
 
   <properties>
@@ -55,14 +81,14 @@
   </repositories>
 
   <distributionManagement>
-    <repository>
-      <id>maven-central</id>
-      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-    </repository>
     <snapshotRepository>
-      <id>maven-central</id>
+      <id>ossrh</id>
       <url>https://oss.sonatype.org/content/repositories/snapshots</url>
     </snapshotRepository>
+    <repository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
   </distributionManagement>
 
   <dependencies>
@@ -86,6 +112,12 @@
   <profiles>
     <profile>
       <id>development</id>
+      <modules>
+        <module>dcp-host</module>
+        <module>dcp-samples</module>
+        <module>dcp-loader-test</module>
+        <module>dcp-websocket-test</module>
+      </modules>
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
@@ -93,6 +125,12 @@
 
     <profile>
       <id>coverage</id>
+      <modules>
+        <module>dcp-host</module>
+        <module>dcp-samples</module>
+        <module>dcp-loader-test</module>
+        <module>dcp-websocket-test</module>
+      </modules>
       <build>
         <plugins>
           <!-- Add JaCoCo arguments to surefire execution -->
@@ -157,15 +195,41 @@
     <profile>
       <id>release</id>
       <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <additionalparam>-Xdoclint:none</additionalparam>
       </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>2.9.1</version>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>1.6</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
-
-  <scm>
-    <connection>scm:git:git@github.com:vmware/xenon.git</connection>
-    <tag>HEAD</tag>
-  </scm>
 
   <build>
     <plugins>
