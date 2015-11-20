@@ -1004,7 +1004,6 @@ public class TestQueryTaskService {
         } else {
             targetHost.failIteration(new IllegalStateException("expected failure"));
         }
-        targetHost.completeIteration();
     }
 
     private void nonpaginatedBroadcastQueryTasksOnExampleStates(VerificationHost targetHost)
