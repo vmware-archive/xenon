@@ -214,10 +214,19 @@ public class LuceneQueryTaskService extends StatefulService {
 
                     });
 
-            List<String> nextPageLinks = queryResults.stream().map(r -> r.nextPageLink).collect(Collectors.toList());
+            List<String> nextPageLinks = queryResults.stream()
+                    .filter(r -> r.nextPageLink != null)
+                    .map(r -> r.nextPageLink)
+                    .collect(Collectors.toList());
 
-            this.getHost().startService(startPost,
-                    new BroadcastQueryPageService(queryTask.querySpec, nextPageLinks));
+            if (!nextPageLinks.isEmpty()) {
+                this.getHost().startService(startPost,
+                        new BroadcastQueryPageService(queryTask.querySpec, nextPageLinks));
+            } else {
+                queryTask.results = new ServiceDocumentQueryResult();
+                queryTask.results.documentCount = 0L;
+                queryTask.results.nextPageLink = null;
+            }
         }
 
         long timeElapsed = Utils.getNowMicrosUtc() - startTime;

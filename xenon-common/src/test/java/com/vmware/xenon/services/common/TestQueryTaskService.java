@@ -933,6 +933,7 @@ public class TestQueryTaskService {
 
         nonpaginatedBroadcastQueryTasksOnExampleStates(targetHost);
         paginatedbroadcastQueryTasksOnExampleStates();
+        paginatedBroadcastQueryTasksWithoutMatching();
     }
 
     private void verifyOnlySupportSortOnSelfLinkInBroadcast() throws Throwable {
@@ -1123,6 +1124,60 @@ public class TestQueryTaskService {
         for (int i = 0; i < serviceCount; i++) {
             assertTrue(documentLinks.contains(ExampleFactoryService.SELF_LINK + "/document" + i));
         }
+    }
+
+    private void paginatedBroadcastQueryTasksWithoutMatching() throws Throwable {
+
+        VerificationHost targetHost = this.host.getPeerHost();
+
+        int serviceCount = 100;
+        int resultLimit = 30;
+
+        QuerySpecification q = new QuerySpecification();
+
+        Query kindClause = new Query();
+        kindClause.setTermPropertyName(ServiceDocument.FIELD_NAME_KIND)
+                .setTermMatchValue(Utils.buildKind(ExampleServiceState.class));
+        q.query.addBooleanClause(kindClause);
+
+        Query nameClause = new Query();
+        nameClause.setTermPropertyName(ExampleServiceState.FIELD_NAME_NAME)
+                .setTermMatchValue("document" + serviceCount);
+        q.query.addBooleanClause(nameClause);
+
+        q.options = EnumSet.of(QueryOption.EXPAND_CONTENT, QueryOption.BROADCAST);
+        q.resultLimit = resultLimit;
+
+        QueryTask task = QueryTask.create(q);
+
+        URI taskUri = this.host.createQueryTaskService(task, false, task.taskInfo.isDirect, task, null);
+        task = this.host.waitForQueryTaskCompletion(task.querySpec, 0, 0, taskUri, false, false);
+
+        targetHost.testStart(1);
+        Operation startGet = Operation
+                .createGet(taskUri)
+                .setCompletion((o, e) -> {
+                    if (e != null) {
+                        targetHost.failIteration(e);
+                        return;
+                    }
+
+                    QueryTask rsp = o.getBody(QueryTask.class);
+                    if (rsp.results.documentCount != 0) {
+                        targetHost.failIteration(new IllegalStateException("Incorrect number of documents returned: " +
+                                "0 expected, but " + rsp.results.documentCount + " returned"));
+                        return;
+                    }
+
+                    if (rsp.results.nextPageLink != null) {
+                        targetHost.failIteration(new IllegalStateException("Next page link should be null"));
+                        return;
+                    }
+
+                    targetHost.completeIteration();
+                });
+        targetHost.send(startGet);
+        targetHost.testWait();
     }
 
     @Test
