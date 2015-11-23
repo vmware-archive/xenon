@@ -2,6 +2,8 @@
 
 ## 0.3.0-SNAPSHOT
 
+* Renamed ServiceOption.EAGER_CONSISTENCY to ServiceOption.ENFORCE_QUORUM
+
 * Renamed packages, build artifacts and various properties to
 Xenon (from DCP). This is a runtime and binary breaking change
 since HTTP headers, runtime properties, command line arguments

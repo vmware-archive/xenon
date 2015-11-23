@@ -69,7 +69,7 @@ public class NodeSelectorReplicationService extends StatelessService {
         AtomicInteger successCount = new AtomicInteger(0);
 
         if (members.size() == 1) {
-            if (options.contains(ServiceOption.EAGER_CONSISTENCY)
+            if (options.contains(ServiceOption.ENFORCE_QUORUM)
                     && localNode.membershipQuorum > 1) {
                 outboundOp.fail(new IllegalStateException("No available peers: " + members.size()));
             } else {

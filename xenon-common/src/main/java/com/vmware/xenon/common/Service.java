@@ -82,11 +82,13 @@ public interface Service {
          * Modifies the replication protocol in a single way: Updates are committed on the owner, and
          * the client sees success on the operation only if quorum number of peers accept the updated
          * state. If the node group has been partitioned or multiple peers have failed, this option
-         * makes the service unavailable, since no updates will be accepted.
+         * makes the service unavailable, since no updates will be accepted. Enabling this option
+         * provides strong consistency guarantees for service updates. It also affects availability,
+         * since the service will fail all updates unless quorum or more nodes are available.
          *
          * Requires: REPLICATION, OWNER_SELECTION Not compatible with: CONCURRENT_UPDATE_HANDLING
          */
-        EAGER_CONSISTENCY,
+        ENFORCE_QUORUM,
 
         /**
          * Document update operations are conditional: the client must provide the expected

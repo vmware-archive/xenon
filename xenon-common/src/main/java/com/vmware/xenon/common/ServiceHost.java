@@ -2042,7 +2042,7 @@ public class ServiceHost {
                     if (e != null) {
                         log(Level.WARNING, "Failure partitioning %s: %s", op.getUri(),
                                 e.toString());
-                        if (s.hasOption(ServiceOption.EAGER_CONSISTENCY)) {
+                        if (s.hasOption(ServiceOption.ENFORCE_QUORUM)) {
                             op.fail(e);
                             return;
                         }

@@ -685,7 +685,7 @@ public class TestNodeGroupService {
     @Test
     public void replicationWithConcurrentNodeFailureEagerConsistency()
             throws Throwable {
-        this.postCreationServiceOptions.add(ServiceOption.EAGER_CONSISTENCY);
+        this.postCreationServiceOptions.add(ServiceOption.ENFORCE_QUORUM);
         this.expectFailure = true;
         doNodeReplicationWithNodeStopStart(true, true);
     }
@@ -705,7 +705,7 @@ public class TestNodeGroupService {
 
         this.nodeGroupConfig.nodeRemovalDelayMicros = TimeUnit.SECONDS.toMicros(10);
         this.host.setNodeGroupConfig(this.nodeGroupConfig);
-        if (this.postCreationServiceOptions.contains(ServiceOption.EAGER_CONSISTENCY)) {
+        if (this.postCreationServiceOptions.contains(ServiceOption.ENFORCE_QUORUM)) {
             this.host.setNodeGroupQuorum((this.nodeCount + 1) / 2);
         }
 

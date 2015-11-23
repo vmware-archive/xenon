@@ -1333,7 +1333,7 @@ public class StatefulService implements Service {
         }
 
         if (option != ServiceOption.HTML_USER_INTERFACE
-                && option != ServiceOption.EAGER_CONSISTENCY
+                && option != ServiceOption.ENFORCE_QUORUM
                 && option != ServiceOption.DOCUMENT_OWNER
                 && option != ServiceOption.PERIODIC_MAINTENANCE
                 && option != ServiceOption.INSTRUMENTATION) {
@@ -1343,7 +1343,7 @@ public class StatefulService implements Service {
             }
         }
 
-        if (option == ServiceOption.EAGER_CONSISTENCY
+        if (option == ServiceOption.ENFORCE_QUORUM
                 && !this.context.options.contains(ServiceOption.OWNER_SELECTION)) {
             if (getProcessingStage() != Service.ProcessingStage.CREATED) {
                 throw new IllegalStateException(
