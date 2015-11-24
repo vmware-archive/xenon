@@ -683,12 +683,12 @@ public class TestNodeGroupService {
     }
 
     @Test
-    public void replicationWithConcurrentNodeFailureEagerConsistency()
+    public void enforceQuorumWithNodeConcurrentStop()
             throws Throwable {
         this.postCreationServiceOptions.add(ServiceOption.ENFORCE_QUORUM);
         this.expectFailure = true;
 
-        long opTimeoutMicros = TimeUnit.SECONDS.toMicros(3);
+        long opTimeoutMicros = TimeUnit.SECONDS.toMicros(2);
         int hostRestartCount = 2;
 
         Map<String, ExampleServiceState> childStates = doExampleFactoryPostReplicationTest(
@@ -735,11 +735,6 @@ public class TestNodeGroupService {
                 this.exampleStateUpdateBodySetter,
                 this.exampleStateConvergenceChecker,
                 childStates);
-
-        // send another set of patches, after node groups have converged, ensuring that
-        // replication operates properly, in the case of host failure after the host
-        // has been marked un-available.
-        this.host.waitForNodeGroupConvergence(this.nodeCount - 2);
 
         doStateUpdateReplicationTest(Action.PATCH, childStates.size(), 1,
                 this.updateCount * 2,

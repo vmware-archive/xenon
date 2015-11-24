@@ -1825,6 +1825,7 @@ public class VerificationHost extends ExampleServiceHost {
             expectedOptionsPerNodeGroupUri = new HashMap<>();
         }
 
+        final int sleepTimeMillis = FAST_MAINT_INTERVAL_MILLIS * 2;
         Date now = null;
         Date expiration = getTestExpiration();
         assertTrue(!nodeGroupUris.isEmpty());
@@ -1881,7 +1882,7 @@ public class VerificationHost extends ExampleServiceHost {
                 break;
             }
 
-            Thread.sleep(500);
+            Thread.sleep(sleepTimeMillis);
         } while (now.before(expiration));
 
         boolean log = true;
@@ -1941,7 +1942,7 @@ public class VerificationHost extends ExampleServiceHost {
             }));
             testWait();
             if (!isConverged[0]) {
-                Thread.sleep(250);
+                Thread.sleep(sleepTimeMillis);
                 continue;
             }
             break;
@@ -1965,18 +1966,17 @@ public class VerificationHost extends ExampleServiceHost {
     public void getNodeState(URI nodeGroup, Map<URI, NodeGroupState> nodesPerHost) {
         URI u = UriUtils.buildExpandLinksQueryUri(nodeGroup);
         Operation get = Operation.createGet(u).setCompletion((o, e) -> {
+            NodeGroupState ngs = null;
             if (e != null) {
-                failIteration(e);
-                return;
+                // failure is OK, since we might have just stopped a host
+                log("Host %s failed GET with %s", nodeGroup, e.getMessage());
+                ngs = new NodeGroupState();
+            } else {
+                ngs = o.getBody(NodeGroupState.class);
             }
-            try {
-                NodeGroupState rsp = o.getBody(NodeGroupState.class);
-                synchronized (nodesPerHost) {
-                    nodesPerHost.put(nodeGroup, rsp);
-                    completeIteration();
-                }
-            } catch (Throwable ex) {
-                failIteration(ex);
+            synchronized (nodesPerHost) {
+                nodesPerHost.put(nodeGroup, ngs);
+                completeIteration();
             }
         });
         send(get);
