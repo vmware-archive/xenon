@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.3.0-SNAPSHOT
+## 0.3.0
 
 * Renamed ServiceOption.EAGER_CONSISTENCY to ServiceOption.ENFORCE_QUORUM
 
@@ -9,7 +9,7 @@ Xenon (from DCP). This is a runtime and binary breaking change
 since HTTP headers, runtime properties, command line arguments
 have changed.
 
-## 0.2.0-SNAPSHOT
+## 0.2.0
 
 * Request rate limiting support using authorization subject.
 New serviceHost.setRequestRateLimit method and rate tracking
