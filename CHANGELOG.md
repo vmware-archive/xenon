@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 0.3.1-SNAPSHOT
+
 ## 0.3.0
 
 * Renamed ServiceOption.EAGER_CONSISTENCY to ServiceOption.ENFORCE_QUORUM
