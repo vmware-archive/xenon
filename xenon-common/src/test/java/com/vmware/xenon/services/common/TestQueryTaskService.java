@@ -1181,12 +1181,13 @@ public class TestQueryTaskService {
     }
 
     @Test
-    public void sortTestOnExampleStates() throws Throwable {
-        doSortTestOnExampleStates(false);
-        doSortTestOnExampleStates(true);
+    public void sortTestOnExampleStatesWithTopResults() throws Throwable {
+        doSortTestOnExampleStates(false, Integer.MAX_VALUE);
+        doSortTestOnExampleStates(true, Integer.MAX_VALUE);
+        doSortTestOnExampleStates(true, 10);
     }
 
-    public void doSortTestOnExampleStates(boolean isDirect) throws Throwable {
+    public void doSortTestOnExampleStates(boolean isDirect, int resultLimit) throws Throwable {
         setUpHost();
         int serviceCount = 100;
         URI exampleFactoryURI = UriUtils.buildUri(this.host, ExampleFactoryService.SELF_LINK);
@@ -1215,6 +1216,11 @@ public class TestQueryTaskService {
                 .orderAscending(ExampleServiceState.FIELD_NAME_NAME, TypeName.STRING)
                 .build();
 
+        task.querySpec.resultLimit = resultLimit;
+        if (resultLimit < Integer.MAX_VALUE) {
+            task.querySpec.options.add(QueryOption.TOP_RESULTS);
+        }
+
         if (task.documentExpirationTimeMicros != 0) {
             // the value was set as an interval by the calling test. Make absolute here so
             // account for service creation above
@@ -1229,6 +1235,12 @@ public class TestQueryTaskService {
         if (!task.taskInfo.isDirect) {
             task = this.host.waitForQueryTaskCompletion(task.querySpec, 0, 0,
                     taskURI, false, false);
+        }
+
+        assertTrue(task.results.nextPageLink == null);
+
+        if (task.querySpec.options.contains(QueryOption.TOP_RESULTS)) {
+            assertTrue(task.results.documentLinks.size() == resultLimit);
         }
 
         List<String> documentLinks = task.results.documentLinks;

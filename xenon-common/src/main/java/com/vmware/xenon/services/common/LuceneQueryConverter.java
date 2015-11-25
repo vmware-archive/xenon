@@ -27,6 +27,7 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.WildcardQuery;
 
 import com.vmware.xenon.common.ServiceDocumentDescription;
+import com.vmware.xenon.services.common.QueryTask.QuerySpecification.QueryOption;
 
 /**
  * Convert {@link QueryTask.QuerySpecification} to native Lucene query.
@@ -197,6 +198,14 @@ class LuceneQueryConverter {
     static Sort convertToLuceneSort(QueryTask.QuerySpecification querySpecification) {
 
         validateSortTerm(querySpecification.sortTerm);
+
+        if (querySpecification.options.contains(QueryOption.TOP_RESULTS)) {
+            if (querySpecification.resultLimit <= 0
+                    || querySpecification.resultLimit == Integer.MAX_VALUE) {
+                throw new IllegalArgumentException(
+                        "resultLimit should be a positive integer less than MAX_VALUE");
+            }
+        }
 
         if (querySpecification.sortOrder == null) {
             querySpecification.sortOrder = QueryTask.QuerySpecification.SortOrder.ASC;

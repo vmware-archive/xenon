@@ -849,7 +849,8 @@ public class LuceneDocumentIndexService extends StatelessService {
             ServiceDocumentQueryResult rsp) throws Throwable {
         ScoreDoc[] hits;
         ScoreDoc after = null;
-        boolean isPaginatedQuery = count != Integer.MAX_VALUE;
+        boolean isPaginatedQuery = count != Integer.MAX_VALUE
+                && !options.contains(QueryOption.TOP_RESULTS);
         boolean hasPage = page != null;
         boolean shouldProcessResults = true;
         int resultLimit = count;
@@ -908,7 +909,7 @@ public class LuceneDocumentIndexService extends StatelessService {
                 }
             }
 
-            if (!isPaginatedQuery) {
+            if (!isPaginatedQuery && !options.contains(QueryOption.TOP_RESULTS)) {
                 // single pass
                 break;
             }
@@ -918,21 +919,25 @@ public class LuceneDocumentIndexService extends StatelessService {
             }
 
             ScoreDoc bottom = null;
-            if (hasPage) {
-                bottom = hits[hits.length - 1];
+            if (isPaginatedQuery) {
+                if (hasPage) {
+                    bottom = hits[hits.length - 1];
+                }
+
+                if (!hasPage || rsp.documentLinks.size() >= resultLimit
+                        || hits.length < resultLimit) {
+                    // query had less results then per page limit or page is full of results
+                    expiration += queryTime;
+                    rsp.nextPageLink = createNextPage(op, s, options, tq, sort, bottom, count,
+                            expiration,
+                            indexLink,
+                            hasPage);
+                    break;
+                }
+                page.after = bottom;
             }
 
-            if (!hasPage || rsp.documentLinks.size() >= resultLimit || hits.length < resultLimit) {
-                // query had less results then per page limit or page is full of results
-                expiration += queryTime;
-                rsp.nextPageLink = createNextPage(op, s, options, tq, sort, bottom, count,
-                        expiration,
-                        indexLink,
-                        hasPage);
-                break;
-            }
-
-            after = page.after = bottom;
+            after = bottom;
             resultLimit = count - rsp.documentLinks.size();
         } while (true && resultLimit > 0);
 

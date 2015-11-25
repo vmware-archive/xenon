@@ -182,7 +182,8 @@ public class LuceneQueryTaskService extends StatefulService {
         }
 
         boolean isPaginatedQuery = queryTask.querySpec.resultLimit != null
-                && queryTask.querySpec.resultLimit < Integer.MAX_VALUE;
+                && queryTask.querySpec.resultLimit < Integer.MAX_VALUE
+                && !queryTask.querySpec.options.contains(QueryOption.TOP_RESULTS);
 
         if (!isPaginatedQuery) {
             boolean isAscOrder = queryTask.querySpec.sortOrder == null
