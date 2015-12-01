@@ -2,6 +2,12 @@
 
 ## 0.3.1-SNAPSHOT
 
+* Tunable query limit for service load during factory service
+restart and during synchronization. A large result limit will
+increase the service load throughput and decrease overal time
+for factory child services becoming available. Large limits
+can impact memory and network utilization however.
+
 ## 0.3.0
 
 * Renamed ServiceOption.EAGER_CONSISTENCY to ServiceOption.ENFORCE_QUORUM
