@@ -211,20 +211,32 @@ public class NodeSelectorSynchronizationService extends StatelessService {
             }
         }
 
-        EnumSet<DocumentRelationship> results = ServiceDocument.compare(request.state,
-                bestPeerRsp, request.stateDescription, Utils.getTimeComparisonEpsilonMicros());
+        if (bestPeerRsp != null && bestPeerRsp.documentEpoch == null) {
+            bestPeerRsp.documentEpoch = 0L;
+        }
+
+        if (request.state.documentEpoch == null) {
+            request.state.documentEpoch = 0L;
+        }
+
+        EnumSet<DocumentRelationship> results = EnumSet.noneOf(DocumentRelationship.class);
+        if (bestPeerRsp == null) {
+            results.add(DocumentRelationship.PREFERRED);
+        } else if (request.state.documentEpoch.compareTo(bestPeerRsp.documentEpoch) > 0) {
+            // Local state is of higher epoch than all peers
+            results.add(DocumentRelationship.PREFERRED);
+        } else if (request.state.documentEpoch.equals(bestPeerRsp.documentEpoch)) {
+            // compare local state against peers only if they are in the same epoch
+            results = ServiceDocument.compare(request.state,
+                    bestPeerRsp, request.stateDescription, Utils.getTimeComparisonEpsilonMicros());
+        }
 
         if (results.contains(DocumentRelationship.IN_CONFLICT)) {
             markServiceInConflict(request.state);
             // if we detect conflict, we will synchronize local service with selected peer state
         } else if (results.contains(DocumentRelationship.PREFERRED)) {
-            // the local state is preferred, return empty response so client know peers did not have
-            // anything better
+            // the local state is preferred
             bestPeerRsp = null;
-        }
-
-        if (bestPeerRsp != null && bestPeerRsp.documentEpoch == null) {
-            bestPeerRsp.documentEpoch = 0L;
         }
 
         if (bestPeerRsp != null && request.isOwner) {
@@ -250,10 +262,6 @@ public class NodeSelectorSynchronizationService extends StatelessService {
         // we increment epoch only when we assume the role of owner
         if (!request.wasOwner && request.isOwner) {
             incrementEpoch = true;
-        }
-
-        if (bestPeerRsp.documentEpoch == null) {
-            bestPeerRsp.documentEpoch = 0L;
         }
 
         broadcastBestState(peerStates, post, request, bestPeerRsp, incrementEpoch);
