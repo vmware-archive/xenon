@@ -843,6 +843,10 @@ public class StatefulService implements Service {
 
         publish(op);
 
+        if (op.isFromReplication() && !isSynchronizeRequest(op)) {
+            // avoid cost of sending the request body as a response
+            op.setBodyNoCloning(null);
+        }
         op.complete();
     }
 

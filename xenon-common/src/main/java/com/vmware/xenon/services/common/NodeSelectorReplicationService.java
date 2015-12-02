@@ -14,7 +14,6 @@
 package com.vmware.xenon.services.common;
 
 import java.net.URI;
-import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.vmware.xenon.common.NodeSelectorService.SelectAndForwardRequest;
@@ -53,17 +52,17 @@ public class NodeSelectorReplicationService extends StatelessService {
     void replicateUpdate(NodeGroupState localState,
             Operation outboundOp, SelectAndForwardRequest req, SelectOwnerResponse rsp) {
 
-        Collection<NodeState> members = localState.nodes.values();
+        int memberCount = localState.nodes.size();
         NodeState localNode = localState.nodes.get(getHost().getId());
         AtomicInteger successCount = new AtomicInteger(0);
 
         if (options.contains(ServiceOption.ENFORCE_QUORUM)
-                && localNode.membershipQuorum > members.size()) {
-            outboundOp.fail(new IllegalStateException("Not enough peers: " + members.size()));
+                && localNode.membershipQuorum > memberCount) {
+            outboundOp.fail(new IllegalStateException("Not enough peers: " + memberCount));
             return;
         }
 
-        if (members.size() == 1) {
+        if (memberCount == 1) {
             outboundOp.complete();
             return;
         }
@@ -72,11 +71,11 @@ public class NodeSelectorReplicationService extends StatelessService {
 
         // When quorum is not required, succeed when we replicate to at least one remote node,
         // or, if only local node is available, succeed immediately.
-        int successThreshold = Math.min(2, members.size() - 1);
-        int failureThreshold = members.size();
+        int successThreshold = Math.min(2, memberCount - 1);
+        int failureThreshold = memberCount;
 
         if (options.contains(ServiceOption.ENFORCE_QUORUM)) {
-            failureThreshold = members.size() - localNode.membershipQuorum;
+            failureThreshold = memberCount - localNode.membershipQuorum;
             successThreshold = Math.max(2, localNode.membershipQuorum);
         }
 
@@ -106,7 +105,7 @@ public class NodeSelectorReplicationService extends StatelessService {
                 return;
             }
 
-            if (fCount >= failureThresholdFinal || ((fCount + sCount) == members.size())) {
+            if (fCount >= failureThresholdFinal || ((fCount + sCount) == memberCount)) {
                 String error = String
                         .format("%s to %s failed. Success: %d,  Fail: %d, quorum: %d",
                                 outboundOp.getAction(),
