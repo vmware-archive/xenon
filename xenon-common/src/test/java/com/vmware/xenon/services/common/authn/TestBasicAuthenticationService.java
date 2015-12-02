@@ -118,8 +118,7 @@ public class TestBasicAuthenticationService {
                                         return;
                                     }
                                     String authHeader = o
-                                            .getResponseHeaders()
-                                            .get(
+                                            .getResponseHeader(
                                                     BasicAuthenticationService.WWW_AUTHENTICATE_HEADER_NAME);
                                     if (authHeader == null
                                             || !authHeader

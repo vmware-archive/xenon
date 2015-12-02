@@ -1461,7 +1461,7 @@ public class TestNodeGroupService {
 
         // add a custom header and make sure the service sees it in its handler, in the request
         // headers, and we see a service response header in our response
-        String headerName = MinimalTestService.TEST_HEADER_NAME;
+        String headerName = MinimalTestService.TEST_HEADER_NAME.toLowerCase();
         UUID id = UUID.randomUUID();
         String headerRequestValue = "request-" + id;
         String headerResponseValue = "response-" + id;

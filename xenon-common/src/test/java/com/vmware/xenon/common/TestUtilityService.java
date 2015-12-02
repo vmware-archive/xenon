@@ -286,7 +286,7 @@ public class TestUtilityService extends BasicReusableHostTestCase {
 
     public void validateServiceUiHtmlResponse(Operation op) {
         assertTrue(op.getStatusCode() == Operation.STATUS_CODE_MOVED_TEMP);
-        assertTrue(op.getResponseHeaders().get("Location").contains(
+        assertTrue(op.getResponseHeader("Location").contains(
                 "/core/ui/default#"));
     }
 
