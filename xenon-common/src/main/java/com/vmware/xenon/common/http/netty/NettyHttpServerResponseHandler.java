@@ -65,16 +65,17 @@ public class NettyHttpServerResponseHandler extends SimpleChannelInboundHandler<
         request.setKeepAlive(HttpHeaderUtil.isKeepAlive(nettyResponse));
         if (HttpHeaderUtil.isContentLengthSet(nettyResponse)) {
             request.setContentLength(HttpHeaderUtil.getContentLength(nettyResponse));
+            headers.remove(HttpHeaderNames.CONTENT_LENGTH);
+        }
+
+        String contentType = headers.getAndRemoveAndConvert(HttpHeaderNames.CONTENT_TYPE);
+        if (contentType != null) {
+            request.setContentType(contentType);
         }
 
         for (Entry<String, String> h : headers.entriesConverted()) {
             String key = h.getKey();
             String value = h.getValue();
-
-            if (key.equalsIgnoreCase(HttpHeaderNames.CONTENT_TYPE.toString())) {
-                request.setContentType(value);
-                continue;
-            }
             request.addResponseHeader(key, value);
         }
     }
@@ -91,9 +92,7 @@ public class NettyHttpServerResponseHandler extends SimpleChannelInboundHandler<
                 return;
             }
             // skip body decode, request had no body
-            request.setContentLength(0)
-                    .setContentType(Operation.MEDIA_TYPE_APPLICATION_JSON);
-            request.complete();
+            request.setContentLength(0).complete();
             return;
         }
 
