@@ -4189,7 +4189,11 @@ public class ServiceHost {
             return;
         }
 
-        URI u = getDocumentIndexServiceUri();
+        Service indexService = this.documentIndexService;
+        if (indexService == null) {
+            op.fail(new IllegalStateException("document index service is required"));
+            return;
+        }
 
         // serialize state and compute signature. The index service will take
         // the serialized state and store as is, and it will index all fields
@@ -4206,8 +4210,7 @@ public class ServiceHost {
             return;
         }
 
-        Operation post = Operation.createPost(u)
-                .setReferer(op.getReferer())
+        Operation post = Operation.createPost(indexService.getUri())
                 .setBodyNoCloning(body)
                 .setCompletion((o, e) -> {
                     if (e != null) {
@@ -4217,7 +4220,11 @@ public class ServiceHost {
                     }
                     op.complete();
                 });
-        sendRequest(post);
+
+        // Just like we do in loadServiceState, special case co-located indexing service and bypass
+        // normal processing path, to reduce latency. The call is still assumed to be asynchronous
+        // and the request can be processed in arbitrary thread context.
+        indexService.handleRequest(post);
     }
 
     private NodeSelectorService findNodeSelectorService(String path,
