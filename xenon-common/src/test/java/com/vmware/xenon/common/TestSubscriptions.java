@@ -188,10 +188,14 @@ public class TestSubscriptions extends BasicReportTestCase {
             this.host.send(Operation.createPatch(uri).setBody(body));
         }
 
+        Date exp = this.host.getTestExpiration();
         while (reliableNotificationCount.get() < c) {
             Thread.sleep(250);
             this.host.log("Received %d notifications, expecting %d",
                     reliableNotificationCount.get(), c);
+            if (new Date().after(exp)) {
+                throw new TimeoutException();
+            }
         }
 
     }
