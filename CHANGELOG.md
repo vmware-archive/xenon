@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 0.3.2-SNAPSHOT
+
 ## 0.3.1
 
 * Indexing I/O path optimizations producing 20% throughput
