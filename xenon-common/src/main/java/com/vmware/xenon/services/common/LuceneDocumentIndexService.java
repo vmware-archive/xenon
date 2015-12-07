@@ -936,7 +936,6 @@ public class LuceneDocumentIndexService extends StatelessService {
                             hasPage);
                     break;
                 }
-                page.after = bottom;
             }
 
             after = bottom;

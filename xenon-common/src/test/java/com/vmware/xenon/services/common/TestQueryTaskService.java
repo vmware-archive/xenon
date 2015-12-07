@@ -1017,6 +1017,7 @@ public class TestQueryTaskService {
         nonpaginatedBroadcastQueryTasksOnExampleStates(targetHost);
         paginatedbroadcastQueryTasksOnExampleStates();
         paginatedBroadcastQueryTasksWithoutMatching();
+        paginatedBroadcastQueryTasksRepeatSamePage();
     }
 
     private void verifyOnlySupportSortOnSelfLinkInBroadcast() throws Throwable {
@@ -1260,6 +1261,69 @@ public class TestQueryTaskService {
                 });
         targetHost.send(startGet);
         targetHost.testWait();
+    }
+
+    private void paginatedBroadcastQueryTasksRepeatSamePage() throws Throwable {
+
+        VerificationHost targetHost = this.host.getPeerHost();
+
+        int serviceCount = 100;
+        int resultLimit = 30;
+
+        QuerySpecification q = new QuerySpecification();
+
+        Query kindClause = new Query();
+        kindClause.setTermPropertyName(ServiceDocument.FIELD_NAME_KIND)
+                .setTermMatchValue(Utils.buildKind(ExampleServiceState.class));
+        q.query.addBooleanClause(kindClause);
+
+        q.options = EnumSet.of(QueryOption.EXPAND_CONTENT, QueryOption.BROADCAST);
+        q.resultLimit = resultLimit;
+
+        QueryTask task = QueryTask.create(q);
+
+        URI taskUri = this.host.createQueryTaskService(task, false, task.taskInfo.isDirect, task, null);
+        task = this.host.waitForQueryTaskCompletion(task.querySpec, 0, 0, taskUri, false, false);
+
+        targetHost.testStart(1);
+        Operation startGet = Operation
+                .createGet(taskUri)
+                .setCompletion((o, e) -> {
+                    if (e != null) {
+                        targetHost.failIteration(e);
+                        return;
+                    }
+
+                    targetHost.completeIteration();
+                });
+        targetHost.send(startGet);
+        targetHost.testWait();
+
+        // Query the same page link twice, and make sure the same results are returned.
+        List<List<String>> documentLinksList = new ArrayList<>();
+        URI u = UriUtils.buildUri(targetHost, task.results.nextPageLink);
+
+        for (int i = 0; i < 2; i++) {
+            targetHost.testStart(1);
+            startGet = Operation
+                    .createGet(u)
+                    .setCompletion((o, e) -> {
+                        if (e != null) {
+                            targetHost.failIteration(e);
+                            return;
+                        }
+
+                        QueryTask rsp = o.getBody(QueryTask.class);
+                        documentLinksList.add(rsp.results.documentLinks);
+
+                        targetHost.completeIteration();
+                    });
+
+            targetHost.send(startGet);
+            targetHost.testWait();
+        }
+
+        assertTrue(documentLinksList.get(0).equals(documentLinksList.get(1)));
     }
 
     @Test
