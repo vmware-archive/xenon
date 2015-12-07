@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.3.1-SNAPSHOT
+## 0.3.1
 
 * Indexing I/O path optimizations producing 20% throughput
 increase. Removed ServiceOption.INSTRUMENTATION from
