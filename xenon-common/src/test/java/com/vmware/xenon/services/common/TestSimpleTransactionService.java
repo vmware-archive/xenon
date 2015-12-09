@@ -470,8 +470,10 @@ public class TestSimpleTransactionService extends BasicReusableHostTestCase {
             String accountId = serviceSelfLink.substring(serviceSelfLink.lastIndexOf('/') + 1);
             for (int i = 0; i < RETRIES_IN_CASE_OF_CONFLICTS; i++) {
                 try {
+                    this.host.log("Trying to read account %s", accountId);
                     BankAccountServiceState account = getAccount(transactionId, accountId);
                     sum += account.balance;
+                    this.host.log("Successfully read account %s, runnin sum=%f", accountId, sum);
                     break;
                 } catch (IllegalStateException ex) {
                     this.host.log("Could not read account %s probably due to a transactional conflict", accountId);
