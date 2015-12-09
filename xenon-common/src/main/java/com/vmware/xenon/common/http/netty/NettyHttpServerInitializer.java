@@ -38,12 +38,12 @@ import com.vmware.xenon.common.ServiceHost.ServiceHostState.SslClientAuthMode;
 import com.vmware.xenon.services.common.ServiceUriPaths;
 
 public class NettyHttpServerInitializer extends ChannelInitializer<SocketChannel> {
-    private static final String AGGREGATOR_HANDLER = "aggregator";
-    private static final String HTTP_REQUEST_HANDLER = "http-request-handler";
-    private static final String WEBSOCKET_HANDLER = "websocket-request-handler";
-    private static final String HTTP1_CODEC = "http1-codec";
-    private static final String HTTP2_UPGRADE_HANDLER = "http2-upgrade-handler";
-    private static final String SSL_HANDLER = "ssl";
+    public static final String AGGREGATOR_HANDLER = "aggregator";
+    public static final String HTTP_REQUEST_HANDLER = "http-request-handler";
+    public static final String WEBSOCKET_HANDLER = "websocket-request-handler";
+    public static final String HTTP1_CODEC = "http1-codec";
+    public static final String HTTP2_UPGRADE_HANDLER = "http2-upgrade-handler";
+    public static final String SSL_HANDLER = "ssl";
 
     private final SslContext sslContext;
     private ServiceHost host;

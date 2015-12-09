@@ -61,13 +61,13 @@ import com.vmware.xenon.common.Utils;
  */
 public class NettyHttpClientRequestInitializer extends ChannelInitializer<SocketChannel> {
 
-    private static final String SSL_HANDLER = "ssl";
-    private static final String HTTP1_CODEC = "http1-codec";
-    private static final String UPGRADE_HANDLER = "upgrade-handler";
-    private static final String UPGRADE_REQUEST = "upgrade-request";
-    private static final String AGGREGATOR_HANDLER = "aggregator";
-    private static final String XENON_HANDLER = "xenon";
-    private static final String EVENT_LOGGER = "event-logger";
+    public static final String SSL_HANDLER = "ssl";
+    public static final String HTTP1_CODEC = "http1-codec";
+    public static final String UPGRADE_HANDLER = "upgrade-handler";
+    public static final String UPGRADE_REQUEST = "upgrade-request";
+    public static final String AGGREGATOR_HANDLER = "aggregator";
+    public static final String XENON_HANDLER = "xenon";
+    public static final String EVENT_LOGGER = "event-logger";
 
     private final NettyChannelPool pool;
     private boolean isHttp2Only = false;
