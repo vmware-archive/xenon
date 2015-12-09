@@ -878,9 +878,9 @@ public class LuceneDocumentIndexService extends StatelessService {
 
         do {
             if (sort == null) {
-                results = s.searchAfter(after, tq, resultLimit);
+                results = s.searchAfter(after, tq, count);
             } else {
-                results = s.searchAfter(after, tq, resultLimit, sort, false, false);
+                results = s.searchAfter(after, tq, count, sort, false, false);
             }
             long end = Utils.getNowMicrosUtc();
             if (results == null) {
@@ -893,10 +893,11 @@ public class LuceneDocumentIndexService extends StatelessService {
 
             rsp.documentCount = Long.valueOf(0);
             rsp.queryTimeMicros += queryTime;
-
+            ScoreDoc bottom = null;
             if (shouldProcessResults) {
                 start = Utils.getNowMicrosUtc();
-                processQueryResults(targetIndex, options, s, rsp, hits, queryStartTimeMicros);
+                bottom = processQueryResults(targetIndex, options, count, s, rsp, hits,
+                        queryStartTimeMicros);
                 end = Utils.getNowMicrosUtc();
 
                 if (hasOption(ServiceOption.INSTRUMENTATION)) {
@@ -920,10 +921,10 @@ public class LuceneDocumentIndexService extends StatelessService {
                 break;
             }
 
-            ScoreDoc bottom = null;
+
             if (isPaginatedQuery) {
-                if (hasPage) {
-                    bottom = hits[hits.length - 1];
+                if (!hasPage) {
+                    bottom = null;
                 }
 
                 if (!hasPage || rsp.documentLinks.size() >= count
@@ -1014,10 +1015,11 @@ public class LuceneDocumentIndexService extends StatelessService {
         return nextLink;
     }
 
-    private void processQueryResults(ServiceOption targetIndex, EnumSet<QueryOption> options,
-            IndexSearcher s, ServiceDocumentQueryResult rsp, ScoreDoc[] hits,
+    private ScoreDoc processQueryResults(ServiceOption targetIndex, EnumSet<QueryOption> options,
+            int resultLimit, IndexSearcher s, ServiceDocumentQueryResult rsp, ScoreDoc[] hits,
             long queryStartTimeMicros) throws Throwable {
 
+        ScoreDoc lastDocVisited = null;
         Set<String> fieldsToLoad = this.fieldsToLoadNoExpand;
         if (options.contains(QueryOption.EXPAND_CONTENT)) {
             fieldsToLoad = this.fieldsToLoadWithExpand;
@@ -1029,6 +1031,11 @@ public class LuceneDocumentIndexService extends StatelessService {
 
         Map<String, Long> latestVersions = new HashMap<>();
         for (ScoreDoc sd : hits) {
+            if (uniques.size() >= resultLimit) {
+                break;
+            }
+
+            lastDocVisited = sd;
             Document d = s.getIndexReader().document(sd.doc, fieldsToLoad);
             String link = d.get(ServiceDocument.FIELD_NAME_SELF_LINK);
             IndexableField versionField = d.getField(ServiceDocument.FIELD_NAME_VERSION);
@@ -1102,6 +1109,8 @@ public class LuceneDocumentIndexService extends StatelessService {
             rsp.documentLinks.addAll(uniques);
             rsp.documentCount = Long.valueOf(rsp.documentLinks.size());
         }
+
+        return lastDocVisited;
     }
 
     private ServiceDocument getStateFromLuceneDocument(Document doc, String link) {
