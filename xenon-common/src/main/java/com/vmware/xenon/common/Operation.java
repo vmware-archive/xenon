@@ -127,7 +127,6 @@ public class Operation implements Cloneable {
         public Principal peerPrincipal;
         public X509Certificate[] peerCertificateChain;
         public boolean isKeepAlive;
-        public int headerByteCount;
     }
 
     /**

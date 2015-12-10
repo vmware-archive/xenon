@@ -498,13 +498,7 @@ public class ServiceHost {
             throw new IllegalStateException();
         }
 
-        File s = null;
-        if (storageSandbox == null) {
-            s = new File(Utils.getCurrentFileDirectory());
-            storageSandbox = s.toURI();
-        } else {
-            s = new File(storageSandbox);
-        }
+        File s = new File(storageSandbox);
 
         if (false == s.exists()) {
             throw new IllegalArgumentException("storageSandbox directory does not exist: "

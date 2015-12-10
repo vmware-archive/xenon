@@ -167,20 +167,6 @@ public class LuceneDocumentIndexService extends StatelessService {
 
     protected Map<String, QueryTask> activeQueries = new ConcurrentSkipListMap<>();
 
-    static class SelfLinkInfo {
-        // Estimate of the memory cost per instance:
-        // 16 bytes for Object overhead
-        // 8 * 2 bytes for the two long fields
-        // 8 * 3 bytes for the pointers used to track this in the map (estimate)
-        public static final int BYTES_PER_INSTANCE = 16 + 8 * 2 + 8 * 3;
-
-        /**
-         * Latest indexed version of the self link
-         */
-        public long version;
-        public long updateMicros;
-    }
-
     private long searcherUpdateTimeMicros;
 
     private long indexUpdateTimeMicros;

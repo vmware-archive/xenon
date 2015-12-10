@@ -93,10 +93,7 @@ public class ExampleService extends StatefulService {
 
     @Override
     public void handlePatch(Operation patch) {
-        ExampleServiceState updateState = updateState(patch);
-        if (updateState == null) {
-            return;
-        }
+        updateState(patch);
         // updateState method already set the response body with the merged state
         patch.complete();
     }
