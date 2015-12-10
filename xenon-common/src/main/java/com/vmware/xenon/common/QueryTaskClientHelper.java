@@ -13,6 +13,7 @@
 
 package com.vmware.xenon.common;
 
+import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -83,6 +84,7 @@ public class QueryTaskClientHelper<T extends ServiceDocument> {
     private ServiceHost host;
     private QueryTask queryTask;
     private ResultHandler<T> resultHandler;
+    private URI baseUri;
 
     private QueryTaskClientHelper(Class<T> type) {
         this.type = type;
@@ -179,6 +181,9 @@ public class QueryTaskClientHelper<T extends ServiceDocument> {
     public QueryTaskClientHelper<T> sendWith(ServiceHost serviceHost) {
         assertNotNull(serviceHost, "'serviceHost' must not be null.");
         this.host = serviceHost;
+        if (this.baseUri == null) {
+            this.baseUri = serviceHost.getUri();
+        }
         sendQueryRequest();
         return this;
     }
@@ -196,6 +201,19 @@ public class QueryTaskClientHelper<T extends ServiceDocument> {
             queryTask.documentExpirationTimeMicros = getDefaultQueryExpiration();
         }
         this.queryTask = queryTask;
+        return this;
+    }
+
+    /**
+     * Set the base URI to be used when generating {@link Operation}s.
+     *
+     * @param baseUri
+     *
+     * @return QueryTaskClientHelper
+     */
+    public QueryTaskClientHelper<T> setBaseUri(URI baseUri) {
+        assertNotNull(baseUri, "'baseUri' must not be null.");
+        this.baseUri = baseUri;
         return this;
     }
 
@@ -224,7 +242,7 @@ public class QueryTaskClientHelper<T extends ServiceDocument> {
         assertNotNull(this.resultHandler, "'resultHandler' must be set first.");
 
         this.host.sendRequest(Operation
-                .createPost(UriUtils.buildUri(this.host, ServiceUriPaths.CORE_QUERY_TASKS))
+                .createPost(UriUtils.extendUri(this.baseUri, ServiceUriPaths.CORE_QUERY_TASKS))
                 .setBody(this.queryTask)
                 .setReferer(this.host.getUri())
                 .setCompletion((o, e) -> {
@@ -248,7 +266,8 @@ public class QueryTaskClientHelper<T extends ServiceDocument> {
             return;
         }
 
-        this.host.sendRequest(Operation.createGet(UriUtils.buildUri(this.host, q.documentSelfLink))
+        this.host.sendRequest(Operation
+                .createGet(UriUtils.extendUri(this.baseUri, q.documentSelfLink))
                 .setReferer(this.host.getUri())
                 .setCompletion((o, e) -> {
                     if (e != null) {
@@ -316,7 +335,8 @@ public class QueryTaskClientHelper<T extends ServiceDocument> {
                 return;
             }
 
-            this.host.sendRequest(Operation.createGet(UriUtils.buildUri(this.host, nextPageLink))
+            this.host.sendRequest(Operation
+                    .createGet(UriUtils.extendUri(this.baseUri, nextPageLink))
                     .setReferer(this.host.getUri())
                     .setCompletion((o, e) -> {
                         if (e != null) {
