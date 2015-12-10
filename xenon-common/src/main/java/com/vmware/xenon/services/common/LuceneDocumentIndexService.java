@@ -1725,7 +1725,7 @@ public class LuceneDocumentIndexService extends StatelessService {
                 this.searcher = s;
                 this.searcherUpdateTimeMicros = now;
             }
-            return this.searcher;
+            return s;
         }
     }
 
