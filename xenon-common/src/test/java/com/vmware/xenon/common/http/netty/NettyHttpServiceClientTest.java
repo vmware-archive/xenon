@@ -298,6 +298,8 @@ public class NettyHttpServiceClientTest {
         MinimalTestServiceState body = new MinimalTestServiceState();
         body.id = MinimalTestService.STRING_MARKER_TIMEOUT_REQUEST;
 
+        this.host.getClient()
+                .setConnectionLimitPerHost(NettyHttpServiceClient.DEFAULT_CONNECTIONS_PER_HOST);
         int count = NettyHttpServiceClient.DEFAULT_CONNECTIONS_PER_HOST * 2;
         // timeout tracking currently works only for remote requests ...
         this.host.testStart(count);

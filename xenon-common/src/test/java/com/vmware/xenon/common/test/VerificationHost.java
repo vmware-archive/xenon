@@ -103,7 +103,7 @@ public class VerificationHost extends ExampleServiceHost {
 
     public static final int FAST_MAINT_INTERVAL_MILLIS = 100;
 
-    private CountDownLatch completionLatch;
+    private volatile CountDownLatch completionLatch;
 
     private int timeoutSeconds = 30;
 
