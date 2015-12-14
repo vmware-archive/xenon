@@ -2,6 +2,8 @@
 
 ## 0.4.0-SNAPSHOT
 
+* Added honoring of verbs (POST, PATCH, etc) in roles
+
 ## 0.3.2
 
 * Add on demand service load, enabled with
