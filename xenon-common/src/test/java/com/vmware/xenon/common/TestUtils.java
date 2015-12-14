@@ -220,6 +220,8 @@ public class TestUtils {
         document.documentSourceLink = UUID.randomUUID().toString();
         document.documentOwner = UUID.randomUUID().toString();
         document.documentUpdateTimeMicros = Utils.getNowMicrosUtc();
+        document.documentAuthPrincipalLink = UUID.randomUUID().toString();
+        document.documentUpdateAction = UUID.randomUUID().toString();
 
         QueryValidationServiceState original = Utils.clone(document);
 
@@ -244,6 +246,12 @@ public class TestUtils {
         assertTrue(ServiceDocument.equals(desc, original, document));
 
         document.documentVersion = Utils.getNowMicrosUtc();
+        assertTrue(ServiceDocument.equals(desc, original, document));
+
+        document.documentUpdateAction = UUID.randomUUID().toString();
+        assertTrue(ServiceDocument.equals(desc, original, document));
+
+        document.documentAuthPrincipalLink = UUID.randomUUID().toString();
         assertTrue(ServiceDocument.equals(desc, original, document));
 
         // we have marked one of the derived fields as EXCLUDE from signature, verify that changing
