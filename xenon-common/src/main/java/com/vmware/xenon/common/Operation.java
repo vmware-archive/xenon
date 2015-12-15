@@ -330,6 +330,7 @@ public class Operation implements Cloneable {
     public static final String SET_COOKIE_HEADER = "set-cookie";
     public static final String LOCATION_HEADER = "location";
     public static final String USER_AGENT_HEADER = "user-agent";
+    public static final String ACCEPT_HEADER = "accept";
 
     // Proprietary header definitions
     public static final String HEADER_NAME_PREFIX = "x-xenon-";
