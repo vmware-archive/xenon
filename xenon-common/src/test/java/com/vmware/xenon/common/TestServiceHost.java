@@ -817,6 +817,10 @@ public class TestServiceHost {
                 this.serviceCount,
                 ExampleServiceState.class, bodySetter, factoryURI);
 
+        // while pausing, issue updates to verify behavior under load. Services should either abort pause,
+        // or be ignored due to recent update
+        patchExampleServices(states, 100);
+
         long expectedPauseTime = Utils.getNowMicrosUtc() + this.host.getMaintenanceIntervalMicros()
                 * 5;
         while (this.host.getState().lastMaintenanceTimeUtcMicros < expectedPauseTime) {
@@ -832,16 +836,7 @@ public class TestServiceHost {
 
         // services should all be paused now since we set the host memory limit so low. Send requests to
         // prove resume worked. We will then verify the per stats to make sure both pause and resume actually occurred
-        this.host.testStart(states.size());
-        for (ExampleServiceState st : states.values()) {
-            st.name = "updated" + Utils.getNowMicrosUtc() + "";
-            Operation patch = Operation
-                    .createPatch(UriUtils.buildUri(this.host, st.documentSelfLink))
-                    .setCompletion(this.host.getCompletion())
-                    .setBody(st);
-            this.host.send(patch);
-        }
-        this.host.testWait();
+        patchExampleServices(states, 1);
 
         Map<String, ServiceStats> stats = Collections.synchronizedMap(new HashMap<>());
         this.host.testStart(states.size() * 2);
@@ -958,6 +953,22 @@ public class TestServiceHost {
             }
         }
 
+    }
+
+    private void patchExampleServices(Map<URI, ExampleServiceState> states, int count)
+            throws Throwable {
+        this.host.testStart(states.size() * count);
+        for (ExampleServiceState st : states.values()) {
+            for (int i = 0; i < count; i++) {
+                st.name = "updated" + Utils.getNowMicrosUtc() + "";
+                Operation patch = Operation
+                        .createPatch(UriUtils.buildUri(this.host, st.documentSelfLink))
+                        .setCompletion(this.host.getCompletion())
+                        .setBody(st);
+                this.host.send(patch);
+            }
+        }
+        this.host.testWait();
     }
 
     @Test

@@ -4075,7 +4075,13 @@ public class ServiceHost {
                 continue;
             }
 
-            s.setProcessingStage(ProcessingStage.PAUSED);
+            try {
+                s.setProcessingStage(ProcessingStage.PAUSED);
+            } catch (Throwable e) {
+                log(Level.INFO, "Failure setting stage to %s for %s: %s", ProcessingStage.PAUSED,
+                        s.getSelfLink(), e.getMessage());
+                continue;
+            }
             servicePauseCount++;
             String path = s.getSelfLink();
 

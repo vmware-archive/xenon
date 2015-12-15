@@ -1328,6 +1328,10 @@ public class StatefulService implements Service {
                                 + this.context.processingStage);
                         return;
                     }
+                    if (this.context.isUpdateActive || !this.context.operationQueue.isEmpty()) {
+                        failure = new IllegalStateException("Service has active updates");
+                        return;
+                    }
                     statName = STAT_NAME_PAUSE_COUNT;
                 } else if (this.context.processingStage == ProcessingStage.PAUSED
                         && stage == ProcessingStage.AVAILABLE) {
