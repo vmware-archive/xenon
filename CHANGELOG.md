@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 0.4.0-SNAPSHOT
+
 ## 0.3.2
 
 * Add on demand service load, enabled with
