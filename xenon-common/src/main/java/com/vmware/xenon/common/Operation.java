@@ -1140,8 +1140,13 @@ public class Operation implements Cloneable {
         }
     }
 
+    /**
+     * Infrastructure use only. Used by service request client logic.
+     *
+     * First decrements the retry count then returns the current value
+     */
     public int decrementRetriesRemaining() {
-        return this.retriesRemaining--;
+        return --this.retriesRemaining;
     }
 
     /**
