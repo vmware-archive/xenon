@@ -27,6 +27,7 @@ public class TenantFactoryService extends FactoryService {
 
     public TenantFactoryService() {
         super(TenantService.TenantState.class);
+        super.toggleOption(ServiceOption.IDEMPOTENT_POST, true);
     }
 
     @Override

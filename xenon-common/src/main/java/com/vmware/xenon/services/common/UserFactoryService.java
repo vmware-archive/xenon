@@ -22,6 +22,7 @@ public class UserFactoryService extends FactoryService {
 
     public UserFactoryService() {
         super(UserState.class);
+        super.toggleOption(ServiceOption.IDEMPOTENT_POST, true);
     }
 
     @Override

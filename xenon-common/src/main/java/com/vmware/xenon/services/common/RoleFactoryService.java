@@ -22,6 +22,7 @@ public class RoleFactoryService extends FactoryService {
 
     public RoleFactoryService() {
         super(RoleState.class);
+        super.toggleOption(ServiceOption.IDEMPOTENT_POST, true);
     }
 
     @Override

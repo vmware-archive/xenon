@@ -22,6 +22,7 @@ public class UserGroupFactoryService extends FactoryService {
 
     public UserGroupFactoryService() {
         super(UserGroupState.class);
+        super.toggleOption(ServiceOption.IDEMPOTENT_POST, true);
     }
 
     @Override
