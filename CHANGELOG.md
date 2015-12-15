@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.3.2-SNAPSHOT
+## 0.3.2
 
 * Add on demand service load, enabled with
 ServiceOption.ON_DEMAND_LOAD
