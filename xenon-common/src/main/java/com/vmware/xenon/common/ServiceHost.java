@@ -488,6 +488,17 @@ public class ServiceHost {
             Files.createDirectories(sandbox);
         }
 
+        if (args.publicUri != null) {
+            URI u = new URI(args.publicUri);
+            if (!u.isAbsolute() || u.getHost() == null || u.getHost().isEmpty()) {
+                throw new IllegalArgumentException("publicUri should be a non empty absolute URI");
+            }
+        }
+
+        if (args.bindAddress != null && args.bindAddress.equals("")) {
+            throw new IllegalArgumentException("bindAddress should be a non empty valid IP address");
+        }
+
         if (args.port < 0) {
             throw new IllegalArgumentException(
                     "port: negative values not allowed");
