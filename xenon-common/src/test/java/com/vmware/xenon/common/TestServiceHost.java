@@ -535,7 +535,7 @@ public class TestServiceHost {
         Map<URI, ServiceStats> servicesWithMaintenance = new HashMap<>();
 
         // guarantee at least a few intervals have passed. Other we risk false negatives.
-        Thread.sleep(maintIntervalMillis * 5);
+        Thread.sleep(maintIntervalMillis * 10);
 
         Date exp = this.host.getTestExpiration();
         while (new Date().before(exp)) {
@@ -591,10 +591,10 @@ public class TestServiceHost {
         double expectedMaintIntervals = Math.max(1,
                 (end - start) / this.host.getMaintenanceIntervalMicros());
 
-        // allow variance up to 50% of expected intervals. We have the interval set to 100ms
+        // allow variance up to 2x of expected intervals. We have the interval set to 100ms
         // and we are running tests on VMs, in over subscribed CI. So we expect significant
         // scheduling variance. This test is extremely consistent on a local machine
-        expectedMaintIntervals += expectedMaintIntervals / 2;
+        expectedMaintIntervals *= 2;
 
         for (Entry<URI, ServiceStats> e : servicesWithMaintenance.entrySet()) {
 

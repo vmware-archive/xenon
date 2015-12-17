@@ -55,7 +55,8 @@ class ServiceHostMaintenanceTracker {
     }
 
     public void performMaintenance(Operation op, long deadline) {
-        while (Utils.getNowMicrosUtc() < deadline) {
+        long now = Utils.getNowMicrosUtc();
+        while (now < deadline) {
             if (this.host.isStopping()) {
                 op.fail(new CancellationException("Host is stopping"));
                 return;
@@ -68,7 +69,7 @@ class ServiceHostMaintenanceTracker {
             synchronized (this) {
                 // get any services set to expire within the current maintenance interval
                 Entry<Long, Set<String>> e = this.nextExpiration.firstEntry();
-                if (e == null || e.getKey() > deadline) {
+                if (e == null || e.getKey() >= now) {
                     // no service requires maintenance, yet
                     return;
                 }
@@ -98,6 +99,7 @@ class ServiceHostMaintenanceTracker {
 
                 performServiceMaintenance(servicePath, s);
             }
+            now = Utils.getNowMicrosUtc();
         }
     }
 
