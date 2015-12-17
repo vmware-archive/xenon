@@ -54,48 +54,33 @@ public class TestUserService extends BasicTestCase {
     }
 
     @Test
-    public void testFactoryPostDuplicate() throws Throwable {
+    public void testFactoryIdempotentPost() throws Throwable {
         UserState state = new UserState();
         state.email = "jane@doe.com";
         state.documentSelfLink = state.email;
 
-        final UserState[] outState = new UserState[1];
+        UserState responseState = (UserState) this.host.verifyPost(UserState.class,
+                ServiceUriPaths.CORE_AUTHZ_USERS,
+                state,
+                Operation.STATUS_CODE_OK);
 
-        URI uri = UriUtils.buildUri(this.host, ServiceUriPaths.CORE_AUTHZ_USERS);
-        Operation op = Operation.createPost(uri)
-                .setBody(state)
-                .setCompletion((o, e) -> {
-                    if (e != null) {
-                        this.host.failIteration(e);
-                        return;
-                    }
+        assertEquals(state.email,responseState.email);
 
-                    outState[0] = o.getBody(UserState.class);
-                    this.host.completeIteration();
-                });
+        responseState = (UserState) this.host.verifyPost(UserState.class,
+                ServiceUriPaths.CORE_AUTHZ_USERS,
+                state,
+                Operation.STATUS_CODE_NOT_MODIFIED);
 
-        this.host.testStart(1);
-        this.host.send(op);
-        this.host.testWait();
+        assertEquals(state.email,responseState.email);
 
-        op = Operation.createPost(uri)
-                .setBody(state)
-                .setCompletion((o, e) -> {
-                    if (e != null) {
-                        this.host.failIteration(e);
-                        return;
-                    }
-                    if (o.getStatusCode() == Operation.STATUS_CODE_NOT_MODIFIED) {
-                        this.host.completeIteration();
-                        return;
-                    }
-                    this.host.failIteration(new IllegalStateException("Status code 304 expected"));
-                });
+        state.email = "john@doe.com";
 
-        this.host.testStart(1);
-        this.host.send(op);
-        this.host.testWait();
-        assertEquals(state.email, outState[0].email);
+        responseState = (UserState) this.host.verifyPost(UserState.class,
+                ServiceUriPaths.CORE_AUTHZ_USERS,
+                state,
+                Operation.STATUS_CODE_OK);
+
+        assertEquals(state.email, responseState.email);
     }
 
     @Test

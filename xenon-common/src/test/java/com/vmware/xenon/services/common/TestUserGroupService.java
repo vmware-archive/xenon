@@ -16,6 +16,7 @@ package com.vmware.xenon.services.common;
 import static org.junit.Assert.assertEquals;
 
 import java.net.URI;
+import java.util.UUID;
 
 import org.junit.Test;
 
@@ -55,6 +56,41 @@ public class TestUserGroupService extends BasicReusableHostTestCase {
 
         assertEquals(state.query.term.propertyName, outState[0].query.term.propertyName);
         assertEquals(state.query.term.matchValue, outState[0].query.term.matchValue);
+    }
+
+    @Test
+    public void testFactoryIdempotentPost() throws Throwable {
+        UserGroupState state = new UserGroupState();
+        state.documentSelfLink = UUID.randomUUID().toString();
+        state.query = new Query();
+        state.query.setTermPropertyName("name");
+        state.query.setTermMatchValue("value");
+
+        UserGroupState responseState = (UserGroupState) this.host.verifyPost(UserGroupState.class,
+                ServiceUriPaths.CORE_AUTHZ_USER_GROUPS,
+                state,
+                Operation.STATUS_CODE_OK);
+
+        assertEquals(state.query.term.propertyName, responseState.query.term.propertyName);
+        assertEquals(state.query.term.matchValue, responseState.query.term.matchValue);
+
+        responseState = (UserGroupState) this.host.verifyPost(UserGroupState.class,
+                ServiceUriPaths.CORE_AUTHZ_USER_GROUPS,
+                state,
+                Operation.STATUS_CODE_NOT_MODIFIED);
+
+        assertEquals(state.query.term.propertyName, responseState.query.term.propertyName);
+        assertEquals(state.query.term.matchValue, responseState.query.term.matchValue);
+
+        state.query.setTermMatchValue("valueModified");
+
+        responseState = (UserGroupState) this.host.verifyPost(UserGroupState.class,
+                ServiceUriPaths.CORE_AUTHZ_USER_GROUPS,
+                state,
+                Operation.STATUS_CODE_OK);
+
+        assertEquals(state.query.term.propertyName, responseState.query.term.propertyName);
+        assertEquals(state.query.term.matchValue, responseState.query.term.matchValue);
     }
 
     @Test

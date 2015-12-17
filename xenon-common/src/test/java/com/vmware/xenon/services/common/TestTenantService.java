@@ -79,6 +79,45 @@ public class TestTenantService extends BasicReusableHostTestCase {
     }
 
     @Test
+    public void testFactoryIdempotentPost() throws Throwable {
+        TenantService.TenantState state = new TenantService.TenantState();
+        state.documentSelfLink = UUID.randomUUID().toString();
+        state.id = UUID.randomUUID().toString();
+        state.name = UUID.randomUUID().toString();
+        state.parentLink = UUID.randomUUID().toString();
+
+        TenantService.TenantState responseState =
+                (TenantService.TenantState) this.host.verifyPost(TenantService.TenantState.class,
+                TenantFactoryService.SELF_LINK,
+                state,
+                Operation.STATUS_CODE_OK);
+
+        assertEquals(state.id, responseState.id);
+        assertEquals(state.name, responseState.name);
+        assertEquals(state.parentLink, responseState.parentLink);
+
+        responseState = (TenantService.TenantState) this.host.verifyPost(TenantService.TenantState.class,
+                TenantFactoryService.SELF_LINK,
+                state,
+                Operation.STATUS_CODE_NOT_MODIFIED);
+
+        assertEquals(state.id, responseState.id);
+        assertEquals(state.name, responseState.name);
+        assertEquals(state.parentLink, responseState.parentLink);
+
+        state.name = UUID.randomUUID().toString();
+
+        responseState = (TenantService.TenantState) this.host.verifyPost(TenantService.TenantState.class,
+                TenantFactoryService.SELF_LINK,
+                state,
+                Operation.STATUS_CODE_OK);
+
+        assertEquals(state.id, responseState.id);
+        assertEquals(state.name, responseState.name);
+        assertEquals(state.parentLink, responseState.parentLink);
+    }
+
+    @Test
     public void testPatch() throws Throwable {
         ServiceDocumentQueryResult initialStates = createInstances(SERVICE_COUNT, false);
 

@@ -18,6 +18,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 import java.util.HashSet;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 import org.junit.Test;
@@ -66,6 +67,47 @@ public class TestRoleService extends BasicTestCase {
 
         assertEquals(outState[0].userGroupLink, state.userGroupLink);
         assertEquals(outState[0].resourceGroupLink, state.resourceGroupLink);
+    }
+
+    @Test
+    public void testFactoryIdempotentPost() throws Throwable {
+        RoleState state = validRoleState();
+        state.documentSelfLink = UUID.randomUUID().toString();
+
+        RoleState responseState = (RoleState) this.host.verifyPost(RoleState.class,
+                ServiceUriPaths.CORE_AUTHZ_ROLES,
+                state,
+                Operation.STATUS_CODE_OK);
+
+        assertEquals(state.userGroupLink, responseState.userGroupLink);
+        assertEquals(state.resourceGroupLink, responseState.resourceGroupLink);
+        assertEquals(state.verbs, responseState.verbs);
+        assertEquals(state.priority, responseState.priority);
+        assertEquals(state.policy, responseState.policy);
+
+        responseState = (RoleState) this.host.verifyPost(RoleState.class,
+                ServiceUriPaths.CORE_AUTHZ_ROLES,
+                state,
+                Operation.STATUS_CODE_NOT_MODIFIED);
+
+        assertEquals(state.userGroupLink, responseState.userGroupLink);
+        assertEquals(state.resourceGroupLink, responseState.resourceGroupLink);
+        assertEquals(state.verbs, responseState.verbs);
+        assertEquals(state.priority, responseState.priority);
+        assertEquals(state.policy, responseState.policy);
+
+        state.verbs.add(Action.PATCH);
+
+        responseState = (RoleState) this.host.verifyPost(RoleState.class,
+                ServiceUriPaths.CORE_AUTHZ_ROLES,
+                state,
+                Operation.STATUS_CODE_OK);
+
+        assertEquals(state.userGroupLink, responseState.userGroupLink);
+        assertEquals(state.resourceGroupLink, responseState.resourceGroupLink);
+        assertEquals(state.verbs, responseState.verbs);
+        assertEquals(state.priority, responseState.priority);
+        assertEquals(state.policy, responseState.policy);
     }
 
     void testFactoryPostFailure(Supplier<RoleState> sup) throws Throwable {

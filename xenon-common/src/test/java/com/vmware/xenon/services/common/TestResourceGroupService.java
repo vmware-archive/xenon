@@ -16,6 +16,7 @@ package com.vmware.xenon.services.common;
 import static org.junit.Assert.assertEquals;
 
 import java.net.URI;
+import java.util.UUID;
 
 import org.junit.Test;
 
@@ -49,6 +50,41 @@ public class TestResourceGroupService extends BasicTestCase {
         state.query.setTermPropertyName("new-name");
         state.query.setTermMatchValue("new-value");
         postHelper(state);
+    }
+
+    @Test
+    public void testFactoryIdempotentPost() throws Throwable {
+        ResourceGroupState state = new ResourceGroupState();
+        state.documentSelfLink = UUID.randomUUID().toString();
+        state.query = new Query();
+        state.query.setTermPropertyName("name");
+        state.query.setTermMatchValue("value");
+
+        ResourceGroupState responseState = (ResourceGroupState) this.host.verifyPost(ResourceGroupState.class,
+                ServiceUriPaths.CORE_AUTHZ_RESOURCE_GROUPS,
+                state,
+                Operation.STATUS_CODE_OK);
+
+        assertEquals(state.query.term.propertyName, responseState.query.term.propertyName);
+        assertEquals(state.query.term.matchValue, responseState.query.term.matchValue);
+
+        responseState = (ResourceGroupState) this.host.verifyPost(ResourceGroupState.class,
+                ServiceUriPaths.CORE_AUTHZ_RESOURCE_GROUPS,
+                state,
+                Operation.STATUS_CODE_NOT_MODIFIED);
+
+        assertEquals(state.query.term.propertyName, responseState.query.term.propertyName);
+        assertEquals(state.query.term.matchValue, responseState.query.term.matchValue);
+
+        state.query.setTermMatchValue("valueModified");
+
+        responseState = (ResourceGroupState) this.host.verifyPost(ResourceGroupState.class,
+                ServiceUriPaths.CORE_AUTHZ_RESOURCE_GROUPS,
+                state,
+                Operation.STATUS_CODE_OK);
+
+        assertEquals(state.query.term.propertyName, responseState.query.term.propertyName);
+        assertEquals(state.query.term.matchValue, responseState.query.term.matchValue);
     }
 
     @Test

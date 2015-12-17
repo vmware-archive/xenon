@@ -2562,4 +2562,35 @@ public class VerificationHost extends ExampleServiceHost {
         }
         testWait();
     }
+
+    public <T extends ServiceDocument> ServiceDocument verifyPost(Class<T> documentType,
+                                                                  String factoryLink,
+                                                                  T state,
+                                                                  int expectedStatusCode) throws Throwable {
+        final ServiceDocument[] outState = new ServiceDocument[1];
+        URI uri = UriUtils.buildUri(this, factoryLink);
+
+        Operation op = Operation.createPost(uri)
+                .setBody(state)
+                .setCompletion((o, e) -> {
+                    if (e != null) {
+                        failIteration(e);
+                        return;
+                    }
+                    if (o.getStatusCode() == expectedStatusCode) {
+                        outState[0] = o.getBody(documentType);
+                        completeIteration();
+                        return;
+                    }
+                    failIteration(new IllegalStateException(
+                            String.format("Status code expected: %s, actual: %s",
+                                expectedStatusCode, o.getStatusCode())));
+                });
+
+        testStart(1);
+        send(op);
+        testWait();
+
+        return outState[0];
+    }
 }
