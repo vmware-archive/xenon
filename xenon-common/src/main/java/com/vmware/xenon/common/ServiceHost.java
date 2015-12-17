@@ -4108,7 +4108,7 @@ public class ServiceHost {
             handleRequest(null, inboundOp);
         });
 
-        log(Level.INFO, "On demand service start of %s", link);
+        log(Level.FINE, "On demand service start of %s", link);
 
         Service childService = null;
         try {
