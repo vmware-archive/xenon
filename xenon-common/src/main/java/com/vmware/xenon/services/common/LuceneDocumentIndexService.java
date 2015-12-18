@@ -402,8 +402,8 @@ public class LuceneDocumentIndexService extends StatelessService {
             createWriter(directory, true);
             op.complete();
             this.logInfo("restore complete");
-        } catch (Exception e) {
-            this.logSevere(e);
+        } catch (Throwable e) {
+            logSevere(e);
             op.fail(e);
         } finally {
             this.writerAvailable.release(semaphoreCount);
