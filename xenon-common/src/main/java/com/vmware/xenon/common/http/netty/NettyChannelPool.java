@@ -266,9 +266,6 @@ public class NettyChannelPool {
 
         String key = toConnectionKey(host, port);
         NettyChannelGroup group = getChannelGroup(key);
-        if (group == null) {
-            return 0;
-        }
         return group.http2Channels.size();
     }
 
@@ -284,9 +281,6 @@ public class NettyChannelPool {
 
         String key = toConnectionKey(host, port);
         NettyChannelGroup group = getChannelGroup(key);
-        if (group == null) {
-            return null;
-        }
         NettyChannelContext context = selectHttp2Context(group, host, port, key);
         return context;
     }
