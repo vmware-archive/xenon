@@ -772,7 +772,7 @@ public class TestNodeGroupService {
      */
     @Test
     public void replicationWithCrossServiceDependencies() throws Throwable {
-        // this.isPeerSynchronizationEnabled = false;
+        this.isPeerSynchronizationEnabled = false;
         setUpPeers(this.nodeCount);
 
         this.host.joinNodesAndVerifyConvergence(this.host.getPeerCount());
@@ -924,6 +924,50 @@ public class TestNodeGroupService {
             throw new IllegalStateException("owner routing issue with stats: "
                     + Utils.toJsonHtml(perServiceStats));
 
+        }
+
+        exp = this.host.getTestExpiration();
+        while (new Date().before(exp)) {
+            boolean isConverged = true;
+            // verify all factories report same number of children
+            for (VerificationHost peerHost : this.host.getInProcessHostMap().values()) {
+                factoryUri = UriUtils.buildUri(peerHost,
+                        ReplicationFactoryTestService.SIMPLE_REPL_SELF_LINK);
+                ServiceDocumentQueryResult rsp = this.host.getFactoryState(factoryUri);
+                if (rsp.documentLinks.size() != latestState.size()) {
+                    this.host.log("Factory %s reporting %d children, expected %d", factoryUri,
+                            rsp.documentLinks.size(), latestState.size());
+                    isConverged = false;
+                    break;
+                }
+            }
+            if (!isConverged) {
+                Thread.sleep(250);
+                continue;
+            }
+            break;
+        }
+
+        if (new Date().after(exp)) {
+            throw new TimeoutException("factories did not converge");
+        }
+
+        this.host.log("Inducing synchronization");
+        // Induce synchronization on stable node group. No changes should be observed since
+        // all nodes should have identical state
+        this.host.scheduleSynchronizationIfAutoSyncDisabled();
+        // give synchronization a chance to run, its 100% asynchronous so we can't really tell when each
+        // child is done, but a small delay should be sufficient for 99.9% of test environments, even under
+        // load
+        Thread.sleep(2000);
+
+        // verify that example states did not change due to the induced synchronization
+        Map<URI, ReplicationTestServiceState> latestStateAfter = this.host.getServiceState(null,
+                ReplicationTestServiceState.class, ownerSelectedServices.keySet());
+        for (Entry<URI, ReplicationTestServiceState> afterEntry : latestStateAfter.entrySet()) {
+            ReplicationTestServiceState beforeState = latestState.get(afterEntry.getKey());
+            ReplicationTestServiceState afterState = afterEntry.getValue();
+            assertEquals(beforeState.documentVersion, afterState.documentVersion);
         }
     }
 
