@@ -9,6 +9,15 @@ capability.
 
 * Added honoring of verbs (POST, PATCH, etc) in roles
 
+* Renamed authentication cookie from dcp-auth-cookie to
+  xenon-auth-cookie. This should be transparent for clients that use
+  cookies, but clients that extract the cookie value in order to make
+  an x-xenon-auth-token header need to use this new cookie instead. 
+
+* The basic authentication service (/core/authn/basic) now includes
+  the x-xenon-auth-token header in its response, in addition to the
+  cookie. 
+
 ## 0.3.2
 
 * Add on demand service load, enabled with
