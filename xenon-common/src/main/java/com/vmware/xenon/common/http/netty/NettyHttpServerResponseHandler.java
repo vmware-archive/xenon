@@ -198,7 +198,7 @@ public class NettyHttpServerResponseHandler extends SimpleChannelInboundHandler<
             ServiceErrorResponse rsp = ServiceErrorResponse.create(new ProtocolException(errorMsg),
                     op.getStatusCode());
             op.setBodyNoCloning(rsp);
-        } else {
+        } else if (Operation.MEDIA_TYPE_APPLICATION_JSON.equals(op.getContentType())) {
             ServiceErrorResponse rsp = op.getBody(ServiceErrorResponse.class);
             if (rsp != null) {
                 errorMsg += " message " + rsp.message;

@@ -44,6 +44,7 @@ import org.junit.Test;
 
 import com.vmware.xenon.common.CommandLineArgumentParser;
 import com.vmware.xenon.common.Operation;
+import com.vmware.xenon.common.Operation.CompletionHandler;
 import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.ServiceClient;
 import com.vmware.xenon.common.ServiceDocument;
@@ -552,6 +553,13 @@ public class NettyHttpServiceClientTest {
                 .setCompletion(this.host.getExpectedFailureCompletion()));
         this.host.testWait();
 
+        this.host.testStart(1);
+        this.host.send(Operation.createPut(services.get(0).getUri())
+                .setBody("this is not JSON")
+                .forceRemote()
+                .setCompletion(this.host.getExpectedFailureCompletion()));
+        this.host.testWait();
+
         // create an operation with no body and verify completion gets called with
         // failure
         this.host.testStart(1);
@@ -559,29 +567,44 @@ public class NettyHttpServiceClientTest {
                 .setCompletion(this.host.getExpectedFailureCompletion()));
         this.host.testWait();
 
+        this.host.testStart(1);
+        this.host.send(Operation.createPatch(services.get(0).getUri())
+                .forceRemote()
+                .setCompletion(this.host.getExpectedFailureCompletion()));
+        this.host.testWait();
+
         // send a body with instructions to the test service to fail the
         // request, but set the error body as plain text. This verifies the runtime
         // preserves the plain text error response
+        CompletionHandler ch = (o, e) -> {
+            if (e == null) {
+                this.host.failIteration(new IllegalStateException("expected failure"));
+                return;
+            }
+
+            Object rsp = o.getBodyRaw();
+            if (!(rsp instanceof String)
+                    || !o.getContentType().equals(Operation.MEDIA_TYPE_TEXT_PLAIN)) {
+                this.host.failIteration(new IllegalStateException(
+                        "expected text plain content type and response"));
+                return;
+            }
+            this.host.completeIteration();
+        };
+
         MinimalTestServiceState body = new MinimalTestServiceState();
         body.id = MinimalTestService.STRING_MARKER_FAIL_WITH_PLAIN_TEXT_RESPONSE;
         this.host.testStart(1);
         this.host.send(Operation.createPatch(services.get(0).getUri())
                 .setBody(body)
-                .setCompletion((o, e) -> {
-                    if (e == null) {
-                        this.host.failIteration(new IllegalStateException("expected failure"));
-                        return;
-                    }
+                .setCompletion(ch));
+        this.host.testWait();
 
-                    Object rsp = o.getBodyRaw();
-                    if (!(rsp instanceof String)
-                            || !o.getContentType().equals(Operation.MEDIA_TYPE_TEXT_PLAIN)) {
-                        this.host.failIteration(new IllegalStateException(
-                                "expected text plain content type and response"));
-                        return;
-                    }
-                    this.host.completeIteration();
-                }));
+        this.host.testStart(1);
+        this.host.send(Operation.createPatch(services.get(0).getUri())
+                .setBody(body)
+                .forceRemote()
+                .setCompletion(ch));
         this.host.testWait();
     }
 
