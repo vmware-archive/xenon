@@ -733,18 +733,24 @@ public class TestQueryTaskService {
 
     @Test
     public void broadcastQueryTasksOnExampleStates () throws Throwable {
-        setUpHost();
+        final int nodeCount = 3;
+        final int stressTestServiceCountThreshold = 1000;
 
-        int nodeCount = 3;
+        setUpHost();
 
         this.host.setUpPeerHosts(nodeCount);
         this.host.joinNodesAndVerifyConvergence(nodeCount);
 
-        verifyOnlySupportSortOnSelfLinkInBroadcast();
-        verifyNotAllowDirectQueryInBroadcast();
-
         VerificationHost targetHost = this.host.getPeerHost();
         URI exampleFactoryURI = UriUtils.buildUri(targetHost, ExampleFactoryService.SELF_LINK);
+
+        CommandLineArgumentParser.parseFromProperties(this);
+        if (this.serviceCount > stressTestServiceCountThreshold) {
+            targetHost.setStressTest(true);
+        }
+
+        verifyOnlySupportSortOnSelfLinkInBroadcast(targetHost);
+        verifyNotAllowDirectQueryInBroadcast(targetHost);
 
         this.host.testStart(this.serviceCount);
         List<URI> exampleServices = new ArrayList<>();
@@ -761,14 +767,12 @@ public class TestQueryTaskService {
         this.host.testWait();
 
         nonpaginatedBroadcastQueryTasksOnExampleStates(targetHost);
-        paginatedBroadcastQueryTasksOnExampleStates();
-        paginatedBroadcastQueryTasksWithoutMatching();
-        paginatedBroadcastQueryTasksRepeatSamePage();
+        paginatedBroadcastQueryTasksOnExampleStates(targetHost);
+        paginatedBroadcastQueryTasksWithoutMatching(targetHost);
+        paginatedBroadcastQueryTasksRepeatSamePage(targetHost);
     }
 
-    private void verifyOnlySupportSortOnSelfLinkInBroadcast() throws Throwable {
-        VerificationHost targetHost = this.host.getPeerHost();
-
+    private void verifyOnlySupportSortOnSelfLinkInBroadcast(VerificationHost targetHost) throws Throwable {
         QuerySpecification q = new QuerySpecification();
         Query kindClause = new Query();
         kindClause.setTermPropertyName(ServiceDocument.FIELD_NAME_KIND)
@@ -795,9 +799,7 @@ public class TestQueryTaskService {
         targetHost.testWait();
     }
 
-    private void verifyNotAllowDirectQueryInBroadcast() throws Throwable {
-        VerificationHost targetHost = this.host.getPeerHost();
-
+    private void verifyNotAllowDirectQueryInBroadcast(VerificationHost targetHost) throws Throwable {
         QuerySpecification q = new QuerySpecification();
         Query kindClause = new Query();
         kindClause.setTermPropertyName(ServiceDocument.FIELD_NAME_KIND)
@@ -872,95 +874,23 @@ public class TestQueryTaskService {
         targetHost.testWait();
     }
 
-    private void paginatedBroadcastQueryTasksOnExampleStates() throws Throwable {
+    private void paginatedBroadcastQueryTasksOnExampleStates(VerificationHost targetHost) throws Throwable {
 
-        VerificationHost targetHost = this.host.getPeerHost();
+        // Simulate the scenario that multiple users query documents page by page
+        // in broadcast way.
+        targetHost.testStart(this.queryCount);
+        for (int i = 0; i < this.queryCount; i++) {
+            startPagedBroadCastQuery(targetHost);
+        }
 
-        int resultLimit = 30;
-
-        QuerySpecification q = new QuerySpecification();
-        Query kindClause = new Query();
-        kindClause.setTermPropertyName(ServiceDocument.FIELD_NAME_KIND)
-                .setTermMatchValue(Utils.buildKind(ExampleServiceState.class));
-        q.query = kindClause;
-        q.options = EnumSet.of(QueryOption.EXPAND_CONTENT, QueryOption.BROADCAST);
-        q.resultLimit = resultLimit;
-
-        QueryTask task = QueryTask.create(q);
-
-        URI taskUri = this.host.createQueryTaskService(task, false, task.taskInfo.isDirect, task, null);
-        task = this.host.waitForQueryTaskCompletion(task.querySpec, 0, 0, taskUri, false, false);
-
-        targetHost.testStart(1);
-        Operation startGet = Operation
-                .createGet(taskUri)
-                .setCompletion((o, e) -> {
-                    if (e != null) {
-                        targetHost.failIteration(e);
-                        return;
-                    }
-
-                    QueryTask rsp = o.getBody(QueryTask.class);
-                    if (rsp.results.documentCount != 0) {
-                        targetHost.failIteration(new IllegalStateException("Incorrect number of documents returned: " +
-                                "0 expected, but " + rsp.results.documentCount + " returned"));
-                        return;
-                    }
-
-                    String expectedPageLinkSegment = UriUtils.buildUriPath(ServiceUriPaths.CORE,
-                            BroadcastQueryPageService.SELF_LINK_PREFIX);
-                    if (!rsp.results.nextPageLink.contains(expectedPageLinkSegment)) {
-                        targetHost.failIteration(new IllegalStateException("Incorrect next page link returned: " +
-                                rsp.results.nextPageLink));
-                        return;
-                    }
-
-                    targetHost.completeIteration();
-                });
-        targetHost.send(startGet);
+        // If the query cannot be finished in time, timeout exception would be thrown.
         targetHost.testWait();
-
-        String nextPageLink = task.results.nextPageLink;
-        Set<String> documentLinks = new HashSet<>();
-        while (nextPageLink != null) {
-            List<String> pageLinks = new ArrayList<>();
-            URI u = UriUtils.buildUri(targetHost, nextPageLink);
-
-            targetHost.testStart(1);
-            Operation get = Operation
-                    .createGet(u)
-                    .setCompletion((o, e) -> {
-                        if (e != null) {
-                            targetHost.failIteration(e);
-                            return;
-                        }
-
-                        QueryTask rsp = o.getBody(QueryTask.class);
-                        pageLinks.add(rsp.results.nextPageLink);
-                        documentLinks.addAll(rsp.results.documentLinks);
-
-                        targetHost.completeIteration();
-                    });
-
-            targetHost.send(get);
-            targetHost.testWait();
-
-            nextPageLink = pageLinks.isEmpty() ? null : pageLinks.get(0);
-        }
-
-        assertEquals(this.serviceCount, documentLinks.size());
-
-        for (int i = 0; i < this.serviceCount; i++) {
-            assertTrue(documentLinks.contains(ExampleFactoryService.SELF_LINK + "/document" + i));
-        }
     }
 
-    private void paginatedBroadcastQueryTasksWithoutMatching() throws Throwable {
-
-        VerificationHost targetHost = this.host.getPeerHost();
-
-        int serviceCount = 100;
-        int resultLimit = 30;
+    private void paginatedBroadcastQueryTasksWithoutMatching(VerificationHost targetHost) throws Throwable {
+        final int minPageCount = 3;
+        final int maxPageSize = 100;
+        final int resultLimit = Math.min(this.serviceCount / minPageCount, maxPageSize);
 
         QuerySpecification q = new QuerySpecification();
 
@@ -971,7 +901,7 @@ public class TestQueryTaskService {
 
         Query nameClause = new Query();
         nameClause.setTermPropertyName(ExampleServiceState.FIELD_NAME_NAME)
-                .setTermMatchValue("document" + serviceCount);
+                .setTermMatchValue("document" + this.serviceCount);
         q.query.addBooleanClause(nameClause);
 
         q.options = EnumSet.of(QueryOption.EXPAND_CONTENT, QueryOption.BROADCAST);
@@ -1009,11 +939,10 @@ public class TestQueryTaskService {
         targetHost.testWait();
     }
 
-    private void paginatedBroadcastQueryTasksRepeatSamePage() throws Throwable {
-
-        VerificationHost targetHost = this.host.getPeerHost();
-
-        int resultLimit = 30;
+    private void paginatedBroadcastQueryTasksRepeatSamePage(VerificationHost targetHost) throws Throwable {
+        final int minPageCount = 3;
+        final int maxPageSize = 100;
+        final int resultLimit = Math.min(this.serviceCount / minPageCount, maxPageSize);
 
         QuerySpecification q = new QuerySpecification();
 
@@ -1076,6 +1005,134 @@ public class TestQueryTaskService {
         }
 
         assertTrue(documentLinksList.get(0).equals(documentLinksList.get(1)));
+    }
+
+    private void startPagedBroadCastQuery(VerificationHost targetHost) {
+
+        // This is a multi stage task, that could be easily modelled as a service,
+        // but since we are in test code, we use synchronous waits between stages,
+        // but run N threads in parallel
+        final int documentCount = this.serviceCount;
+        Thread t = new Thread() {
+            @Override
+            public void run() {
+                Set<String> documentLinks = new HashSet<>();
+
+                try {
+                    final int minPageCount = 3;
+                    final int maxPageSize = 100;
+                    final int resultLimit = Math.min(documentCount / minPageCount, maxPageSize);
+
+                    QuerySpecification q = new QuerySpecification();
+                    Query kindClause = new Query();
+                    kindClause.setTermPropertyName(ServiceDocument.FIELD_NAME_KIND)
+                            .setTermMatchValue(Utils.buildKind(ExampleServiceState.class));
+                    q.query = kindClause;
+                    q.options = EnumSet.of(QueryOption.EXPAND_CONTENT, QueryOption.BROADCAST);
+                    q.resultLimit = resultLimit;
+
+                    QueryTask task = QueryTask.create(q);
+                    if (task.documentExpirationTimeMicros == 0) {
+                        task.documentExpirationTimeMicros = Utils.getNowMicrosUtc() + targetHost
+                                .getOperationTimeoutMicros();
+                    }
+                    task.documentSelfLink = UUID.randomUUID().toString();
+
+                    URI factoryUri = UriUtils.buildUri(targetHost, ServiceUriPaths.CORE_QUERY_TASKS);
+                    Operation post = Operation
+                            .createPost(factoryUri)
+                            .setBody(task);
+                    targetHost.send(post);
+
+                    URI taskUri = UriUtils.extendUri(factoryUri, task.documentSelfLink);
+                    List<String> pageLinks = new ArrayList<>();
+                    do {
+                        CountDownLatch waitForCompletion = new CountDownLatch(1);
+                        Operation get = Operation
+                                .createGet(taskUri)
+                                .setCompletion((o, e) -> {
+                                    if (e != null) {
+                                        targetHost.failIteration(e);
+                                        return;
+                                    }
+
+                                    QueryTask rsp = o.getBody(QueryTask.class);
+                                    if (rsp.taskInfo.stage == TaskStage.FINISHED
+                                            || rsp.taskInfo.stage == TaskStage.FAILED
+                                            || rsp.taskInfo.stage == TaskStage.CANCELLED) {
+
+                                        if (rsp.results.documentCount != 0) {
+                                            targetHost.failIteration(new IllegalStateException("Incorrect number of documents returned: " +
+                                                    "0 expected, but " + rsp.results.documentCount + " returned"));
+                                            return;
+                                        }
+
+                                        String expectedPageLinkSegment = UriUtils.buildUriPath(ServiceUriPaths.CORE,
+                                                BroadcastQueryPageService.SELF_LINK_PREFIX);
+                                        if (!rsp.results.nextPageLink.contains(expectedPageLinkSegment)) {
+                                            targetHost.failIteration(new IllegalStateException("Incorrect next page link returned: " +
+                                                    rsp.results.nextPageLink));
+                                            return;
+                                        }
+
+                                        pageLinks.add(rsp.results.nextPageLink);
+                                    }
+
+                                    waitForCompletion.countDown();
+                                });
+                        targetHost.send(get);
+
+                        waitForCompletion.await();
+
+                        if (!pageLinks.isEmpty()) {
+                            break;
+                        }
+
+                        Thread.sleep(100);
+                    } while (true);
+
+                    String nextPageLink = pageLinks.get(0);
+                    while (nextPageLink != null) {
+                        pageLinks.clear();
+                        URI u = UriUtils.buildUri(targetHost, nextPageLink);
+
+                        CountDownLatch waitForCompletion = new CountDownLatch(1);
+                        Operation get = Operation
+                                .createGet(u)
+                                .setCompletion((o, e) -> {
+                                    if (e != null) {
+                                        targetHost.failIteration(e);
+                                        return;
+                                    }
+
+                                    QueryTask rsp = o.getBody(QueryTask.class);
+                                    pageLinks.add(rsp.results.nextPageLink);
+                                    documentLinks.addAll(rsp.results.documentLinks);
+
+                                    waitForCompletion.countDown();
+                                });
+
+                        targetHost.send(get);
+                        waitForCompletion.await();
+
+                        nextPageLink = pageLinks.isEmpty() ? null : pageLinks.get(0);
+                    }
+                } catch (Throwable e) {
+                    targetHost.failIteration(e);
+
+                    return;
+                }
+
+                targetHost.completeIteration();
+
+                assertEquals(documentCount, documentLinks.size());
+
+                for (int i = 0; i < documentCount; i++) {
+                    assertTrue(documentLinks.contains(ExampleFactoryService.SELF_LINK + "/document" + i));
+                }
+            }
+        };
+        t.start();
     }
 
     @Test
