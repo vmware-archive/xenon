@@ -351,9 +351,13 @@ public class NodeSelectorSynchronizationService extends StatelessService {
                 URI peerThatShouldAssumeOwnership = peersWithService.firstEntry().getValue();
                 if (UriUtils.isHostEqual(getHost(), peerThatShouldAssumeOwnership)) {
                     request.isOwner = true;
-                    logInfo("New owner %s does not have service %s, will broadcast."
-                            + "Others with service:%s", request.ownerNodeReference,
-                            bestPeerRsp.documentSelfLink, peersWithService);
+                    incrementEpoch = true;
+                    logInfo("Broadcasting %s (epoch %d) to new owner %s\n"
+                            + " Others with service:%s",
+                            bestPeerRsp.documentSelfLink,
+                            bestPeerRsp.documentEpoch + 1,
+                            request.ownerNodeReference,
+                            peersWithService);
                 }
             }
 
@@ -371,7 +375,9 @@ public class NodeSelectorSynchronizationService extends StatelessService {
             CompletionHandler c = ((o, e) -> {
                 int r = remaining.decrementAndGet();
                 if (e != null) {
-                    logWarning("Peer update to %s failed with %s, remaining %d", o.getUri(),
+                    logWarning("Peer update to %s:%d for %s failed with %s, remaining %d",
+                            o.getUri().getHost(), o.getUri().getPort(),
+                            bestPeerRsp.documentSelfLink,
                             e.toString(), r);
                 }
                 if (r != 0) {

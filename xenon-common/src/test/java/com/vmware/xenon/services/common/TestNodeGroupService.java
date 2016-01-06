@@ -456,11 +456,6 @@ public class TestNodeGroupService {
     private void doSynchronizationWithDifferentNodeInitialState() throws Throwable {
         ExampleServiceHost h = null;
 
-        if (this.serviceCount < FactoryService.SELF_QUERY_RESULT_LIMIT) {
-            this.serviceCount = FactoryService.SELF_QUERY_RESULT_LIMIT + 10;
-            this.updateCount = 1;
-        }
-
         TemporaryFolder tmpFolder = new TemporaryFolder();
         tmpFolder.create();
 

@@ -1103,6 +1103,10 @@ public class StatefulService implements Service {
             return;
         }
 
+        if (failure != null) {
+            logWarning("synchronizing with peers due to %s", failure.getMessage());
+        }
+
         // clone the request so we can update its body without affecting the client request
         Operation clonedRequest = request.clone();
         boolean wasOwner = hasOption(ServiceOption.DOCUMENT_OWNER);
