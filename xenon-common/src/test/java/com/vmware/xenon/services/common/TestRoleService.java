@@ -21,16 +21,29 @@ import java.util.HashSet;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-import com.vmware.xenon.common.BasicTestCase;
+import com.vmware.xenon.common.BasicReusableHostTestCase;
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.Service.Action;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.services.common.RoleService.Policy;
 import com.vmware.xenon.services.common.RoleService.RoleState;
 
-public class TestRoleService extends BasicTestCase {
+public class TestRoleService extends BasicReusableHostTestCase {
+    private URI factoryUri;
+
+    @Before
+    public void setUp() {
+        this.factoryUri = UriUtils.buildUri(this.host, ServiceUriPaths.CORE_AUTHZ_ROLES);
+    }
+
+    @After
+    public void cleanUp() throws Throwable {
+        this.host.deleteAllChildServices(this.factoryUri);
+    }
 
     RoleState validRoleState() {
         RoleState state = new RoleState();
@@ -48,8 +61,7 @@ public class TestRoleService extends BasicTestCase {
         RoleState state = validRoleState();
         final RoleState[] outState = new RoleState[1];
 
-        URI uri = UriUtils.buildUri(this.host, ServiceUriPaths.CORE_AUTHZ_ROLES);
-        Operation op = Operation.createPost(uri)
+        Operation op = Operation.createPost(this.factoryUri)
                 .setBody(state)
                 .setCompletion((o, e) -> {
                     if (e != null) {

@@ -2563,6 +2563,9 @@ public class VerificationHost extends ExampleServiceHost {
 
     public void deleteAllChildServices(URI factoryURI) throws Throwable {
         ServiceDocumentQueryResult res = getFactoryState(factoryURI);
+        if (res.documentLinks.isEmpty()) {
+            return;
+        }
         testStart(res.documentLinks.size());
         for (String link : res.documentLinks) {
             send(Operation.createDelete(UriUtils.buildUri(this, link))

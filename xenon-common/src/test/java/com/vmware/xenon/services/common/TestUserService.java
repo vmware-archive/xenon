@@ -17,24 +17,36 @@ import static org.junit.Assert.assertEquals;
 
 import java.net.URI;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-import com.vmware.xenon.common.BasicTestCase;
+import com.vmware.xenon.common.BasicReusableHostTestCase;
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.services.common.UserService.UserState;
 
-public class TestUserService extends BasicTestCase {
+public class TestUserService extends BasicReusableHostTestCase {
+    private URI factoryUri;
+
+    @Before
+    public void setUp() {
+        this.factoryUri = UriUtils.buildUri(this.host, ServiceUriPaths.CORE_AUTHZ_USERS);
+    }
+
+    @After
+    public void cleanUp() throws Throwable {
+        this.host.deleteAllChildServices(this.factoryUri);
+    }
 
     @Test
-    public void testFactoryPost() throws Throwable {
+    public void testFactoryPostAndDelete() throws Throwable {
         UserState state = new UserState();
         state.email = "jane@doe.com";
 
         final UserState[] outState = new UserState[1];
 
-        URI uri = UriUtils.buildUri(this.host, ServiceUriPaths.CORE_AUTHZ_USERS);
-        Operation op = Operation.createPost(uri)
+        Operation op = Operation.createPost(this.factoryUri)
                 .setBody(state)
                 .setCompletion((o, e) -> {
                     if (e != null) {
@@ -52,6 +64,7 @@ public class TestUserService extends BasicTestCase {
 
         assertEquals(state.email, outState[0].email);
     }
+
 
     @Test
     public void testFactoryIdempotentPost() throws Throwable {
@@ -91,8 +104,7 @@ public class TestUserService extends BasicTestCase {
         Operation[] outOp = new Operation[1];
         Throwable[] outEx = new Throwable[1];
 
-        URI uri = UriUtils.buildUri(this.host, ServiceUriPaths.CORE_AUTHZ_USERS);
-        Operation op = Operation.createPost(uri)
+        Operation op = Operation.createPost(this.factoryUri)
                 .setBody(state)
                 .setCompletion((o, e) -> {
                     if (e != null) {

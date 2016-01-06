@@ -118,7 +118,7 @@ public abstract class FactoryService extends StatelessService {
         startPost.complete();
 
         clonedOp.setCompletion((o, e) -> {
-            if (e != null) {
+            if (e != null && !getHost().isStopping()) {
                 logWarning("Failure querying index for all child services: %s", e.getMessage());
                 return;
             }
@@ -148,7 +148,7 @@ public abstract class FactoryService extends StatelessService {
                 .setBody(queryTask)
                 .setCompletion((o, e) -> {
                     if (getHost().isStopping()) {
-                        parentOperation.fail(new CancellationException());
+                        parentOperation.fail(new CancellationException("host is stopping"));
                         return;
                     }
 
@@ -233,8 +233,10 @@ public abstract class FactoryService extends StatelessService {
         sendRequest(Operation.createGet(queryPage).setCompletion(
                 (o, e) -> {
                     if (e != null) {
-                        logWarning("Failure retrieving query results from %s: %s", queryPage,
-                                e.toString());
+                        if (!getHost().isStopping()) {
+                            logWarning("Failure retrieving query results from %s: %s", queryPage,
+                                    e.toString());
+                        }
                         parentOp.complete();
                         return;
                     }
