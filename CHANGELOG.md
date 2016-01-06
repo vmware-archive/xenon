@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 0.4.1-SNAPSHOT
+
 ## 0.4.0
 
 * Added default support for HTTP Options. StafulService and
