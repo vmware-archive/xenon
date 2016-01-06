@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.4.0-SNAPSHOT
+## 0.4.0
 
 * Added default support for HTTP Options. StafulService and
 StatelessService now return the same content as GET on
