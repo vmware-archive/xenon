@@ -28,7 +28,7 @@ import com.google.gson.JsonElement;
  */
 public class JsonMapper {
 
-    private static final int MAX_SERIALIZATION_ATTEMPTS = 3;
+    private static final int MAX_SERIALIZATION_ATTEMPTS = 5;
 
     private final Gson compact;
     private final Gson pretty;
@@ -81,6 +81,7 @@ public class JsonMapper {
                     // type for the very first time concurrently. Type caching logic in GSON
                     // doesn't deal well with recursive types being generated concurrently.
                     // Also see: https://github.com/google/gson/issues/764
+                    Thread.yield();
                     continue;
                 }
 
@@ -112,6 +113,7 @@ public class JsonMapper {
                     // type for the very first time concurrently. Type caching logic in GSON
                     // doesn't deal well with recursive types being generated concurrently.
                     // Also see: https://github.com/google/gson/issues/764
+                    Thread.yield();
                     continue;
                 }
                 throw e;
@@ -135,6 +137,7 @@ public class JsonMapper {
                     // type for the very first time concurrently. Type caching logic in GSON
                     // doesn't deal well with recursive types being generated concurrently.
                     // Also see: https://github.com/google/gson/issues/764
+                    Thread.yield();
                     continue;
                 }
                 throw e;
