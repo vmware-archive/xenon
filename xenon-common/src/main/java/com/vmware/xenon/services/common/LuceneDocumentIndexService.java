@@ -115,6 +115,8 @@ public class LuceneDocumentIndexService extends StatelessService {
 
     private String indexDirectory;
 
+    private static final int INDEX_SEARCHER_COUNT_THRESHOLD = 100;
+
     private static final int DEFAULT_INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH = 1000;
 
     private static int INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH = DEFAULT_INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH;
@@ -1845,16 +1847,21 @@ public class LuceneDocumentIndexService extends StatelessService {
     }
 
     private boolean applyIndexFileLimit() {
-        if (this.searchersPendingClose.isEmpty()) {
-            return false;
-        }
         File directory = new File(new File(getHost().getStorageSandbox()), this.indexDirectory);
         String[] list = directory.list();
         int count = list == null ? 0 : list.length;
 
-        if (count < INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH) {
-            return false;
+        boolean reOpenWriter = count >= INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH;
+
+        int searcherCount = this.searchersPendingClose.size();
+        if (searcherCount < INDEX_SEARCHER_COUNT_THRESHOLD && !reOpenWriter) {
+            return reOpenWriter;
         }
+
+        // We always close index searchers before re-opening the index writer, otherwise we risk
+        // loosing pending commits on writer re-open. Notice this code executes if we either have
+        // too many index files on disk, thus we need to re-open the writer to consolidate, or
+        // when we have too many pending searchers
 
         final int acquireReleaseCount = QUERY_THREAD_COUNT + UPDATE_THREAD_COUNT;
         try {
@@ -1869,6 +1876,8 @@ public class LuceneDocumentIndexService extends StatelessService {
                 this.searchersPendingClose.add(this.searcher);
                 this.searcher = null;
             }
+
+            logInfo("Closing %d pending searchers, index file count: %d", searcherCount, count);
 
             for (IndexSearcher s : this.searchersPendingClose) {
                 try {
@@ -1885,9 +1894,6 @@ public class LuceneDocumentIndexService extends StatelessService {
                 }
             }
 
-            list = directory.list();
-            count = list == null ? 0 : list.length;
-            logInfo("Deleted unused files, current count: %d", count);
         } catch (InterruptedException e1) {
             logSevere(e1);
         } finally {
@@ -1895,8 +1901,7 @@ public class LuceneDocumentIndexService extends StatelessService {
             this.writerAvailable.release(acquireReleaseCount - 1);
         }
 
-        list = directory.list();
-        return count > INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH;
+        return reOpenWriter;
     }
 
     private void reOpenWriterSynchronously() {
