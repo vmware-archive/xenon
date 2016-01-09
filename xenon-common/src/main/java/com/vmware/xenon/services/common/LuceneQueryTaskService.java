@@ -120,13 +120,6 @@ public class LuceneQueryTaskService extends StatefulService {
             return false;
         }
 
-        if (initState.querySpec.options != null
-                && initState.querySpec.options.contains(QueryOption.BROADCAST)
-                && initState.taskInfo.isDirect) {
-            startPost.fail(new IllegalArgumentException("Direct query is not supported with option "
-                    + QueryOption.BROADCAST));
-        }
-
         return true;
     }
 
@@ -169,7 +162,9 @@ public class LuceneQueryTaskService extends StatefulService {
                     queryTask.taskInfo.stage = TaskStage.FINISHED;
                     sendRequest(Operation.createPatch(getUri()).setBodyNoCloning(queryTask));
                 });
-        this.getHost().sendRequest(op);
+        // Send the operation using a callback service to avoid consuming the connection
+        // for the duration of the query.
+        this.getHost().sendRequestWithCallback(op);
     }
 
     private void collectBroadcastQueryResults(Map<URI, String> jsonResponses, QueryTask queryTask) {
