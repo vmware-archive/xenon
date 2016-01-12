@@ -1098,16 +1098,17 @@ public class TestServiceHost {
                 this.host.failIteration(e);
                 return;
             }
-            this.host.completeIteration();
             results[0] = o.getBody(ServiceDocumentQueryResult.class);
+            this.host.completeIteration();
         });
 
         this.host.testStart(1);
-        this.host.queryServiceUris(options, true, get);
+        this.host.queryServiceUris(options, true, get.clone());
         this.host.testWait();
-        assertEquals(results[0].documentLinks.size(), serviceCount);
-
-        this.host.queryServiceUris(options, false, get);
+        assertEquals(serviceCount, results[0].documentLinks.size());
+        this.host.testStart(1);
+        this.host.queryServiceUris(options, false, get.clone());
+        this.host.testWait();
         assertTrue(results[0].documentLinks.size() >= serviceCount);
     }
 
