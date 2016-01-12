@@ -29,6 +29,7 @@ import java.util.logging.Logger;
 
 import com.vmware.xenon.common.Operation.AuthorizationContext;
 import com.vmware.xenon.common.Operation.InstrumentationContext;
+import com.vmware.xenon.common.Service.ServiceOption;
 import com.vmware.xenon.common.ServiceDocumentDescription.PropertyDescription;
 import com.vmware.xenon.common.ServiceErrorResponse.ErrorDetail;
 import com.vmware.xenon.common.ServiceStats.ServiceStat;
@@ -94,10 +95,6 @@ public class StatefulService implements Service {
         } else {
             this.context.operationQueue = OperationQueue
                     .createFifo(Service.OPERATION_QUEUE_DEFAULT_LIMIT);
-        }
-
-        if (isIndexed()) {
-            this.context.options.add(ServiceOption.CONCURRENT_GET_HANDLING);
         }
     }
 
@@ -1321,6 +1318,10 @@ public class StatefulService implements Service {
                 throw new IllegalStateException(
                         "Service already started and OWNER_SELECTION is not set");
             }
+        }
+
+        if (option == ServiceOption.PERSISTENCE && enable) {
+            toggleOption(ServiceOption.CONCURRENT_GET_HANDLING, true);
         }
 
         synchronized (this.context) {

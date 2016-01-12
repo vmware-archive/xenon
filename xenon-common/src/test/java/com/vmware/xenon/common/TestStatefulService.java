@@ -14,6 +14,7 @@
 package com.vmware.xenon.common;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 import java.util.Date;
@@ -119,6 +120,40 @@ class DefaultHandlerTestService extends StatefulService {
 }
 
 public class TestStatefulService extends BasicReusableHostTestCase {
+
+    @Test
+    public void optionsValidation() throws Throwable {
+        ExampleServiceState body = new ExampleServiceState();
+        body.name = UUID.randomUUID().toString();
+        body.documentSelfLink = UUID.randomUUID().toString();
+        Operation post = Operation
+                .createPost(UriUtils.buildUri(this.host, ExampleFactoryService.SELF_LINK))
+                .setCompletion(this.host.getCompletion())
+                .setBody(body);
+        this.host.testStart(1);
+        this.host.send(post);
+        this.host.testWait();
+        URI childServiceUri = UriUtils.buildUri(this.host.getUri(),
+                ExampleFactoryService.SELF_LINK, body.documentSelfLink);
+        // get service options, verify they make sense
+        URI configUri = UriUtils.buildConfigUri(childServiceUri);
+        ServiceConfiguration cfg = this.host.getServiceState(null, ServiceConfiguration.class,
+                configUri);
+        assertTrue(cfg.options.contains(ServiceOption.CONCURRENT_GET_HANDLING));
+
+        // now verify a stateful but not persisted service
+        childServiceUri = UriUtils.buildUri(this.host, UUID.randomUUID().toString());
+        this.host.startService(Operation.createPost(childServiceUri),
+                new DefaultHandlerTestService());
+        String uriPath = childServiceUri.getPath();
+        this.host.waitForServiceAvailable(uriPath);
+
+        configUri = UriUtils.buildConfigUri(childServiceUri);
+        cfg = this.host.getServiceState(null, ServiceConfiguration.class,
+                configUri);
+        assertTrue(!cfg.options.contains(ServiceOption.CONCURRENT_GET_HANDLING));
+
+    }
 
     @Test
     public void testDefaultPUT() throws Throwable {
