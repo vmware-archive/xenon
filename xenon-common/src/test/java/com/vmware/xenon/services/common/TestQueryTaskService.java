@@ -2112,6 +2112,7 @@ public class TestQueryTaskService {
 
                         QueryTask page = o.getBody(QueryTask.class);
                         int nlinks = page.results.documentLinks.size();
+                        this.host.log("page: %s", Utils.toJsonHtml(page));
                         assertTrue(nlinks <= resultLimit);
                         verifyLinks(nextPageLink, serviceURIs, page);
 

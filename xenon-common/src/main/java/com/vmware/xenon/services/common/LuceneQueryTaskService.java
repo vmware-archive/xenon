@@ -85,8 +85,11 @@ public class LuceneQueryTaskService extends StatefulService {
             patchBody.querySpec = initState.querySpec;
             sendRequest(Operation.createPatch(getUri()).setBody(patchBody));
         } else {
-            // Complete POST when we have results
-            this.convertAndForwardToLucene(initState, startPost);
+            if (initState.querySpec.options.contains(QueryOption.BROADCAST)) {
+                createAndSendBroadcastQuery(initState, startPost);
+            } else {
+                convertAndForwardToLucene(initState, startPost);
+            }
         }
     }
 
@@ -123,7 +126,7 @@ public class LuceneQueryTaskService extends StatefulService {
         return true;
     }
 
-    private void createAndSendBroadcastQuery(QueryTask origQueryTask) {
+    private void createAndSendBroadcastQuery(QueryTask origQueryTask, Operation startPost) {
         QueryTask queryTask = Utils.clone(origQueryTask);
         queryTask.setDirect(true);
 
@@ -137,7 +140,8 @@ public class LuceneQueryTaskService extends StatefulService {
             queryTask.querySpec.sortTerm.propertyName = ServiceDocument.FIELD_NAME_SELF_LINK;
         }
 
-        URI localQueryTaskFactoryUri = UriUtils.buildUri(this.getHost(), ServiceUriPaths.CORE_LOCAL_QUERY_TASKS);
+        URI localQueryTaskFactoryUri = UriUtils.buildUri(this.getHost(),
+                ServiceUriPaths.CORE_LOCAL_QUERY_TASKS);
         URI forwardingService = UriUtils.buildBroadcastRequestUri(localQueryTaskFactoryUri,
                 ServiceUriPaths.DEFAULT_NODE_SELECTOR);
 
@@ -147,20 +151,28 @@ public class LuceneQueryTaskService extends StatefulService {
                 .setReferer(this.getUri())
                 .setCompletion((o, e) -> {
                     if (e != null) {
-                        failTask(e, o, null);
+                        failTask(e, startPost, null);
                         return;
                     }
 
                     NodeGroupBroadcastResponse rsp = o.getBody((NodeGroupBroadcastResponse.class));
                     if (!rsp.failures.isEmpty()) {
-                        failTask(new IllegalStateException("Failures received: " + Utils.toJsonHtml(rsp)), o, null);
+                        failTask(new IllegalStateException(
+                                "Failures received: " + Utils.toJsonHtml(rsp)),
+                                startPost, null);
                         return;
                     }
 
                     collectBroadcastQueryResults(rsp.jsonResponses, queryTask);
 
                     queryTask.taskInfo.stage = TaskStage.FINISHED;
-                    sendRequest(Operation.createPatch(getUri()).setBodyNoCloning(queryTask));
+                    if (startPost != null) {
+                        // direct query, complete original POST
+                        startPost.setBodyNoCloning(queryTask).complete();
+                    } else {
+                        // self patch with results
+                        sendRequest(Operation.createPatch(getUri()).setBodyNoCloning(queryTask));
+                    }
                 });
         // Send the operation using a callback service to avoid consuming the connection
         // for the duration of the query.
@@ -202,12 +214,6 @@ public class LuceneQueryTaskService extends StatefulService {
                             failTask(e, o, null);
                             return;
                         }
-
-                        queryTask.results = new ServiceDocumentQueryResult();
-                        queryTask.results.documentCount = 0L;
-                        queryTask.results.nextPageLink = forwarderUri.getPath() + UriUtils.URI_QUERY_CHAR +
-                                forwarderUri.getQuery();
-
                     });
 
             List<String> nextPageLinks = queryResults.stream()
@@ -215,12 +221,15 @@ public class LuceneQueryTaskService extends StatefulService {
                     .map(r -> r.nextPageLink)
                     .collect(Collectors.toList());
 
+            queryTask.results = new ServiceDocumentQueryResult();
+            queryTask.results.documentCount = 0L;
+
             if (!nextPageLinks.isEmpty()) {
+                queryTask.results.nextPageLink = forwarderUri.getPath() + UriUtils.URI_QUERY_CHAR +
+                        forwarderUri.getQuery();
                 this.getHost().startService(startPost,
                         new BroadcastQueryPageService(queryTask.querySpec, nextPageLinks));
             } else {
-                queryTask.results = new ServiceDocumentQueryResult();
-                queryTask.results.documentCount = 0L;
                 queryTask.results.nextPageLink = null;
             }
         }
@@ -320,7 +329,7 @@ public class LuceneQueryTaskService extends StatefulService {
 
         if (newTaskState.stage == TaskStage.STARTED) {
             if (patchBody.querySpec.options.contains(QueryOption.BROADCAST)) {
-                createAndSendBroadcastQuery(patchBody);
+                createAndSendBroadcastQuery(patchBody, null);
             } else {
                 convertAndForwardToLucene(state, null);
             }

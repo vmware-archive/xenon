@@ -911,8 +911,11 @@ public class Utils {
             if (documentLinkPicked != null) {
                 // Save the winner to the result.
                 result.documentLinks.add(documentLinkPicked);
-                result.documents.put(documentLinkPicked,
-                        dataSources.get(sourcesPicked.get(0)).documents.get(documentLinkPicked));
+                ServiceDocumentQueryResult partialResult = dataSources.get(sourcesPicked.get(0));
+                if (partialResult.documents != null) {
+                    result.documents.put(documentLinkPicked,
+                            partialResult.documents.get(documentLinkPicked));
+                }
                 result.documentCount++;
 
                 // Move the pointer of the lists where the winners locate.
