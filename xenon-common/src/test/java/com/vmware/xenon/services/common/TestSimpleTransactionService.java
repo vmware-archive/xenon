@@ -250,6 +250,40 @@ public class TestSimpleTransactionService extends BasicReusableHostTestCase {
         sumAccounts(null, 100.0 * this.accountCount);
     }
 
+    @Test
+    public void testTransactionWithFailedOperations() throws Throwable {
+        // create accounts, each with an initial balance of 100
+        String txid = newTransaction();
+        createAccounts(txid, this.accountCount, 100.0);
+        commit(txid);
+        countAccounts(null, this.accountCount);
+
+        // try to withdraw more than balance (should fail) from odd accounts
+        txid = newTransaction();
+        for (int i = 0; i < this.accountCount; i++) {
+            verifyAccountBalance(null, buildAccountId(i), 100.0);
+            double amountToWithdraw = i % 2 == 0 ? 100.0 : 101.0;
+            try {
+                this.host.log("trying to withdraw %f from account %d", amountToWithdraw, i);
+                withdrawFromAccount(txid, buildAccountId(i), amountToWithdraw, true);
+            } catch (IllegalArgumentException ex) {
+                assertTrue(i % 2 != 0);
+            }
+        }
+        abort(txid);
+
+        // verify balances
+        for (int i = 0; i < this.accountCount; i++) {
+            verifyAccountBalance(null, buildAccountId(i), 100.0);
+        }
+
+        // delete accounts
+        txid = newTransaction();
+        deleteAccounts(txid, this.accountCount);
+        commit(txid);
+        countAccounts(null, 0);
+    }
+
     private void sendWithdrawDepositOperationPairs(String[] txids, int numOfTransfers, boolean independentTest) throws Throwable {
         Collection<Operation> requests = new ArrayList<Operation>(numOfTransfers);
         Random rand = new Random();
@@ -565,7 +599,7 @@ public class TestSimpleTransactionService extends BasicReusableHostTestCase {
         Operation patch = createWithdrawOperation(transactionId, accountId, amountToWithdraw);
         patch.setCompletion((o, e) -> {
             if (operationFailed(o, e)) {
-                if (e instanceof IllegalStateException) {
+                if (e instanceof IllegalStateException || e instanceof IllegalArgumentException) {
                     ex[0] = e;
                     this.host.completeIteration();
                 } else {

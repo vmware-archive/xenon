@@ -268,12 +268,14 @@ public class SimpleTransactionService extends StatefulService {
             }
 
             if (!request.getTransactionId().equals(currentState.documentTransactionId)) {
-                String error = String.format(
-                        "Request to clear transaction %s from service %s but current transaction is: %s",
-                        request.getTransactionId(), this.service.getSelfLink(),
-                        currentState.documentTransactionId);
-                this.service.getHost().log(Level.INFO, error);
-                request.fail(new IllegalStateException(error));
+                if (clearTransactionRequest.transactionOutcome == TransactionOutcome.COMMIT) {
+                    String warning = String.format(
+                            "Request to clear transaction %s from service %s but current transaction is: %s",
+                            request.getTransactionId(), this.service.getSelfLink(),
+                            currentState.documentTransactionId);
+                    this.service.getHost().log(Level.WARNING, warning);
+                }
+                request.complete();
                 return;
             }
 
