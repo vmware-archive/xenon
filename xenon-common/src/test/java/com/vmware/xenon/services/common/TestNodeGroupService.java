@@ -59,7 +59,6 @@ import com.vmware.xenon.common.ServiceConfigUpdateRequest;
 import com.vmware.xenon.common.ServiceDocument;
 import com.vmware.xenon.common.ServiceDocumentDescription;
 import com.vmware.xenon.common.ServiceDocumentQueryResult;
-import com.vmware.xenon.common.ServiceErrorResponse;
 import com.vmware.xenon.common.ServiceHost;
 import com.vmware.xenon.common.ServiceHost.ServiceHostState;
 import com.vmware.xenon.common.ServiceStats;
@@ -73,6 +72,7 @@ import com.vmware.xenon.common.test.RoundRobinIterator;
 import com.vmware.xenon.common.test.TestProperty;
 import com.vmware.xenon.common.test.VerificationHost;
 import com.vmware.xenon.services.common.ExampleService.ExampleServiceState;
+import com.vmware.xenon.services.common.MinimalTestService.MinimalTestServiceErrorResponse;
 import com.vmware.xenon.services.common.NodeGroupService.JoinPeerRequest;
 import com.vmware.xenon.services.common.NodeGroupService.NodeGroupConfig;
 import com.vmware.xenon.services.common.NodeGroupService.NodeGroupState;
@@ -1508,7 +1508,6 @@ public class TestNodeGroupService {
         }
     }
 
-
     private void forwardingToPeerId() throws Throwable {
 
         long c = this.updateCount * this.nodeCount;
@@ -1631,10 +1630,18 @@ public class TestNodeGroupService {
                                             "expected failure"));
                                     return;
                                 }
-                                ServiceErrorResponse rsp = o.getBody(ServiceErrorResponse.class);
+                                MinimalTestServiceErrorResponse rsp = o
+                                        .getBody(MinimalTestServiceErrorResponse.class);
                                 if (rsp.message == null || rsp.message.isEmpty()) {
                                     this.host.failIteration(new IllegalStateException(
-                                            "expected error response body"));
+                                            "expected error response message"));
+                                    return;
+                                }
+
+                                if (!MinimalTestServiceErrorResponse.KIND.equals(rsp.documentKind)
+                                        || 0 != Double.compare(Math.PI, rsp.customErrorField)) {
+                                    this.host.failIteration(new IllegalStateException(
+                                            "expected custom error fields"));
                                     return;
                                 }
                                 this.host.completeIteration();

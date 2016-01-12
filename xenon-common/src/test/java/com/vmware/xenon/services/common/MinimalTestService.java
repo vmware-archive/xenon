@@ -51,9 +51,6 @@ public class MinimalTestService extends StatefulService {
     public static final String STAT_NAME_MAINTENANCE_SUCCESS_COUNT = "maintSuccessCount";
     public static final String STAT_NAME_MAINTENANCE_FAILURE_COUNT = "maintFailureCount";
 
-
-
-
     public static class MinimalTestServiceErrorResponse extends ServiceErrorResponse {
 
         public static final String KIND = Utils.buildKind(MinimalTestServiceErrorResponse.class);
