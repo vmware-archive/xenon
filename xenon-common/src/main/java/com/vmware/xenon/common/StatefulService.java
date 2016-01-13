@@ -315,10 +315,7 @@ public class StatefulService implements Service {
             }
 
             if (opProcessingStage == OperationProcessingStage.EXECUTING_SERVICE_HANDLER) {
-                if (!isCompletionNested) {
-                    request.nestCompletion((o, e) -> handleRequestCompletion(o, e));
-                    isCompletionNested = true;
-                }
+                isCompletionNested = true;
 
                 switch (request.getAction()) {
                 case DELETE:
