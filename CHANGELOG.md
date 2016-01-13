@@ -1,11 +1,18 @@
 # CHANGELOG
 
-## 0.4.1-SNAPSHOT
+## 0.4.1
 
 * Updated the API for backing up or restoring the index. The Bearer
   parameter is now named bearer (the capitalization changed). While
   this is a breaking change, we believe this is unused and should be
   harmless.
+
+* Added new ServiceOption: CONCURRENT_GET_HANDLING. This is (and has
+  been) the default, but can now be disabled when appropriate.
+
+* Added SLF4J-Xenon bridge
+
+* QueryTasks that are broadcast queries can now be direct tasks.
 
 ## 0.4.0
 
