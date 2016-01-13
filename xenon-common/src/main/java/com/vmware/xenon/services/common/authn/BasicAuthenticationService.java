@@ -40,18 +40,7 @@ public class BasicAuthenticationService extends StatelessService {
     private static final String BASIC_AUTH_SEPERATOR = " ";
     private static final String BASIC_AUTH_USER_SEPERATOR = ":";
 
-    @Override
-    public void handleRequest(Operation op) {
-        switch (op.getAction()) {
-        case POST:
-            handlePost(op);
-            break;
-        default:
-            super.handleRequest(op);
-        }
-    }
-
-    private void handlePost(Operation op) {
+    public void handlePost(Operation op) {
         AuthenticationRequestType requestType = op.getBody(AuthenticationRequest.class).requestType;
         // default to login for backward compatibility
         if (requestType == null) {

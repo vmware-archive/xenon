@@ -249,7 +249,7 @@ public class LuceneBlobIndexService extends StatelessService {
 
     }
 
-    protected void handlePost(Operation post) {
+    public void handlePost(Operation post) {
         if (post.isRemote()) {
             post.fail(new IllegalStateException("Remote requests not allowed"));
             return;
