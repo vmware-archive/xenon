@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 0.5.0-SNAPSHOT
+
 ## 0.4.1
 
 * Updated the API for backing up or restoring the index. The Bearer
