@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 0.5.1-SNAPSHOT
+
 ## 0.5.0
 
 * Implement authorization on stateless services. This is a breaking
