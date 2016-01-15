@@ -60,6 +60,17 @@ import com.vmware.xenon.services.common.UserService.UserState;
  *         .setDocumentKind(Utils.buildKind(ExampleServiceState.class))
  *         .start();
  *
+ * To include a set of services using their URI path or to create a role for a stateless
+ * service:
+ *
+ *  AuthorizationSetupHelper.create()
+ *         .setHost(this)
+ *         .setUserEmail(this.args.exampleUser)
+ *         .setUserPassword(this.args.exampleUserPassword)
+ *         .setIsAdmin(false)
+ *         .setDocumentLink(ExampleFactoryService.SELF_LINK))
+ *         .start();
+ *
  * As a note on the limitations: this user doesn't have access to modify their
  * credentials, only documents of type ExampleServiceState
  *
@@ -82,6 +93,7 @@ public class AuthorizationSetupHelper {
     private String userPassword;
     private boolean isAdmin;
     private String documentKind;
+    private String documentLink;
     private ServiceHost host;
     private AuthSetupCompletion completion;
 
@@ -118,6 +130,11 @@ public class AuthorizationSetupHelper {
         return this;
     }
 
+    public AuthorizationSetupHelper setDocumentLink(String documentLink) {
+        this.documentLink = documentLink;
+        return this;
+    }
+
     public AuthorizationSetupHelper setHost(ServiceHost host) {
         this.host = host;
         this.referer = host.getPublicUri();
@@ -146,7 +163,7 @@ public class AuthorizationSetupHelper {
         if (this.host == null) {
             throw new IllegalStateException("Missing host");
         }
-        if (!this.isAdmin && this.documentKind == null) {
+        if (!this.isAdmin && (this.documentKind == null && this.documentLink == null)) {
             throw new IllegalStateException("User has access to nothing");
         }
     }
@@ -335,19 +352,34 @@ public class AuthorizationSetupHelper {
          * We have a simple query that will return all documents, but but we could choose
          * a more selective query if we desired.
          */
-        Query resourceQuery;
+        Query resourceQuery = null;
 
         if (this.isAdmin) {
             resourceQuery = Query.Builder.create()
                     .setTerm(ServiceDocument.FIELD_NAME_SELF_LINK, UriUtils.URI_WILDCARD_CHAR,
                             QueryTerm.MatchType.WILDCARD)
                     .build();
-        } else {
+        } else if (this.documentKind != null) {
             resourceQuery = Query.Builder.create()
                     .addFieldClause(ServiceDocument.FIELD_NAME_AUTH_PRINCIPAL_LINK,
                             this.userSelfLink)
                     .addFieldClause(ServiceDocument.FIELD_NAME_KIND, this.documentKind)
                     .build();
+        } else if (this.documentLink != null) {
+            if (this.documentLink.contains(UriUtils.URI_WILDCARD_CHAR)) {
+                resourceQuery = Query.Builder.create()
+                        .setTerm(ServiceDocument.FIELD_NAME_SELF_LINK, this.documentLink,
+                                QueryTerm.MatchType.WILDCARD)
+                        .build();
+            } else {
+                resourceQuery = Query.Builder.create()
+                        .addFieldClause(ServiceDocument.FIELD_NAME_SELF_LINK,
+                                this.documentLink)
+                        .build();
+            }
+        } else {
+            // this branch is not possible, we validate earlier that one of the fields above
+            // is properly configured
         }
         ResourceGroupState group = new ResourceGroupState();
         group.query = resourceQuery;

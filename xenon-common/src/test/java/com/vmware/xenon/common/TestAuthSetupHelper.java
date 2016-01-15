@@ -21,11 +21,13 @@ import java.util.UUID;
 
 import org.junit.Test;
 
+import com.vmware.xenon.common.ServiceHost.ServiceHostState;
 import com.vmware.xenon.common.http.netty.NettyHttpServiceClient;
 import com.vmware.xenon.common.test.VerificationHost;
 import com.vmware.xenon.services.common.AuthorizationContextService;
 import com.vmware.xenon.services.common.ExampleFactoryService;
 import com.vmware.xenon.services.common.ExampleService.ExampleServiceState;
+import com.vmware.xenon.services.common.ServiceHostManagementService;
 import com.vmware.xenon.services.common.ServiceUriPaths;
 import com.vmware.xenon.services.common.authn.AuthenticationRequest;
 import com.vmware.xenon.services.common.authn.BasicAuthenticationService;
@@ -44,12 +46,14 @@ public class TestAuthSetupHelper extends BasicTestCase {
 
     private String adminUser = "admim@localhost";
     private String exampleUser = "example@localhost";
+    private String exampleWithManagementServiceUser = "exampleWithManagementService@localhost";
 
     /**
      * Validate the AuthorizationSetupHelper
      */
     @Test
     public void testAuthSetupHelper() throws Throwable {
+        this.host.waitForServiceAvailable(ServiceHostManagementService.SELF_LINK);
         // Step 1: Set up two users, one admin, one not.
         OperationContext.setAuthorizationContext(this.host.getSystemAuthorizationContext());
         makeUsersWithAuthSetupHelper();
@@ -62,6 +66,8 @@ public class TestAuthSetupHelper extends BasicTestCase {
         // Step 2: Have each user login and get a token
         String adminAuthToken = loginUser(this.adminUser, this.adminUser);
         String exampleAuthToken = loginUser(this.exampleUser, this.exampleUser);
+        String exampleWithMgmtAuthToken = loginUser(this.exampleWithManagementServiceUser,
+                this.exampleWithManagementServiceUser);
 
         // Step 3: Have each user create an example document
         createExampleDocument(adminAuthToken);
@@ -71,6 +77,14 @@ public class TestAuthSetupHelper extends BasicTestCase {
         // can only see the one it created
         assertTrue(numberExampleDocuments(adminAuthToken) == 2);
         assertTrue(numberExampleDocuments(exampleAuthToken) == 1);
+
+        // Step 5: Access a stateless service, which we authorized through
+        // the call to makeUsersWithAuthSetupHelper() above.
+        getManagementState(exampleWithMgmtAuthToken, true);
+
+        // Step 6: Negative case, prove that the example user with only access to
+        // example factory can not access the ServiceHostManagementService
+        getManagementState(exampleAuthToken, false);
 
         this.host.log("AuthorizationSetupHelper is working");
     }
@@ -88,7 +102,7 @@ public class TestAuthSetupHelper extends BasicTestCase {
             }
         };
 
-        this.host.testStart(2);
+        this.host.testStart(3);
         AuthorizationSetupHelper.create()
                 .setHost(this.host)
                 .setUserEmail(this.adminUser)
@@ -105,6 +119,16 @@ public class TestAuthSetupHelper extends BasicTestCase {
                 .setDocumentKind(Utils.buildKind(ExampleServiceState.class))
                 .setCompletion(authCompletion)
                 .start();
+
+        AuthorizationSetupHelper.create()
+                .setHost(this.host)
+                .setUserEmail(this.exampleWithManagementServiceUser)
+                .setUserPassword(this.exampleWithManagementServiceUser)
+                .setIsAdmin(false)
+                .setDocumentLink(ServiceHostManagementService.SELF_LINK)
+                .setCompletion(authCompletion)
+                .start();
+
         this.host.testWait();
     }
 
@@ -197,6 +221,34 @@ public class TestAuthSetupHelper extends BasicTestCase {
         this.host.send(get);
         this.host.testWait();
         return numberDocuments[0];
+    }
+
+    private void getManagementState(String exampleWithMgmtAuthToken, boolean isAuthorized)
+            throws Throwable {
+        this.host.testStart(1);
+        Operation get = Operation
+                .createGet(UriUtils.buildUri(this.host, ServiceHostManagementService.SELF_LINK))
+                .addRequestHeader(Operation.REQUEST_AUTH_TOKEN_HEADER, exampleWithMgmtAuthToken)
+                .setCompletion((o, e) -> {
+                    if (e != null) {
+                        if (isAuthorized) {
+                            this.host.failIteration(e);
+                        } else {
+                            this.host.completeIteration();
+                        }
+                        return;
+                    }
+                    ServiceHostState rsp = o.getBody(ServiceHostState.class);
+                    if (rsp.httpPort != this.host.getPort()) {
+                        this.host.failIteration(
+                                new IllegalStateException("mgmt service state is not correct"));
+                        return;
+                    }
+                    this.host.completeIteration();
+                });
+
+        this.host.send(get);
+        this.host.testWait();
     }
 
     /**
