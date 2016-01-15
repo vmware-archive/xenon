@@ -349,8 +349,9 @@ public class VerificationHost extends ExampleServiceHost {
         if (c > 1) {
             log("%sTest %s, iterations %d, started", negative, testName, c);
         }
+        this.failure = null;
         this.expectedCompletionCount = c;
-        this.testStartMicros = System.nanoTime() / 1000;
+        this.testStartMicros = Utils.getNowMicrosUtc();
         this.completionLatch = new CountDownLatch((int) c);
     }
 
@@ -382,8 +383,8 @@ public class VerificationHost extends ExampleServiceHost {
         log("test failed: %s", e.toString());
         CountDownLatch l = this.completionLatch;
         if (l == null) {
-            throw new IllegalStateException("testStart() and testWait() not paired properly" +
-                    "or testStart(N) was called with N being less than actual completions");
+            log("Test finished, ignoring completion. This might indicate wrong count was used in testStart(count)");
+            return;
         }
         l.countDown();
     }
@@ -428,7 +429,7 @@ public class VerificationHost extends ExampleServiceHost {
                 }
             } while (true);
 
-            this.testEndMicros = System.nanoTime() / 1000;
+            this.testEndMicros = Utils.getNowMicrosUtc();
 
             if (this.expectedCompletionCount > 1) {
                 log("Test %s, iterations %d, complete!", testName,
@@ -1087,6 +1088,7 @@ public class VerificationHost extends ExampleServiceHost {
         int byteCount = Utils.toJson(body).getBytes(Utils.CHARSET).length;
         log("Bytes per payload %s", byteCount);
 
+        long startTimeMicros = Utils.getNowMicrosUtc();
         testStart(testName, properties, count * services.size());
 
         boolean isConcurrentSend = properties.contains(TestProperty.CONCURRENT_SEND);
@@ -1206,7 +1208,7 @@ public class VerificationHost extends ExampleServiceHost {
                     && st.documentSelfLink.equals(beforeSt.documentSelfLink));
             assertTrue(st.documentKind != null
                     && st.documentKind.equals(Utils.buildKind(MinimalTestServiceState.class)));
-            assertTrue(st.documentUpdateTimeMicros > this.testStartMicros);
+            assertTrue(st.documentUpdateTimeMicros > startTimeMicros);
             assertTrue(st.documentUpdateAction != null);
             assertTrue(st.documentUpdateAction.equals(action.toString()));
         }
