@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.5.0-SNAPSHOT
+## 0.5.0
 
 * Implement authorization on stateless services. This is a breaking
   change for xenon deployments that use authorization and have 
