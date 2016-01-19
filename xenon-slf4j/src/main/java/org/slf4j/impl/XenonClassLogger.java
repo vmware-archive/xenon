@@ -214,7 +214,6 @@ public class XenonClassLogger extends MarkerIgnoringBase implements Logger {
         }
     }
 
-    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     private void doLog(Level lvl, FormattingTuple tuple) {
         if (tuple.getThrowable() == null) {
             Utils.log(this.logger, 3, this.name, lvl, "%s", tuple.getMessage());
