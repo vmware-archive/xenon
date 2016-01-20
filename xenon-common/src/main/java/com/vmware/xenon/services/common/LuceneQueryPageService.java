@@ -50,6 +50,12 @@ public class LuceneQueryPageService extends StatelessService {
     }
 
     @Override
+    public void authorizeRequest(Operation op) {
+        // authorization will be applied on the result set
+        op.complete();
+    }
+
+    @Override
     public void handleStart(Operation post) {
         ServiceDocument initState = post.getBody(ServiceDocument.class);
 

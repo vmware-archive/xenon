@@ -46,6 +46,7 @@ import com.vmware.xenon.services.common.ExampleFactoryService;
 import com.vmware.xenon.services.common.ExampleService.ExampleServiceState;
 import com.vmware.xenon.services.common.GuestUserService;
 import com.vmware.xenon.services.common.QueryTask;
+import com.vmware.xenon.services.common.QueryTask.Query;
 import com.vmware.xenon.services.common.QueryTask.Query.Builder;
 
 public class TestAuthorization extends BasicTestCase {
@@ -60,8 +61,9 @@ public class TestAuthorization extends BasicTestCase {
         }
     }
 
-    String userServicePath;
-    AuthorizationHelper authHelper;
+    private String userServicePath;
+    private AuthorizationHelper authHelper;
+    private int serviceCount = 10;
 
     @Override
     public void beforeHostStart(VerificationHost host) {
@@ -181,8 +183,27 @@ public class TestAuthorization extends BasicTestCase {
     public void queryWithDocumentAuthPrincipal() throws Throwable {
         this.host.assumeIdentity(this.userServicePath, null);
         createExampleServices("jane");
+
+        // do a direct, simple query first
         this.host.createAndWaitSimpleDirectQuery(ServiceDocument.FIELD_NAME_AUTH_PRINCIPAL_LINK,
-                this.userServicePath, 2, 2);
+                this.userServicePath, this.serviceCount, this.serviceCount);
+
+        // now do a paginated query to verify we can get to paged results with authz enabled
+        QueryTask qt = QueryTask.Builder.create().setResultLimit(this.serviceCount / 2)
+                .build();
+        qt.querySpec.query = Query.Builder.create()
+                .addFieldClause(ServiceDocument.FIELD_NAME_AUTH_PRINCIPAL_LINK,
+                        this.userServicePath)
+                .build();
+
+        URI taskUri = this.host.createQueryTaskService(qt);
+        qt = this.host.getServiceState(null, QueryTask.class, taskUri);
+
+        this.host.testStart(1);
+        Operation get = Operation.createGet(UriUtils.buildUri(this.host, qt.results.nextPageLink))
+                .setCompletion(this.host.getCompletion());
+        this.host.send(get);
+        this.host.testWait();
     }
 
     @Test
@@ -344,7 +365,7 @@ public class TestAuthorization extends BasicTestCase {
 
         // try to create services with no user context set; we should get a 403
         OperationContext.setAuthorizationContext(null);
-        ExampleServiceState state = exampleServiceState("jane", new Long("100"));
+        ExampleServiceState state = createExampleServiceState("jane", new Long("100"));
         this.host.testStart(1);
         this.host.send(
                 Operation.createPost(UriUtils.buildUri(this.host, ExampleFactoryService.SELF_LINK))
@@ -501,7 +522,7 @@ public class TestAuthorization extends BasicTestCase {
         return this.host.getTokenSigner().sign(claims);
     }
 
-    private ExampleServiceState exampleServiceState(String name, Long counter) {
+    private ExampleServiceState createExampleServiceState(String name, Long counter) {
         ExampleServiceState state = new ExampleServiceState();
         state.name = name;
         state.counter = counter;
@@ -511,8 +532,9 @@ public class TestAuthorization extends BasicTestCase {
 
     private Map<URI, ExampleServiceState> createExampleServices(String userName) throws Throwable {
         Collection<ExampleServiceState> bodies = new LinkedList<>();
-        bodies.add(exampleServiceState(userName, new Long(1)));
-        bodies.add(exampleServiceState(userName, new Long(2)));
+        for (int i = 0; i < this.serviceCount; i++) {
+            bodies.add(createExampleServiceState(userName, new Long(1)));
+        }
 
         Iterator<ExampleServiceState> it = bodies.iterator();
         Consumer<Operation> bodySetter = (o) -> {

@@ -39,6 +39,12 @@ public class NodeSelectorForwardingService extends StatelessService {
     }
 
     @Override
+    public void authorizeRequest(Operation op) {
+        // authorization will be applied on the target we are forwarding to
+        op.complete();
+    }
+
+    @Override
     public void handleRequest(Operation op) {
         Map<String, String> params = UriUtils.parseUriQueryParams(op.getUri());
         String link = params.get(UriUtils.FORWARDING_URI_PARAM_NAME_PATH);
