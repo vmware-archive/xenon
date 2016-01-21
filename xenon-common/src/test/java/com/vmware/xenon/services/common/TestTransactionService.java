@@ -114,8 +114,8 @@ public class TestTransactionService extends BasicReusableHostTestCase {
         host.testWait();
         // This should be equal to the newest state -- since the transaction committed
         verifyState = this.host.getServiceState(null, ExampleService.ExampleServiceState.class, exampleURIs.get(0));
-        assertEquals(verifyState.name, initialState.name);
-        assertEquals(verifyState.documentTransactionId, "");
+        assertEquals(initialState.name, verifyState.name);
+        assertEquals(null, verifyState.documentTransactionId);
 
     }
     /**

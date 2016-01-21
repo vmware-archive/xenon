@@ -19,12 +19,14 @@ import java.util.List;
 import java.util.Set;
 
 import com.vmware.xenon.services.common.QueryTask;
+import com.vmware.xenon.services.common.QueryTask.Query.Occurance;
+import com.vmware.xenon.services.common.QueryTask.QueryTerm.MatchType;
 import com.vmware.xenon.services.common.ServiceUriPaths;
 import com.vmware.xenon.services.common.TransactionService.ResolutionKind;
 import com.vmware.xenon.services.common.TransactionService.ResolutionRequest;
 
 /**
- * Stateless helpers for transactions, to relief some weight from other files/services
+ * Stateless helpers for transactions
  */
 public class TransactionServiceHelper {
     interface Handler {
@@ -54,7 +56,9 @@ public class TransactionServiceHelper {
         } else {
             // latest that does not have txid -- TODO: incorporate caching (DCP-1160)
             txClause.setTermPropertyName(ServiceDocument.FIELD_NAME_TRANSACTION_ID);
-            txClause.setTermMatchValue("");
+            txClause.setTermMatchValue("*");
+            txClause.setTermMatchType(MatchType.WILDCARD);
+            txClause.occurance = Occurance.MUST_NOT_OCCUR;
         }
         QueryTask.QuerySpecification q = new QueryTask.QuerySpecification();
         q.options = EnumSet.of(QueryTask.QuerySpecification.QueryOption.EXPAND_CONTENT,

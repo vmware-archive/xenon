@@ -4361,8 +4361,7 @@ public class ServiceHost {
         }
 
         if (this.transactionService != null) {
-            state.documentTransactionId = op.getTransactionId() == null ? "" : op
-                    .getTransactionId();
+            state.documentTransactionId = op.getTransactionId();
         }
         state.documentUpdateAction = op.getAction().toString();
 
