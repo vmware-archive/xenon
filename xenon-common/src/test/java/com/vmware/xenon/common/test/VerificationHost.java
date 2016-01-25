@@ -41,11 +41,19 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+
+import javax.net.ssl.SSLContext;
+
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 import org.junit.rules.TemporaryFolder;
 
@@ -73,6 +81,7 @@ import com.vmware.xenon.common.ServiceStats.ServiceStatLogHistogram;
 import com.vmware.xenon.common.TaskState;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.Utils;
+import com.vmware.xenon.common.http.netty.NettyHttpServiceClient;
 import com.vmware.xenon.services.common.AuthorizationContextService;
 import com.vmware.xenon.services.common.ConsistentHashingNodeSelectorService;
 import com.vmware.xenon.services.common.ExampleFactoryService;
@@ -95,6 +104,7 @@ import com.vmware.xenon.services.common.QueryTask.QueryTerm.MatchType;
 import com.vmware.xenon.services.common.QueryValidationTestService.NestedType;
 import com.vmware.xenon.services.common.QueryValidationTestService.QueryValidationServiceState;
 import com.vmware.xenon.services.common.ServiceHostLogService.LogServiceState;
+
 import com.vmware.xenon.services.common.ServiceHostManagementService;
 import com.vmware.xenon.services.common.ServiceUriPaths;
 
@@ -252,6 +262,32 @@ public class VerificationHost extends ExampleServiceHost {
             throw new RuntimeException(e);
         }
         return h;
+    }
+
+    public static void createAndAttachSSLClient(ServiceHost h,
+            ExecutorService executor, ScheduledExecutorService schExec) throws Throwable {
+        if (executor == null) {
+            executor = Executors.newFixedThreadPool(Utils.DEFAULT_THREAD_COUNT);
+        }
+
+        if (schExec == null) {
+            schExec = Executors.newScheduledThreadPool(1);
+        }
+
+        // we create a random userAgent string to validate host to host communication when
+        // the client appears to be from an external, non-Xenon source.
+        ServiceClient client = NettyHttpServiceClient.create(UUID.randomUUID().toString(),
+                executor,
+                schExec, h);
+
+        SSLContext clientContext = SSLContext.getInstance(ServiceClient.TLS_PROTOCOL_NAME);
+        clientContext.init(null, InsecureTrustManagerFactory.INSTANCE.getTrustManagers(), null);
+        client.setSSLContext(clientContext);
+        h.setClient(client);
+
+        SelfSignedCertificate ssc = new SelfSignedCertificate();
+        h.setCertificateFileReference(ssc.certificate().toURI());
+        h.setPrivateKeyFileReference(ssc.privateKey().toURI());
     }
 
     public void tearDown() {
@@ -1547,6 +1583,8 @@ public class VerificationHost extends ExampleServiceHost {
             h.setAuthorizationService(new AuthorizationContextService());
         }
         try {
+            VerificationHost.createAndAttachSSLClient(h, this.getExecutor(),
+                    this.getScheduledExecutor());
             h.start();
             h.setMaintenanceIntervalMicros(maintIntervalMicros);
         } catch (Throwable e) {

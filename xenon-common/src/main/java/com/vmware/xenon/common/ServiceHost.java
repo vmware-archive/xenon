@@ -433,7 +433,7 @@ public class ServiceHost {
     private final ServiceDocumentDescription.Builder descriptionBuilder = Builder.create();
 
     private ExecutorService executor;
-    protected ScheduledExecutorService scheduledExecutor;
+    private ScheduledExecutorService scheduledExecutor;
 
     private final ConcurrentSkipListMap<String, Service> attachedServices = new ConcurrentSkipListMap<>();
     private final ConcurrentSkipListSet<String> coreServices = new ConcurrentSkipListSet<>();
@@ -960,11 +960,11 @@ public class ServiceHost {
         return this;
     }
 
-    ScheduledExecutorService getScheduledExecutor() {
+    protected ScheduledExecutorService getScheduledExecutor() {
         return this.scheduledExecutor;
     }
 
-    ExecutorService getExecutor() {
+    protected ExecutorService getExecutor() {
         return this.executor;
     }
 
@@ -2930,8 +2930,9 @@ public class ServiceHost {
             userAgent = op.getRequestHeader(Operation.USER_AGENT_HEADER.toLowerCase());
         }
 
-        if (userAgent != null && !userAgent.contains(ServiceHost.class.getSimpleName())) {
-            // do not implicitly queue requests from other request sources
+        if (!op.isForwarded() && !op.isFromReplication() && userAgent != null
+                && !userAgent.contains(ServiceHost.class.getSimpleName())) {
+            // do not implicitly queue requests from clients not associated with service hosts
             doNotQueue = true;
         }
 

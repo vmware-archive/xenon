@@ -184,13 +184,17 @@ public class TestNodeGroupService {
     private boolean isPeerSynchronizationEnabled = true;
     private boolean isAuthorizationEnabled = false;
 
-    private void setUpPeers(int localHostCount) throws Throwable {
+    private void setUp(int localHostCount) throws Throwable {
         if (this.host != null) {
             return;
         }
         CommandLineArgumentParser.parseFromProperties(this);
         this.host = VerificationHost.create(0);
         this.host.setAuthorizationEnabled(this.isAuthorizationEnabled);
+
+        ServiceHost h = this.host;
+        VerificationHost.createAndAttachSSLClient(h, null, null);
+
         this.host.start();
 
         if (this.host.isAuthorizationEnabled()) {
@@ -282,7 +286,7 @@ public class TestNodeGroupService {
 
     @Test
     public void customNodeGroupWithObservers() throws Throwable {
-        setUpPeers(this.nodeCount);
+        setUp(this.nodeCount);
         // on one of the hosts create the custom group but with self as an observer. That peer should
         // never receive replicated or broadcast requests
         URI observerHostUri = this.host.getPeerHostUri();
@@ -439,7 +443,7 @@ public class TestNodeGroupService {
         tmpFolder.create();
 
         try {
-            setUpPeers(this.nodeCount);
+            setUp(this.nodeCount);
 
             // On one host, add some services. They exist only on this host and we expect them to synchronize
             // across all hosts once this one joins with the group
@@ -635,7 +639,7 @@ public class TestNodeGroupService {
     public void nodeRestartWithSameAddressDifferentId() throws Throwable {
         int failedNodeCount = 1;
 
-        setUpPeers(this.nodeCount);
+        setUp(this.nodeCount);
         setOperationTimeoutMicros(TimeUnit.SECONDS.toMicros(5));
 
         this.host.joinNodesAndVerifyConvergence(this.nodeCount);
@@ -758,7 +762,7 @@ public class TestNodeGroupService {
     @Test
     public void replicationWithCrossServiceDependencies() throws Throwable {
         this.isPeerSynchronizationEnabled = false;
-        setUpPeers(this.nodeCount);
+        setUp(this.nodeCount);
 
         this.host.joinNodesAndVerifyConvergence(this.host.getPeerCount());
 
@@ -1255,7 +1259,7 @@ public class TestNodeGroupService {
 
     @Test
     public void factorySynchronization() throws Throwable {
-        setUpPeers(this.nodeCount);
+        setUp(this.nodeCount);
         this.host.joinNodesAndVerifyConvergence(this.nodeCount);
 
         factorySynchronizationNoChildren();
@@ -1303,7 +1307,7 @@ public class TestNodeGroupService {
 
     private void factorySynchronizationNoChildren() throws Throwable {
         int factoryCount = Math.max(this.serviceCount, 25);
-        setUpPeers(this.nodeCount);
+        setUp(this.nodeCount);
 
         // start many factories, in each host, so when the nodes join there will be a storm
         // of synchronization requests between the nodes + factory instances
@@ -1324,7 +1328,7 @@ public class TestNodeGroupService {
 
     @Test
     public void forwardingAndSelection() throws Throwable {
-        setUpPeers(this.nodeCount);
+        setUp(this.nodeCount);
         this.host.joinNodesAndVerifyConvergence(this.nodeCount);
         forwardingToPeerId();
 
@@ -1336,7 +1340,7 @@ public class TestNodeGroupService {
     }
 
     private void broadcast() throws Throwable {
-        setUpPeers(this.nodeCount);
+        setUp(this.nodeCount);
         this.host.joinNodesAndVerifyConvergence(this.nodeCount);
 
         // Do a broadcast on a local, non replicated service. Replicated services can not
@@ -1741,7 +1745,7 @@ public class TestNodeGroupService {
         int additionalHostCount = Math.min(this.nodeCount, 2);
         this.serviceCount = Math.max((this.nodeCount + additionalHostCount) * 3, this.serviceCount);
 
-        setUpPeers(this.nodeCount);
+        setUp(this.nodeCount);
         this.host.joinNodesAndVerifyConvergence(this.host.getPeerCount());
 
         Consumer<Operation> setBodyCallback = (o) -> {
@@ -1949,7 +1953,7 @@ public class TestNodeGroupService {
         AuthorizationHelper authHelper;
 
         this.isAuthorizationEnabled = true;
-        setUpPeers(this.nodeCount);
+        setUp(this.nodeCount);
 
         authHelper = new AuthorizationHelper(this.host);
 
@@ -2547,7 +2551,7 @@ public class TestNodeGroupService {
         }
 
         if (this.host == null) {
-            setUpPeers(this.nodeCount);
+            setUp(this.nodeCount);
             this.host.joinNodesAndVerifyConvergence(this.host.getPeerCount());
         }
 

@@ -1215,6 +1215,15 @@ public class Operation implements Cloneable {
         return this.options.contains(OperationOption.REPLICATED);
     }
 
+    /**
+     * Infrastructure use only.
+     *
+     * Value indicating whether this operation was forwarded from a peer node
+     */
+    public boolean isForwarded() {
+        return this.hasPragmaDirective(PRAGMA_DIRECTIVE_FORWARDED);
+    }
+
     public String getRequestCallbackLocation() {
         if (this.remoteCtx == null) {
             return null;
