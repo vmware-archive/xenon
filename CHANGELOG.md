@@ -2,6 +2,11 @@
 
 ## 0.5.1-SNAPSHOT
 
+* Enable HTTPS support for node groups. Several fixes in URI
+  manipulation now allow Xenon hosts to start with just a HTTPS
+  listener and use exclusively HTTPS for node group operations,
+  including join, maintenance, replication and forwarding
+
 * Add ServiceHost.Arguments.resourceSandbox to speed up UI
   development experience. When specified, xenon will publish
   the UI resource files directly from the file folder, allowing
