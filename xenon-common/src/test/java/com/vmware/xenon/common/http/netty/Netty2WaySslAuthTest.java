@@ -138,6 +138,7 @@ public class Netty2WaySslAuthTest {
         // now stop the host, replace the listener, and restart
         this.host.stop();
         this.host.setPort(0);
+        this.host.setSecurePort(0);
         this.host.setListener(l);
         this.host.start();
         assertEquals(l, this.host.getListener());
