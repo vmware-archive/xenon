@@ -1555,7 +1555,9 @@ public class ServiceHost {
     }
 
     /**
-     * Subscribe to the service specified in the subscribe operation URI
+     * Subscribe to the service specified in the subscribe operation URI. Note that this won't
+     * replay state: use the version of startSubscriptionService that takes the ServiceSubscriber
+     * as an option to get that.
      */
     public URI startSubscriptionService(
             Operation subscribe,
@@ -1566,7 +1568,9 @@ public class ServiceHost {
 
     /**
      * Start a {@code ReliableSubscriptionService} service and using it as the target, subscribe to the
-     * service specified in the subscribe operation URI
+     * service specified in the subscribe operation URI. Note that this won't replay state:
+     * use the version of startSubscriptionService that takes the ServiceSubscriber as an option
+     * to get that.
      */
     public URI startReliableSubscriptionService(
             Operation subscribe,

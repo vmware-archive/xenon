@@ -31,6 +31,13 @@ public class ServiceSubscriptionState extends ServiceDocument {
 
         public URI reference;
         public Long notificationLimit;
+
+        /**
+         * If replayState is true, when the subscription is created, the current state will
+         * immediately be sent as a notification. This ensures that if the state changes
+         * between the time you subscribe and the first subscription, your subscriber still
+         * knows about the state.
+         */
         public boolean replayState;
         public boolean usePublicUri;
 
