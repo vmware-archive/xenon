@@ -637,7 +637,7 @@ public class ServiceHost {
         this.state.initialPeerNodes = args.peerNodes;
     }
 
-    private void configureLogging(File storageSandboxDir) throws IOException {
+    protected void configureLogging(File storageSandboxDir) throws IOException {
         String logConfigFile = System.getProperty("java.util.logging.config.file");
         String logConfigClass = System.getProperty("java.util.logging.config.class");
         if (logConfigFile == null && logConfigClass == null) {
@@ -666,7 +666,7 @@ public class ServiceHost {
         }
     }
 
-    private void removeLogging() {
+    protected void removeLogging() {
         if (this.handler != null) {
             this.logger.getParent().removeHandler(this.handler);
             this.handler.close();
