@@ -446,6 +446,7 @@ public class ServiceHost {
 
     private final ConcurrentSkipListMap<String, Service> attachedServices = new ConcurrentSkipListMap<>();
     private final ConcurrentSkipListSet<String> coreServices = new ConcurrentSkipListSet<>();
+    private ConcurrentSkipListMap<String, Class<? extends Service>> privilegedServiceTypes = new ConcurrentSkipListMap<>();
 
     private final ConcurrentSkipListSet<String> pendingNodeSelectorsForFactorySynch = new ConcurrentSkipListSet<>();
     private final SortedSet<Operation> pendingStartOperations = createOperationSet();
@@ -483,7 +484,6 @@ public class ServiceHost {
 
     private AuthorizationContext systemAuthorizationContext;
     private AuthorizationContext guestAuthorizationContext;
-    private ConcurrentSkipListMap<String, Class<? extends Service>> privilegedServiceList = new ConcurrentSkipListMap<>();
 
     protected ServiceHost() {
         this.state = new ServiceHostState();
@@ -3324,52 +3324,11 @@ public class ServiceHost {
             this.maintenanceTask = null;
         }
 
-        int servicesToCloseCount = servicesToClose.size()
-                - this.coreServices.size();
-        final CountDownLatch latch = new CountDownLatch(servicesToCloseCount);
+        List<Service> privilegedServiceInstances = stopServices(servicesToClose);
 
-        final Operation.CompletionHandler removeServiceCompletion = (o, e) -> {
-            this.attachedServices.remove(o.getUri().getPath());
-            latch.countDown();
-        };
+        stopPrivilegedServices(privilegedServiceInstances);
 
-        setAuthorizationContext(getSystemAuthorizationContext());
-
-        // first shut down non core services: During their stop processing they
-        // might still rely on core services
-        for (final Service s : servicesToClose) {
-            if (this.coreServices.contains(s.getSelfLink())) {
-                // we stop core services last
-                continue;
-            }
-            sendServiceStop(removeServiceCompletion, s);
-        }
-
-        log(Level.INFO, "Waiting for DELETE from %d services", servicesToCloseCount);
-        waitForServiceStop(latch);
-        log(Level.INFO, "All non core services stopped", servicesToCloseCount);
-
-        int coreServiceCount = this.coreServices.size();
-        final CountDownLatch cLatch = new CountDownLatch(coreServiceCount);
-        final Operation.CompletionHandler c = (o, e) -> {
-            cLatch.countDown();
-        };
-
-        // now do core service shutdown in parallel
-        for (String coreServiceLink : this.coreServices) {
-            Service coreService = this.attachedServices.get(coreServiceLink);
-            if (coreService == null || coreService instanceof ServiceHostManagementService) {
-                // a DELETE to the management service will cause a recursive stop()
-                c.handle(null, null);
-                continue;
-            }
-            sendServiceStop(c, coreService);
-        }
-
-        log(Level.INFO, "Waiting for DELETE from %d core services", coreServiceCount);
-        this.coreServices.clear();
-        waitForServiceStop(cLatch);
-        log(Level.INFO, "All core services stopped");
+        stopCoreServices();
 
         this.attachedServices.clear();
         this.maintenanceHelper.close();
@@ -3397,6 +3356,92 @@ public class ServiceHost {
 
         this.executor.shutdownNow();
         this.scheduledExecutor.shutdownNow();
+    }
+
+    private List<Service> stopServices(Set<Service> servicesToClose) {
+        int servicesToCloseCount = servicesToClose.size()
+                - this.coreServices.size();
+
+        final CountDownLatch latch = new CountDownLatch(servicesToCloseCount);
+
+        final Operation.CompletionHandler removeServiceCompletion = (o, e) -> {
+            this.attachedServices.remove(o.getUri().getPath());
+            latch.countDown();
+        };
+
+        setAuthorizationContext(getSystemAuthorizationContext());
+
+        List<Service> privilegedServiceInstances = new ArrayList<>();
+
+        // first shut down non core services: During their stop processing they
+        // might still rely on core services
+        for (final Service s : servicesToClose) {
+            if (this.coreServices.contains(s.getSelfLink())) {
+                // stop core services last
+                continue;
+            }
+            if (this.privilegedServiceTypes.containsKey(s.getClass().getName())) {
+                privilegedServiceInstances.add(s);
+                // Invoke completion handler so we count down. This avoids a two pass
+                // over all services to determine what services are privileged. Its OK that
+                // we remove the service from the attached list, here, and in
+                // stopPrivilegedServices()
+                removeServiceCompletion.handle(Operation.createDelete(s.getUri()), null);
+                // stop privileged services last
+                continue;
+            }
+            sendServiceStop(removeServiceCompletion, s);
+        }
+
+        log(Level.INFO, "Waiting for DELETE from %d services", servicesToCloseCount);
+        waitForServiceStop(latch);
+        log(Level.INFO, "All non core services stopped", servicesToCloseCount);
+        return privilegedServiceInstances;
+    }
+
+    private void stopPrivilegedServices(List<Service> privilegedServiceInstances) {
+        if (privilegedServiceInstances.size() == 0) {
+            return;
+        }
+        int servicesToCloseCount;
+        servicesToCloseCount = privilegedServiceInstances.size();
+        final CountDownLatch pLatch = new CountDownLatch(servicesToCloseCount);
+        final Operation.CompletionHandler pc = (o, e) -> {
+            pLatch.countDown();
+        };
+
+        // now do privileged service shutdown in parallel
+        for (Service p : privilegedServiceInstances) {
+            sendServiceStop(pc, p);
+        }
+
+        log(Level.INFO, "Waiting for DELETE from %d privileged services", servicesToCloseCount);
+        waitForServiceStop(pLatch);
+        log(Level.INFO, "All privileged services stopped");
+    }
+
+    private void stopCoreServices() {
+        int coreServiceCount = this.coreServices.size();
+        final CountDownLatch cLatch = new CountDownLatch(coreServiceCount);
+        final Operation.CompletionHandler c = (o, e) -> {
+            cLatch.countDown();
+        };
+
+        // now do core service shutdown in parallel
+        for (String coreServiceLink : this.coreServices) {
+            Service coreService = this.attachedServices.get(coreServiceLink);
+            if (coreService == null || coreService instanceof ServiceHostManagementService) {
+                // a DELETE to the management service will cause a recursive stop()
+                c.handle(null, null);
+                continue;
+            }
+            sendServiceStop(c, coreService);
+        }
+
+        log(Level.INFO, "Waiting for DELETE from %d core services", coreServiceCount);
+        this.coreServices.clear();
+        waitForServiceStop(cLatch);
+        log(Level.INFO, "All core services stopped");
     }
 
     private void stopAndClearPendingQueues() {
@@ -4930,18 +4975,18 @@ public class ServiceHost {
     }
 
     /**
-     * Call to add a service to a privileged list for interaction with
-     * auth context.
+     * Adds a service to a privileged list, allowing it to operate on authorization
+     * context
      */
     protected void addPrivilegedService(Class<? extends Service> serviceType) {
-        this.privilegedServiceList.put(serviceType.getName(), serviceType);
+        this.privilegedServiceTypes.put(serviceType.getName(), serviceType);
     }
 
     protected boolean isPrivilegedService(Service service) {
         // Checks if caller is privileged for auth context calls.
         boolean result = false;
 
-        for (Class<? extends Service> privilegedService : this.privilegedServiceList
+        for (Class<? extends Service> privilegedService : this.privilegedServiceTypes
                 .values()) {
             if (service.getClass().equals(privilegedService)) {
                 result = true;

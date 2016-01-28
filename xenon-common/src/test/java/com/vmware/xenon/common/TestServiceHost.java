@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import io.netty.handler.ssl.util.SelfSignedCertificate;
+
 import org.junit.After;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -499,6 +500,92 @@ public class TestServiceHost {
                 .setCompletion(this.host.getExpectedFailureCompletion());
         this.host.startService(startPost, new MinimalTestService());
         this.host.testWait();
+    }
+
+    public static class StopOrderTestService extends StatefulService {
+
+        public int stopOrder;
+
+        public AtomicInteger globalStopOrder;
+
+        public StopOrderTestService() {
+            super(MinimalTestServiceState.class);
+        }
+
+        public void handleDelete(Operation delete) {
+            this.stopOrder = this.globalStopOrder.incrementAndGet();
+            delete.complete();
+        }
+
+    }
+
+    public static class PrivilegedStopOrderTestService extends StatefulService {
+
+        public int stopOrder;
+
+        public AtomicInteger globalStopOrder;
+
+        public PrivilegedStopOrderTestService() {
+            super(MinimalTestServiceState.class);
+        }
+
+        public void handleDelete(Operation delete) {
+            this.stopOrder = this.globalStopOrder.incrementAndGet();
+            delete.complete();
+        }
+
+    }
+
+    @Test
+    public void serviceStopOrder() throws Throwable {
+        setUp(false);
+
+        // start a service but tell it to not complete the start POST. This will induce a timeout
+        // failure from the host
+
+        int serviceCount = 10;
+        AtomicInteger order = new AtomicInteger(0);
+        this.host.testStart(serviceCount);
+        List<StopOrderTestService> normalServices = new ArrayList<>();
+        for (int i = 0; i < serviceCount; i++) {
+            MinimalTestServiceState initialState = new MinimalTestServiceState();
+            initialState.id = UUID.randomUUID().toString();
+            StopOrderTestService normalService = new StopOrderTestService();
+            normalServices.add(normalService);
+            normalService.globalStopOrder = order;
+            Operation post = Operation.createPost(UriUtils.buildUri(this.host, initialState.id))
+                    .setBody(initialState)
+                    .setCompletion(this.host.getCompletion());
+            this.host.startService(post, normalService);
+        }
+        this.host.testWait();
+
+
+        this.host.addPrivilegedService(PrivilegedStopOrderTestService.class);
+        List<PrivilegedStopOrderTestService> pServices = new ArrayList<>();
+        this.host.testStart(serviceCount);
+        for (int i = 0; i < serviceCount; i++) {
+            MinimalTestServiceState initialState = new MinimalTestServiceState();
+            initialState.id = UUID.randomUUID().toString();
+            PrivilegedStopOrderTestService ps = new PrivilegedStopOrderTestService();
+            pServices.add(ps);
+            ps.globalStopOrder = order;
+            Operation post = Operation.createPost(UriUtils.buildUri(this.host, initialState.id))
+                    .setBody(initialState)
+                    .setCompletion(this.host.getCompletion());
+            this.host.startService(post, ps);
+        }
+        this.host.testWait();
+
+        this.host.stop();
+
+        for (PrivilegedStopOrderTestService pService : pServices) {
+            for (StopOrderTestService normalService : normalServices) {
+                this.host.log("normal order: %d, privileged: %d", normalService.stopOrder,
+                        pService.stopOrder);
+                assertTrue(normalService.stopOrder < pService.stopOrder);
+            }
+        }
     }
 
     @Test
