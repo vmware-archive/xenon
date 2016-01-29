@@ -4109,22 +4109,21 @@ public class ServiceHost {
      * takes appropriate action: clears cached service state, temporarily stops services
      */
     private void applyMemoryLimit(long deadlineMicros) {
+
         long memoryLimitLowMB = getServiceMemoryLimitMB(ROOT_PATH,
                 MemoryLimitType.HIGH_WATERMARK);
 
         long memoryInUseMB = this.state.serviceCount * DEFAULT_SERVICE_INSTANCE_COST_BYTES;
         memoryInUseMB /= (1024 * 1024);
 
-        if (memoryLimitLowMB > memoryInUseMB) {
-            return;
-        }
+
+        boolean shouldPause = memoryLimitLowMB <= memoryInUseMB;
 
         int pauseServiceCount = 0;
         for (Service service : this.attachedServices.values()) {
             ServiceDocument s = this.cachedServiceStates.get(service.getSelfLink());
 
-            // explicitly check if its a factory since a factory service will inherit service options from its
-            // child services, and will appears as indexed
+            // skip factory services, they do not have state, and should not be paused
             if (service.hasOption(ServiceOption.FACTORY)) {
                 continue;
             }
@@ -4152,6 +4151,10 @@ public class ServiceHost {
             if (service.hasOption(ServiceOption.PERIODIC_MAINTENANCE)) {
                 // Services with periodic maintenance stay resident, for now. We might stop them in the future
                 // if they have long periods
+                continue;
+            }
+
+            if (!shouldPause) {
                 continue;
             }
 
@@ -4432,6 +4435,11 @@ public class ServiceHost {
 
     private void clearCachedServiceState(String servicePath) {
         this.cachedServiceStates.remove(servicePath);
+        Service s = this.attachedServices.get(servicePath);
+        if (s == null) {
+            return;
+        }
+        s.adjustStat(Service.STAT_NAME_CACHE_CLEAR_COUNT, 1);
     }
 
     public ServiceHost setOperationTimeOutMicros(long timeoutMicros) {
