@@ -15,7 +15,10 @@ package com.vmware.xenon.services.common.authn;
 
 import java.net.URI;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -39,6 +42,8 @@ public class TestBasicAuthenticationService extends BasicTestCase {
     private static final String BASIC_AUTH_PREFIX = "Basic ";
     private static final String BASIC_AUTH_USER_SEPERATOR = ":";
     private static final String SET_COOKIE_HEADER = "Set-Cookie";
+
+    private String credentialsServiceStateSelfLink;
 
     @Override
     public void beforeHostStart(VerificationHost h) {
@@ -78,13 +83,13 @@ public class TestBasicAuthenticationService extends BasicTestCase {
                             this.host.failIteration(e);
                             return;
                         }
+                        this.credentialsServiceStateSelfLink = o.getBody(AuthCredentialsServiceState.class).documentSelfLink;
                         this.host.completeIteration();
                     });
             this.host.testStart(2);
             this.host.send(userOp);
             this.host.send(authOp);
             this.host.testWait();
-            this.host.resetAuthorizationContext();
         } catch (Throwable e) {
             throw new Exception(e);
         }
@@ -92,7 +97,7 @@ public class TestBasicAuthenticationService extends BasicTestCase {
 
     @Test
     public void testAuth() throws Throwable {
-
+        this.host.resetAuthorizationContext();
         URI authServiceUri = UriUtils.buildUri(this.host, BasicAuthenticationService.SELF_LINK);
         // send a request with no authentication header
         this.host.testStart(1);
@@ -290,6 +295,59 @@ public class TestBasicAuthenticationService extends BasicTestCase {
                         }));
         this.host.testWait();
 
+    }
+
+    @Test
+    public void testCustomProperties() throws Throwable {
+        String firstProperty = "Property1";
+        String firstValue = "Value1";
+        String secondProperty = "Property2";
+        String secondValue = "Value2";
+        String updatedValue = "UpdatedValue";
+
+        // add custom property
+        URI authUri = UriUtils.buildUri(this.host, this.credentialsServiceStateSelfLink);
+        AuthCredentialsServiceState authServiceState = new AuthCredentialsServiceState();
+        Map<String, String> customProperties = new HashMap<String, String>();
+        customProperties.put(firstProperty, firstValue);
+        authServiceState.customProperties = customProperties;
+        Operation addProperty = Operation.createPatch(authUri)
+                .setBody(authServiceState)
+                .setCompletion((o, e) -> {
+                    if (e != null) {
+                        this.host.failIteration(e);
+                        return;
+                    }
+                    AuthCredentialsServiceState state = o.getBody(AuthCredentialsServiceState.class);
+                    assertEquals("There should be only one custom property", state.customProperties.size(), 1);
+                    assertEquals(state.customProperties.get(firstProperty), firstValue);
+                    this.host.completeIteration();
+                });
+        this.host.testStart(1);
+        this.host.send(addProperty);
+        this.host.testWait();
+
+        // update custom properties
+
+        customProperties.put(firstProperty, updatedValue);
+        customProperties.put(secondProperty, secondValue);
+        authServiceState.customProperties = customProperties;
+        Operation updateProperies = Operation.createPatch(authUri)
+                .setBody(authServiceState)
+                .setCompletion((o, e) -> {
+                    if (e != null) {
+                        this.host.failIteration(e);
+                        return;
+                    }
+                    AuthCredentialsServiceState state = o.getBody(AuthCredentialsServiceState.class);
+                    assertEquals("There should be two custom properties", state.customProperties.size(), 2);
+                    assertEquals(state.customProperties.get(firstProperty), updatedValue);
+                    assertEquals(state.customProperties.get(secondProperty), secondValue);
+                    this.host.completeIteration();
+                });
+        this.host.testStart(1);
+        this.host.send(updateProperies);
+        this.host.testWait();
     }
 
     private boolean validateAuthToken(Operation op) {
