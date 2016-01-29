@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.5.1-SNAPSHOT
+## 0.5.1
 
 * Enable HTTPS support for node groups. Several fixes in URI
   manipulation now allow Xenon hosts to start with just a HTTPS
