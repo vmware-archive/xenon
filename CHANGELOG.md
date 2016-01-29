@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 0.6.0-SNAPSHOT
+
 ## 0.5.1
 
 * Enable HTTPS support for node groups. Several fixes in URI
