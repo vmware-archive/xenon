@@ -16,6 +16,7 @@ package com.vmware.xenon.services.common;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.store.AlreadyClosedException;
 
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.ServiceDocument;
@@ -40,12 +41,16 @@ public class LuceneQueryPageService extends StatelessService {
     }
 
     public static class LuceneQueryPage {
-        public String link;
+        public String previousPageLink;
         public ScoreDoc after;
 
         public LuceneQueryPage(String link, ScoreDoc after) {
-            this.link = link;
+            this.previousPageLink = link;
             this.after = after;
+        }
+
+        public boolean isFirstPage() {
+            return this.previousPageLink == null;
         }
     }
 
@@ -115,11 +120,28 @@ public class LuceneQueryPageService extends StatelessService {
 
     private void handleQueryCompletion(QueryTask task, Throwable e, Operation get) {
         if (e != null) {
+            LuceneQueryPage ctx = (LuceneQueryPage) task.querySpec.context.nativePage;
+            if (ctx.isFirstPage() && (e instanceof AlreadyClosedException)
+                    && !getHost().isStopping()) {
+                // The lucene index service periodically grooms index writers and index searchers.
+                // When the system is under load, the grooming will occur more often, potentially
+                // closing a writer that is indirectly used by a paginated query task.
+                // Paginated queries cache the index searcher to use, when the very first page is
+                // is retrieved. If we detect that failure occurred doing a query for the first page,
+                // we re-open the searcher, still providing a consistent snapshot of the index across
+                // all pages. If any page other than the first encounters failure however, we are forced
+                // to fail the query task itself, and client has to retry.
+                logWarning("Retrying query because index context is out of date");
+                task.querySpec.context.nativeSearcher = null;
+                forwardToLucene(task, get);
+                return;
+            }
+
+            // fail the paginated query, client has to re-create the query task
             QueryTask t = new QueryTask();
             t.taskInfo.stage = TaskStage.FAILED;
             t.taskInfo.failure = Utils.toServiceErrorResponse(e);
             get.setBody(t).fail(e);
-
             return;
         }
 
