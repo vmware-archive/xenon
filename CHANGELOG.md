@@ -2,6 +2,9 @@
 
 ## 0.6.0-SNAPSHOT
 
+* Add service host set/get service cache clear delay so cache clears are
+  configurable
+
 ## 0.5.1
 
 * Enable HTTPS support for node groups. Several fixes in URI
