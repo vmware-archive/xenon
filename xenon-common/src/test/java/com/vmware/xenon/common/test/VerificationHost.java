@@ -458,7 +458,7 @@ public class VerificationHost extends ExampleServiceHost {
                 if (isDone) {
                     break;
                 }
-                long delta = System.nanoTime() / 1000 - this.testStartMicros;
+                long delta = Utils.getNowMicrosUtc() - this.testStartMicros;
                 if (delta > TimeUnit.SECONDS.toMicros(timeoutSeconds)) {
                     log("Test %s timed out after %d micros", testName, delta);
                     throw new TimeoutException();
