@@ -1569,6 +1569,30 @@ public class StatefulService implements Service {
         return (T) op.getLinkedState();
     }
 
+    /**
+     * Value indicating whether GET on /available returns 200 or 503
+     * The method is a convenience method since it relies on STAT_NAME_AVAILABLE to report
+     * availability.
+     */
+    public void setAvailable(boolean isAvailable) {
+        this.toggleOption(ServiceOption.INSTRUMENTATION, true);
+        this.setStat(STAT_NAME_AVAILABLE, isAvailable ? 1.0 : 0.0);
+    }
+
+    /**
+     * Value indicating whether GET on /available returns 200 or 503
+     */
+    public boolean isAvailable() {
+        if (!hasOption(Service.ServiceOption.INSTRUMENTATION)) {
+            return true;
+        }
+        ServiceStat st = this.getStat(STAT_NAME_AVAILABLE);
+        if (st != null && st.latestValue == 1.0) {
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public void setMaintenanceIntervalMicros(long micros) {
         if (micros < 0) {

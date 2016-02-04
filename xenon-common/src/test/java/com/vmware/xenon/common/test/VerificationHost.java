@@ -2671,4 +2671,12 @@ public class VerificationHost extends ExampleServiceHost {
     protected void setTemporaryFolder(TemporaryFolder temporaryFolder) {
         this.temporaryFolder = temporaryFolder;
     }
+
+    public void sendAndWait(Operation op) throws Throwable {
+        // assume completion is attached, using our getCompletion() or
+        // getExpectedFailureCompletion()
+        testStart(1);
+        send(op);
+        testWait();
+    }
 }

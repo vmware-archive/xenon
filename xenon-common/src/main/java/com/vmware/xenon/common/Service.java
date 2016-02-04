@@ -266,6 +266,7 @@ public interface Service {
 
     String STAT_NAME_REQUEST_COUNT = "requestCount";
     String STAT_NAME_PRE_AVAILABLE_OP_COUNT = "preAvailableReceivedOperationCount";
+    String STAT_NAME_AVAILABLE = "isAvailable";
     String STAT_NAME_FAILURE_COUNT = "failureCount";
 
     String STAT_NAME_REQUEST_OUT_OF_ORDER_COUNT = "requestOutOfOrderCount";

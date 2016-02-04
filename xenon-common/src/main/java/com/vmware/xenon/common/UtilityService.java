@@ -72,6 +72,9 @@ public class UtilityService implements Service {
         } else if (op.getUri().getPath()
                 .endsWith(ServiceHost.SERVICE_URI_SUFFIX_UI)) {
             handleUiRequest(op);
+        } else if (op.getUri().getPath()
+                .endsWith(ServiceHost.SERVICE_URI_SUFFIX_AVAILABLE)) {
+            handleAvailableRequest(op);
         } else {
             op.fail(new UnknownHostException());
         }
@@ -80,6 +83,30 @@ public class UtilityService implements Service {
     @Override
     public void handleRequest(Operation op, OperationProcessingStage opProcessingStage) {
         handleRequest(op);
+    }
+
+    private void handleAvailableRequest(Operation op) {
+        if (op.getAction() == Action.GET) {
+            if (this.stats == null) {
+                op.complete();
+                return;
+            }
+            ServiceStat st = this.getStat(STAT_NAME_AVAILABLE, false);
+            if (st == null || st.latestValue == 1.0) {
+                op.complete();
+                return;
+            }
+            op.fail(Operation.STATUS_CODE_UNAVAILABLE);
+        } else if (op.getAction() == Action.PATCH || op.getAction() == Action.PUT) {
+            ServiceStat st = op.getBody(ServiceStat.class);
+            if (!STAT_NAME_AVAILABLE.equals(st.name)) {
+                op.fail(new IllegalArgumentException(
+                        "body must be of type ServiceStat and name must be "
+                                + STAT_NAME_AVAILABLE));
+                return;
+            }
+            handleStatsRequest(op);
+        }
     }
 
     private void handleSubscriptionsRequest(Operation op) {

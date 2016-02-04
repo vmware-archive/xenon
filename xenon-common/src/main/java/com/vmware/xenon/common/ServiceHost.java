@@ -258,6 +258,7 @@ public class ServiceHost {
     public static final String SERVICE_URI_SUFFIX_STATS = "/stats";
     public static final String SERVICE_URI_SUFFIX_SUBSCRIPTIONS = "/subscriptions";
 
+    public static final String SERVICE_URI_SUFFIX_AVAILABLE = "/available";
     public static final String SERVICE_URI_SUFFIX_CONFIG = "/config";
     public static final String SERVICE_URI_SUFFIX_TEMPLATE = "/template";
     public static final String SERVICE_URI_SUFFIX_UI = "/ui";
@@ -273,6 +274,7 @@ public class ServiceHost {
             + ".time";
 
     public static final String[] RESERVED_SERVICE_URI_PATHS = {
+            SERVICE_URI_SUFFIX_AVAILABLE,
             SERVICE_URI_SUFFIX_REPLICATION,
             SERVICE_URI_SUFFIX_STATS, SERVICE_URI_SUFFIX_SUBSCRIPTIONS,
             SERVICE_URI_SUFFIX_UI,
@@ -3510,6 +3512,8 @@ public class ServiceHost {
         } else if (serviceUriPath.endsWith(SERVICE_URI_SUFFIX_TEMPLATE)) {
             return true;
         } else if (serviceUriPath.endsWith(SERVICE_URI_SUFFIX_UI)) {
+            return true;
+        } else if (serviceUriPath.endsWith(SERVICE_URI_SUFFIX_AVAILABLE)) {
             return true;
         }
         return false;

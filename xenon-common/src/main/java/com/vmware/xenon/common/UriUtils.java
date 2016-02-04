@@ -145,6 +145,15 @@ public class UriUtils {
         return extendUri(serviceUri, ServiceHost.SERVICE_URI_SUFFIX_CONFIG);
     }
 
+    public static URI buildAvailableUri(ServiceHost host, String path) {
+        return extendUri(host.getUri(),
+                UriUtils.buildUriPath(path, ServiceHost.SERVICE_URI_SUFFIX_AVAILABLE));
+    }
+
+    public static URI buildAvailableUri(URI serviceUri) {
+        return extendUri(serviceUri, ServiceHost.SERVICE_URI_SUFFIX_AVAILABLE);
+    }
+
     public static URI extendUri(URI uri, String path) {
         String query = null;
         if (path != null && path.contains(UriUtils.URI_QUERY_CHAR)) {

@@ -295,6 +295,117 @@ public class TestUtilityService extends BasicReusableHostTestCase {
         assertTrue(retStatEntry.version == 2);
     }
 
+    public static class SetAvailableValidationService extends StatefulService {
+
+        public SetAvailableValidationService() {
+            super(ExampleServiceState.class);
+        }
+
+        @Override
+        public void handleStart(Operation op) {
+            setAvailable(false);
+            // we will transition to available only when we receive a special PATCH.
+            // This simulates a service that starts, but then self patch itself sometime
+            // later to indicate its done with some complex init. It does not do it in handle
+            // start, since it wants to make POST quick.
+            op.complete();
+        }
+
+        @Override
+        public void handlePatch(Operation op) {
+            // regardless of body, just become available
+            setAvailable(true);
+            op.complete();
+        }
+    }
+
+    @Test
+    public void testIsAvailableStatAndSuffix() throws Throwable {
+        long c = 1;
+        URI factoryURI = UriUtils.buildUri(this.host, ExampleFactoryService.SELF_LINK);
+        String name = UUID.randomUUID().toString();
+        ExampleServiceState s = new ExampleServiceState();
+        s.name = name;
+        Consumer<Operation> bodySetter = (o) -> {
+            o.setBody(s);
+        };
+        Map<URI, ExampleServiceState> states = this.host.doFactoryChildServiceStart(null, c,
+                ExampleServiceState.class, bodySetter, factoryURI);
+
+        // first verify that service that do not explicitly use the setAvailable method,
+        // appear available. Both a factory and a child service
+        Operation get = Operation.createGet(UriUtils.buildAvailableUri(factoryURI))
+                .setCompletion(this.host.getCompletion());
+
+        // expect 200 from /factory/available
+        this.host.sendAndWait(get);
+
+        // expect 200 from /factory/<child>/available
+        this.host.testStart(states.size());
+        for (URI u : states.keySet()) {
+            get = get.clone().setUri(UriUtils.buildAvailableUri(u))
+                    .setCompletion(this.host.getCompletion());
+            this.host.send(get);
+        }
+        this.host.testWait();
+
+        // verify that PUT on /available can make it switch to unavailable (503)
+        ServiceStat body = new ServiceStat();
+        body.name = Service.STAT_NAME_AVAILABLE;
+        body.latestValue = 0.0;
+
+        Operation put = Operation.createPut(
+                UriUtils.buildAvailableUri(this.host, factoryURI.getPath()))
+                .setCompletion(this.host.getCompletion())
+                .setBody(body);
+        this.host.sendAndWait(put);
+
+        // verify factory now appears unavailable
+        get = Operation.createGet(UriUtils.buildAvailableUri(factoryURI))
+                .setCompletion(this.host.getExpectedFailureCompletion());
+        this.host.sendAndWait(get);
+
+        // verify PUT on child services makes them unavailable
+        this.host.testStart(states.size());
+        for (URI u : states.keySet()) {
+            put = put.clone().setUri(UriUtils.buildAvailableUri(u))
+                    .setBody(body)
+                    .setCompletion(this.host.getCompletion());
+            this.host.send(put);
+        }
+        this.host.testWait();
+
+        // expect 503 from /factory/<child>/available
+        this.host.testStart(states.size());
+        for (URI u : states.keySet()) {
+            get = get.clone().setUri(UriUtils.buildAvailableUri(u))
+                    .setCompletion(this.host.getExpectedFailureCompletion());
+            this.host.send(get);
+        }
+        this.host.testWait();
+
+        // now validate a stateful service that is in memory, and explicitly calls setAvailable
+        // sometime after it starts
+        Service service = this.host.startServiceAndWait(new SetAvailableValidationService(),
+                UUID.randomUUID().toString(), new ExampleServiceState());
+
+        // verify service is NOT available, since we have not yet poked it, to become available
+        get = Operation.createGet(UriUtils.buildAvailableUri(service.getUri()))
+                .setCompletion(this.host.getExpectedFailureCompletion());
+        this.host.sendAndWait(get);
+
+        // send a PATCH to this special test service, to make it switch to available
+        Operation patch = Operation.createPatch(service.getUri())
+                .setBody(new ExampleServiceState())
+                .setCompletion(this.host.getCompletion());
+        this.host.sendAndWait(patch);
+
+        // verify service now appears available
+        get = Operation.createGet(UriUtils.buildAvailableUri(service.getUri()))
+                .setCompletion(this.host.getCompletion());
+        this.host.sendAndWait(get);
+    }
+
     public void validateServiceUiHtmlResponse(Operation op) {
         assertTrue(op.getStatusCode() == Operation.STATUS_CODE_MOVED_TEMP);
         assertTrue(op.getResponseHeader("Location").contains(
