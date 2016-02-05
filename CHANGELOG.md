@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.6.0-SNAPSHOT
+## 0.6.0
 
 * Add new per service utility suffix, /available. Provides a
   consistent mechanism for a service to declare it is available,
@@ -10,6 +10,9 @@
 
 * Add service host set/get service cache clear delay so cache clears are
   configurable
+
+* Fixed bug: when DELETEs occurred during network partition, they
+  would not be correctly synchronized after nodes rejoined.
 
 ## 0.5.1
 
