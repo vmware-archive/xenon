@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 0.6.1-SNAPSHOT
+
 ## 0.6.0
 
 * Add new per service utility suffix, /available. Provides a
