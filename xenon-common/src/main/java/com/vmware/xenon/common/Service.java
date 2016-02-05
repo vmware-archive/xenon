@@ -264,37 +264,39 @@ public interface Service {
         EXECUTING_SERVICE_HANDLER
     }
 
-    String STAT_NAME_REQUEST_COUNT = "requestCount";
-    String STAT_NAME_PRE_AVAILABLE_OP_COUNT = "preAvailableReceivedOperationCount";
-    String STAT_NAME_AVAILABLE = "isAvailable";
-    String STAT_NAME_FAILURE_COUNT = "failureCount";
+    static final double STAT_VALUE_TRUE = 1.0;
+    static final double STAT_VALUE_FALSE = 0.0;
 
-    String STAT_NAME_REQUEST_OUT_OF_ORDER_COUNT = "requestOutOfOrderCount";
-    String STAT_NAME_STATE_PERSIST_LATENCY = "statePersistLatencyMicros";
-    String STAT_NAME_OPERATION_QUEUEING_LATENCY = "operationQueueingLatencyMicros";
-    String STAT_NAME_SERVICE_HANDLER_LATENCY = "operationHandlerProcessingLatencyMicros";
-    String STAT_NAME_OPERATION_DURATION = "operationDuration";
-    String STAT_NAME_MAINTENANCE_COUNT = "maintenanceCount";
-    String STAT_NAME_NODE_GROUP_CHANGE_MAINTENANCE_COUNT = "maintenanceForNodeGroupChangeCount";
-    String STAT_NAME_NODE_GROUP_CHANGE_PENDING_MAINTENANCE_COUNT = "pendingMaintenanceForNodeGroupChangeCount";
-    String STAT_NAME_MAINTENANCE_COMPLETION_DELAYED_COUNT = "maintenanceCompletionDelayedCount";
-    String STAT_NAME_CACHE_MISS_COUNT = "stateCacheMissCount";
-    String STAT_NAME_CACHE_CLEAR_COUNT = "stateCacheClearCount";
-    String STAT_NAME_VERSION_CONFLICT_COUNT = "stateVersionConflictCount";
-    String STAT_NAME_VERSION_IN_CONFLICT = "stateVersionInConflict";
-    String STAT_NAME_PAUSE_COUNT = "pauseCount";
-    String STAT_NAME_RESUME_COUNT = "resumeCount";
+    static final String STAT_NAME_REQUEST_COUNT = "requestCount";
+    static final String STAT_NAME_PRE_AVAILABLE_OP_COUNT = "preAvailableReceivedOperationCount";
+    static final String STAT_NAME_AVAILABLE = "isAvailable";
+    static final String STAT_NAME_FAILURE_COUNT = "failureCount";
+    static final String STAT_NAME_REQUEST_OUT_OF_ORDER_COUNT = "requestOutOfOrderCount";
+    static final String STAT_NAME_STATE_PERSIST_LATENCY = "statePersistLatencyMicros";
+    static final String STAT_NAME_OPERATION_QUEUEING_LATENCY = "operationQueueingLatencyMicros";
+    static final String STAT_NAME_SERVICE_HANDLER_LATENCY = "operationHandlerProcessingLatencyMicros";
+    static final String STAT_NAME_OPERATION_DURATION = "operationDuration";
+    static final String STAT_NAME_MAINTENANCE_COUNT = "maintenanceCount";
+    static final String STAT_NAME_NODE_GROUP_CHANGE_MAINTENANCE_COUNT = "maintenanceForNodeGroupChangeCount";
+    static final String STAT_NAME_NODE_GROUP_CHANGE_PENDING_MAINTENANCE_COUNT = "pendingMaintenanceForNodeGroupChangeCount";
+    static final String STAT_NAME_MAINTENANCE_COMPLETION_DELAYED_COUNT = "maintenanceCompletionDelayedCount";
+    static final String STAT_NAME_CACHE_MISS_COUNT = "stateCacheMissCount";
+    static final String STAT_NAME_CACHE_CLEAR_COUNT = "stateCacheClearCount";
+    static final String STAT_NAME_VERSION_CONFLICT_COUNT = "stateVersionConflictCount";
+    static final String STAT_NAME_VERSION_IN_CONFLICT = "stateVersionInConflict";
+    static final String STAT_NAME_PAUSE_COUNT = "pauseCount";
+    static final String STAT_NAME_RESUME_COUNT = "resumeCount";
 
     /**
      * Estimate on run time context cost in bytes, per service instance. Services should not use instanced
      * fields, so, other than queuing context and utility service usage, the memory overhead should be small
      */
-    int MAX_SERIALIZED_SIZE_BYTES = 8192;
+    static final int MAX_SERIALIZED_SIZE_BYTES = 8192;
 
     /**
      * Default operation queue limit
      */
-    int OPERATION_QUEUE_DEFAULT_LIMIT = 10000;
+    static final int OPERATION_QUEUE_DEFAULT_LIMIT = 10000;
 
     void handleStart(Operation startPost);
 

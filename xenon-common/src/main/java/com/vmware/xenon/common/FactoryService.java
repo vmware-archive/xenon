@@ -122,16 +122,24 @@ public abstract class FactoryService extends StatelessService {
                 logWarning("Failure querying index for all child services: %s", e.getMessage());
                 return;
             }
+            setAvailable(true);
             logFine("Finished self query for child services");
         });
 
         if (this.childOptions.contains(ServiceOption.ON_DEMAND_LOAD)) {
+            setAvailable(true);
             return;
         }
         startOrSynchronizeChildServices(clonedOp);
     }
 
     private void startOrSynchronizeChildServices(Operation op) {
+        // Update stat value to indicate service will be busy with synchronization / restart.
+        // The runtime does not rely on GET /available so the factory is capable of
+        // accepting requests while available is set to false. An external client or another
+        // service can use /available and the associated stat as a hint, but it has no bearing
+        // on runtime behavior and request processing
+        setAvailable(false);
         QueryTask queryTask = buildChildQueryTask();
         queryForChildren(queryTask,
                 UriUtils.buildUri(this.getHost(), ServiceUriPaths.CORE_LOCAL_QUERY_TASKS),
@@ -726,6 +734,16 @@ public abstract class FactoryService extends StatelessService {
             maintOp.complete();
             return;
         }
+        maintOp.nestCompletion((o, e) -> {
+            if (e != null) {
+                logWarning("synch failed: %s", e.toString());
+            }
+            // Update stat and /available so any service or client that cares, can notice this factory
+            // is done with synchronization and child restart. As mentioned earlier, the status of
+            // the available stat does not prevent the runtime from routing requests to this service
+            setAvailable(true);
+            maintOp.complete();
+        });
         startOrSynchronizeChildServices(maintOp);
     }
 

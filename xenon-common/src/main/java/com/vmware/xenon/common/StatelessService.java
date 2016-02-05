@@ -300,7 +300,7 @@ public class StatelessService implements Service {
      */
     public void setAvailable(boolean isAvailable) {
         this.toggleOption(ServiceOption.INSTRUMENTATION, true);
-        this.setStat(STAT_NAME_AVAILABLE, isAvailable ? 1.0 : 0.0);
+        this.setStat(STAT_NAME_AVAILABLE, isAvailable ? STAT_VALUE_TRUE : STAT_VALUE_FALSE);
     }
 
     /**
@@ -311,7 +311,7 @@ public class StatelessService implements Service {
             return true;
         }
         ServiceStat st = this.getStat(STAT_NAME_AVAILABLE);
-        if (st != null && st.latestValue == 1.0) {
+        if (st != null && st.latestValue == STAT_VALUE_TRUE) {
             return true;
         }
         return false;
