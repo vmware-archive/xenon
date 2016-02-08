@@ -194,8 +194,9 @@ public class LuceneDocumentIndexService extends StatelessService {
 
     private long indexWriterCreationTimeMicros;
 
-    private final ConcurrentSkipListMap<String, Long> linkAccessTimes = new ConcurrentSkipListMap<>();
+    private final Map<String, Long> linkAccessTimes = new HashMap<>();
     private final Map<String, Long> linkDocumentRetentionEstimates = new HashMap<>();
+    private long linkAccessMemoryLimitMB;
 
     private Sort versionSort;
 
@@ -291,8 +292,10 @@ public class LuceneDocumentIndexService extends StatelessService {
         IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
         Long totalMBs = getHost().getServiceMemoryLimitMB(getSelfLink(), MemoryLimitType.EXACT);
         if (totalMBs != null) {
-            totalMBs = Math.max(1, totalMBs);
-            iwc.setRAMBufferSizeMB(totalMBs);
+            long cacheSizeMB = (totalMBs * 3) / 4;
+            cacheSizeMB = Math.max(1, cacheSizeMB);
+            iwc.setRAMBufferSizeMB(cacheSizeMB);
+            this.linkAccessMemoryLimitMB = totalMBs / 4;
         }
 
         Directory dir = MMapDirectory.open(directory.toPath());
@@ -2000,15 +2003,27 @@ public class LuceneDocumentIndexService extends StatelessService {
             return;
         }
 
+        long memThresholdBytes = this.linkAccessMemoryLimitMB * 1024 * 1024;
+        final int bytesPerLinkEstimate = 256;
+        int count = 0;
         synchronized (this.searchSync) {
             if (this.linkAccessTimes.isEmpty()) {
                 return;
             }
-            this.linkAccessTimes.clear();
-            // force searcher update
-            this.searcherUpdateTimeMicros = 0;
+            if (memThresholdBytes < this.linkAccessTimes.size() * bytesPerLinkEstimate) {
+                count = this.linkAccessTimes.size();
+                this.linkAccessTimes.clear();
+                // force searcher update next time updateSearcher is called
+                if (this.searcher != null) {
+                    this.searchersPendingClose.add(this.searcher);
+                }
+                this.searcher = null;
+            }
         }
-        updateSearcher(null, Integer.MAX_VALUE, this.writer);
+
+        if (count > 0) {
+            logInfo("Cleared %d link access times", count);
+        }
     }
 
     private void applyDocumentExpirationPolicy(IndexWriter w) throws Throwable {
