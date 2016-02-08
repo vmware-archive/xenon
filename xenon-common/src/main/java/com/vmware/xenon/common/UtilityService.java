@@ -103,6 +103,10 @@ public class UtilityService implements Service {
             }
             op.fail(Operation.STATUS_CODE_UNAVAILABLE);
         } else if (op.getAction() == Action.PATCH || op.getAction() == Action.PUT) {
+            if (!op.hasBody()) {
+                op.fail(new IllegalArgumentException("body is required"));
+                return;
+            }
             ServiceStat st = op.getBody(ServiceStat.class);
             if (!STAT_NAME_AVAILABLE.equals(st.name)) {
                 op.fail(new IllegalArgumentException(
@@ -111,6 +115,8 @@ public class UtilityService implements Service {
                 return;
             }
             handleStatsRequest(op);
+        } else {
+            getHost().failRequestActionNotSupported(op);
         }
     }
 
