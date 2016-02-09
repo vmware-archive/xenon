@@ -202,6 +202,14 @@ public class NettyHttpServiceClient implements ServiceClient {
             return;
         }
 
+        if (op.getExpirationMicrosUtc() == 0) {
+            long defaultTimeoutMicros = ServiceHost.ServiceHostState.DEFAULT_OPERATION_TIMEOUT_MICROS;
+            if (this.host != null) {
+                defaultTimeoutMicros = this.host.getOperationTimeoutMicros();
+            }
+            op.setExpiration(Utils.getNowMicrosUtc() + defaultTimeoutMicros);
+        }
+
         setCookies(clone);
 
         // Try to deliver operation to in-process service host
