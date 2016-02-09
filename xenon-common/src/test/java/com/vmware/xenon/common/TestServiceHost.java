@@ -1092,7 +1092,7 @@ public class TestServiceHost {
             for (int i = 0; i < count; i += step) {
                 // now that we have created a bunch of services, and a lot of them are paused, ping one randomly
                 // to make sure it resumes
-                URI instanceUri = UriUtils.buildUri(this.host, ExampleService.class);
+                URI instanceUri = UriUtils.buildFactoryUri(this.host, ExampleService.class);
                 instanceUri = UriUtils.extendUri(instanceUri, prefix + (selfLinkCounter.get() - i));
                 Operation get = Operation.createGet(instanceUri).setCompletion((o, e) -> {
                     if (e == null) {
