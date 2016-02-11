@@ -345,7 +345,7 @@ public class LuceneDocumentIndexService extends StatelessService {
     }
 
     private void archiveCorruptIndexFiles(File directory) {
-        File newDirectory = new File(new File(getHost().getStorageSandbox()), FILE_PATH_LUCENE
+        File newDirectory = new File(new File(getHost().getStorageSandbox()), this.indexDirectory
                 + "." + Utils.getNowMicrosUtc());
         try {
             Files.createDirectory(newDirectory.toPath());
@@ -381,7 +381,7 @@ public class LuceneDocumentIndexService extends StatelessService {
             commit = snapshotter.snapshot();
 
             String indexDirectory = UriUtils.buildUriPath(getHost().getStorageSandbox().getPath(),
-                    FILE_PATH_LUCENE);
+                    this.indexDirectory);
 
             // Add the files in the commit to a zip file.
             List<URI> fileList = FileUtils.filesToUris(indexDirectory, commit.getFileNames());
