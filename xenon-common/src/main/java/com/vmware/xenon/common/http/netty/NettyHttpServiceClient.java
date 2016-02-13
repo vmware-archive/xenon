@@ -398,7 +398,7 @@ public class NettyHttpServiceClient implements ServiceClient {
             byte[] body = Utils.encodeBody(op);
             String pathAndQuery;
             String path = op.getUri().getPath();
-            String query = op.getUri().getQuery();
+            String query = op.getUri().getRawQuery();
             path = path == null || path.isEmpty() ? "/" : path;
             if (query != null) {
                 pathAndQuery = path + "?" + query;

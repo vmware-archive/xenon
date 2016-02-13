@@ -205,16 +205,16 @@ public class TestDNSService extends BasicTestCase {
         Operation get = Operation.createGet(odataQuery)
                 .setCompletion((ox, ex) -> {
                     if (ex != null) {
-                        this.dnsHost.failIteration(ex);
+                        this.host.failIteration(ex);
                     }
                     ServiceDocumentQueryResult qr1 = ox.getBody(ServiceDocumentQueryResult.class);
                     qr[0] = qr1;
-                    this.dnsHost.completeIteration();
+                    this.host.completeIteration();
                 });
 
-        this.dnsHost.testStart(1);
-        this.dnsHost.send(get);
-        this.dnsHost.testWait();
+        this.host.testStart(1);
+        this.host.send(get);
+        this.host.testWait();
 
         ServiceDocumentQueryResult res = qr[0];
 
