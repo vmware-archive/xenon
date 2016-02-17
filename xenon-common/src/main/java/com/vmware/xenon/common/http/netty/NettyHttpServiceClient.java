@@ -644,6 +644,18 @@ public class NettyHttpServiceClient implements ServiceClient {
         return this.sslContext;
     }
 
+    public NettyChannelPool getChannelPool() {
+        return this.channelPool;
+    }
+
+    public NettyChannelPool getHttp2ChannelPool() {
+        return this.http2ChannelPool;
+    }
+
+    public NettyChannelPool getSslChannelPool() {
+        return this.sslChannelPool;
+    }
+
     /**
      * Find the HTTP/2 context that is currently being used to talk to a given host.
      * This is intended for infrastructure test purposes.
