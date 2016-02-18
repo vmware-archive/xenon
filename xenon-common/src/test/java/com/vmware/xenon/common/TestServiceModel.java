@@ -344,6 +344,8 @@ public class TestServiceModel extends BasicTestCase {
                 this.host.send(op);
             }
         }
+        // reset context id, since its set in the main thread
+        OperationContext.setContextId(null);
     }
 
     @Test

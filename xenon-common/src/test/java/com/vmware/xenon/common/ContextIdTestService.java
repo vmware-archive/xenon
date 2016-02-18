@@ -78,7 +78,7 @@ public class ContextIdTestService extends StatefulService {
             this.sendRequest(Operation.createGet(getUri()).setContextId(state.getContextId));
 
             // send self patch
-            this.sendSelfPatch(new State(), null, (o, e) -> {
+            this.sendSelfPatch(new State(), state.patchContextId, (o, e) -> {
                 if (e != null) {
                     fail(e);
                     return;
