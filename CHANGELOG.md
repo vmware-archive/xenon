@@ -2,6 +2,10 @@
 
 ## 0.6.1-SNAPSHOT
 
+* Fix NodeGroupBroadcastResponse race, where the jsonResponse
+  list was getting corrupted, thus removing results from some
+  of the nodes. This affected broadcast request behavior.
+
 * Simplify constructs relating to consensus and availability.
   ServiceOption.ENFORCE_QUORUM is removed. Its semantics are
   rolled in with ServiceOption.OWNER_SELECTION. This implies
