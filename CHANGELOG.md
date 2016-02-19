@@ -2,6 +2,15 @@
 
 ## 0.7.1-SNAPSHOT
 
+* Add StatelessService & StatefulService handlePeriodicMaintenance
+  method to get periodic maintenance notifications when enabling
+  ServiceOption.PERIODIC_MAINTENANCE. Invoked by handleMaintenance
+  on MaintenanceReason.PERIODIC_SCHEDULE reason.
+
+* Add StatelessService & StatefulService handleNodeGroupMaintenance
+  method to get node group change notifications. Invoked by
+  handleMaintenance on MaintenanceReason.NODE_GROUP_CHANGE reason.
+
 ## 0.7.0
 
 * Add PRAGMA_FORCE_INDEX_UPDATE allowing for conflict
