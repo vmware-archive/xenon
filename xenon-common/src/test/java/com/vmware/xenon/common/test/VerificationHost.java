@@ -311,10 +311,23 @@ public class VerificationHost extends ExampleServiceHost {
     }
 
     public CompletionHandler getExpectedFailureCompletion() {
+        return getExpectedFailureCompletion(null);
+    }
+
+    public CompletionHandler getExpectedFailureCompletion(Integer statusCode) {
         return (o, e) -> {
             if (e == null) {
                 failIteration(new IllegalStateException("Failure expected"));
                 return;
+            }
+
+            if (statusCode != null) {
+                if (!statusCode.equals(o.getStatusCode())) {
+                    failIteration(new IllegalStateException(
+                            "Expected different status code "
+                                    + statusCode + " got " + o.getStatusCode()));
+                    return;
+                }
             }
 
             if (e instanceof TimeoutException) {

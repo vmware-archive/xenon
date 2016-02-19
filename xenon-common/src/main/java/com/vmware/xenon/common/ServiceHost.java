@@ -2391,8 +2391,10 @@ public class ServiceHost {
                     }
 
                     if (!o.hasBody()) {
-                        op.fail(new IllegalStateException(
-                                "Unable to locate service state in index for " + s.getSelfLink()));
+                        op.setStatusCode(Operation.STATUS_CODE_NOT_FOUND)
+                                .fail(new IllegalStateException(
+                                        "Unable to locate service state in index for "
+                                                + s.getSelfLink()));
                         return;
                     }
 
@@ -2559,7 +2561,6 @@ public class ServiceHost {
 
         if (!serviceStartPost.hasBody()) {
             if (isDeleted) {
-                // if the POST has no body, and is marked deleted, fail restart
                 return false;
             } else {
                 // this POST is due to a restart, which will never have a body
@@ -4370,11 +4371,11 @@ public class ServiceHost {
 
         FactoryService factoryService = (FactoryService) parentService;
 
-        // create a POST to the factory and request it to start the service.
         Operation onDemandPost = Operation.createPost(inboundOp.getUri());
 
         CompletionHandler c = (o, e) -> {
             if (e != null) {
+                inboundOp.setBodyNoCloning(o.getBodyRaw()).setStatusCode(o.getStatusCode());
                 inboundOp.fail(e);
                 return;
             }
@@ -4384,6 +4385,7 @@ public class ServiceHost {
         };
 
         onDemandPost.addPragmaDirective(Operation.PRAGMA_DIRECTIVE_INDEX_CHECK)
+                .addPragmaDirective(Operation.PRAGMA_DIRECTIVE_VERSION_CHECK)
                 .setReferer(inboundOp.getReferer())
                 .setExpiration(inboundOp.getExpirationMicrosUtc())
                 .setReplicationDisabled(true)

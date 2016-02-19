@@ -349,6 +349,7 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
             args.port = 0;
             args.sandbox = tmpFolder.getRoot().toPath();
             h.initialize(args);
+            h.setPeerSynchronizationEnabled(false);
             h.setOperationTimeOutMicros(this.host.getOperationTimeoutMicros());
             h.start();
 
@@ -409,6 +410,7 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
 
             h = new ExampleServiceHost();
             args.port = 0;
+            h.setPeerSynchronizationEnabled(false);
             h.initialize(args);
 
             if (!this.host.isStressTest()) {
@@ -522,12 +524,36 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
             assertTrue(h.getServiceStage(childLink) == null);
         }
 
+        // attempt to on demand load a service that *never* existed
+        Operation getToNowhere = Operation.createDelete(new URI(childUris.get(0) + "random"))
+                .setCompletion(
+                        this.host.getExpectedFailureCompletion(Operation.STATUS_CODE_NOT_FOUND));
+        this.host.sendAndWait(getToNowhere);
+
+        // delete some of the services, not using a body, emulation DELETE through expiration
+        URI serviceToDelete = childUris.remove(0);
+        Operation delete = Operation.createDelete(serviceToDelete)
+                .setCompletion(this.host.getCompletion());
+        this.host.sendAndWait(delete);
+
+        // attempt to use service we just deleted, we should get failure
+        MinimalTestServiceState st = new MinimalTestServiceState();
+        st.id = Utils.getNowMicrosUtc() + "";
+        // do a PATCH, expect failure
+        Operation patch = Operation.createPatch(serviceToDelete)
+                .setBody(st)
+                .setCompletion(
+                        this.host.getExpectedFailureCompletion(Operation.STATUS_CODE_CONFLICT));
+        this.host.sendAndWait(patch);
+
         // verify that attempting to start a service, through factory POST, that was previously created,
         // but not yet loaded/started, fails, with ServiceAlreadyStarted exception
-        this.host.testStart(childUris.size());
-        for (URI u : childUris) {
+        int count = Math.min(100, childUris.size());
+        this.host.testStart(count);
+        for (int i = 0; i < count; i++) {
             MinimalTestServiceState body = new MinimalTestServiceState();
             // use a link hint for a previously created service, guaranteeing a collision
+            URI u = childUris.get(i);
             body.documentSelfLink = u.getPath();
             body.id = UUID.randomUUID().toString();
             Operation post = Operation.createPost(factoryUri)
@@ -547,6 +573,18 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
             assertTrue(s.stringValue != null);
             assertEquals(s.stringValue, s.id);
         }
+
+        // Lets try stop now, then delete, on a service that should be on demand loaded
+        serviceToDelete = childUris.remove(0);
+        Operation stopDelete = Operation.createDelete(serviceToDelete)
+                .addPragmaDirective(Operation.PRAGMA_DIRECTIVE_NO_INDEX_UPDATE)
+                .setCompletion(this.host.getCompletion());
+        this.host.sendAndWait(stopDelete);
+
+        // try again, with regular delete, emulating expiration
+        delete = Operation.createDelete(serviceToDelete)
+                .setCompletion(this.host.getCompletion());
+        this.host.sendAndWait(delete);
     }
 
     private void createOnDemandLoadServices(ExampleServiceHost h, String factoryLink)
