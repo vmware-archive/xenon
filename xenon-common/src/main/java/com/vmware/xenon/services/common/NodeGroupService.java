@@ -176,7 +176,7 @@ public class NodeGroupService extends StatefulService {
 
     @Override
     public void handlePatch(Operation patch) {
-        NodeGroupState body = getBody(patch);
+        NodeGroupState body = getStateFromBody(patch);
         if (body == null) {
             patch.fail(new IllegalArgumentException("body of type NodeGroupState is required"));
             return;
@@ -408,7 +408,7 @@ public class NodeGroupService extends StatefulService {
                                     return;
                                 }
 
-                                NodeGroupState remoteState = getBody(o);
+                                NodeGroupState remoteState = getStateFromBody(o);
                                 handleJoinPost(joinBody, null, localState, remoteState);
                             }));
             return;
@@ -630,7 +630,7 @@ public class NodeGroupService extends StatefulService {
                 }
                 remotePeer.status = NodeStatus.UNAVAILABLE;
             } else {
-                NodeGroupState peerState = getBody(patch);
+                NodeGroupState peerState = getStateFromBody(patch);
                 if (peerState.documentOwner.equals(remotePeer.id)) {
                     NodeState remotePeerStateFromRsp = peerState.nodes.get(remotePeer.id);
                     if (remotePeerStateFromRsp.documentVersion > remotePeer.documentVersion) {
@@ -851,7 +851,7 @@ public class NodeGroupService extends StatefulService {
         return randomizedPeers;
     }
 
-    NodeGroupState getBody(Operation o) {
+    private NodeGroupState getStateFromBody(Operation o) {
         if (!o.hasBody()) {
             return new NodeGroupState();
         }
