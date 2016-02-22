@@ -18,8 +18,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.vmware.xenon.common.FactoryService;
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.OperationJoin;
+import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.ServiceDocument;
 import com.vmware.xenon.common.ServiceDocumentDescription.PropertyUsageOption;
 import com.vmware.xenon.common.StatefulService;
@@ -68,6 +70,20 @@ public class ExampleTaskService extends StatefulService {
 
     /** Time in seconds for the task to live */
     private static long DEFAULT_TASK_LIFETIME = 60;
+
+    public static final String FACTORY_LINK = ServiceUriPaths.CORE + "/example-tasks";
+
+    /**
+     * Create a default factory service that starts instances of this task service on POST.
+     */
+    public static Service createFactory() {
+        Service fs = FactoryService.create(ExampleTaskService.class, ExampleTaskServiceState.class);
+        // Set additional factory service option. This can be set in service constructor as well
+        // but its really relevant on the factory of a service.
+        fs.toggleOption(ServiceOption.IDEMPOTENT_POST, true);
+        fs.toggleOption(ServiceOption.INSTRUMENTATION, true);
+        return fs;
+    }
 
     public static class ExampleTaskServiceState extends ServiceDocument {
 

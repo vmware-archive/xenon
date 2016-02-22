@@ -60,7 +60,7 @@ public class TestExampleTaskService extends BasicReusableHostTestCase {
     }
 
     /**
-     * Create a set of example services, so we can test that the ExampleTaskService clean them up
+     * Create a set of example services, so we can test that the ExampleTaskService cleans them up
      */
     private void createExampleServices() throws Throwable {
         URI exampleFactoryUri = UriUtils.buildFactoryUri(this.host, ExampleService.class);
@@ -116,7 +116,7 @@ public class TestExampleTaskService extends BasicReusableHostTestCase {
      * Create the task that will delete the examples
      */
     private String createExampleTask() throws Throwable {
-        URI exampleTaskFactoryUri = UriUtils.buildUri(this.host, ExampleTaskFactoryService.class);
+        URI exampleTaskFactoryUri = UriUtils.buildFactoryUri(this.host, ExampleTaskService.class);
 
         String[] taskUri = new String[1];
         ExampleTaskServiceState task = new ExampleTaskServiceState();
