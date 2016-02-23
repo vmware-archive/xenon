@@ -293,6 +293,13 @@ public interface Service {
      */
     static final int OPERATION_QUEUE_DEFAULT_LIMIT = 10000;
 
+    /**
+     * Equivalent to {@code getSelfId} and {@code UriUtils.getLastPathSegment}
+     */
+    static String getId(String link) {
+        return UriUtils.getLastPathSegment(link);
+    }
+
     void handleStart(Operation startPost);
 
     void handleStop(Operation stopDelete);

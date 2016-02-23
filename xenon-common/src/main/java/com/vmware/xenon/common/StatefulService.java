@@ -1678,7 +1678,7 @@ public class StatefulService implements Service {
     }
 
     protected String getSelfId() {
-        return UriUtils.getLastPathSegment(getSelfLink());
+        return Service.getId(getSelfLink());
     }
 
     /**

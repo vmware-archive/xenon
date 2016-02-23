@@ -164,6 +164,8 @@ public class TestStatefulService extends BasicReusableHostTestCase {
                 "some/" + body.id, body);
 
         assertEquals(body.id, s.getSelfId());
+        assertEquals(body.id, Service.getId(s.getSelfId()));
+
         Operation op = Operation.createPatch(s.getUri()).setBody(body);
         MinimalTestServiceState bodyFromHelper = s.getBody(op);
         assertEquals(bodyFromHelper.id, body.id);
