@@ -15,6 +15,7 @@ package com.vmware.xenon.common;
 
 import java.net.URI;
 import java.util.EnumSet;
+import java.util.concurrent.TimeUnit;
 
 import com.vmware.xenon.common.ServiceStats.ServiceStat;
 
@@ -299,6 +300,11 @@ public interface Service {
     static String getId(String link) {
         return UriUtils.getLastPathSegment(link);
     }
+
+    /**
+     * Minimum maintenance interval value
+     */
+    static final long MIN_MAINTENANCE_INTERVAL_MICROS = TimeUnit.MILLISECONDS.toMicros(1);
 
     void handleStart(Operation startPost);
 
