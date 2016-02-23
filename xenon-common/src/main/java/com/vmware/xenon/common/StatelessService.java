@@ -109,6 +109,10 @@ public class StatelessService implements Service {
 
             if (opProcessingStage == OperationProcessingStage.EXECUTING_SERVICE_HANDLER) {
                 if (op.getAction() == Action.GET) {
+                    if (ServiceHost.isForServiceNamespace(this, op)) {
+                        handleGet(op);
+                        return;
+                    }
                     op.nestCompletion(o -> {
                         handleGetCompletion(op);
                     });
@@ -116,6 +120,12 @@ public class StatelessService implements Service {
                 } else if (op.getAction() == Action.POST) {
                     handlePost(op);
                 } else if (op.getAction() == Action.DELETE) {
+                    if (ServiceHost.isForServiceNamespace(this, op)) {
+                        // this is a request for the namespace, not the service itself.
+                        // Call handleDelete but do not nest completion that stops the service.
+                        handleDelete(op);
+                        return;
+                    }
                     if (ServiceHost.isServiceStop(op)) {
                         op.nestCompletion(o -> {
                             handleStopCompletion(op);
@@ -128,18 +138,32 @@ public class StatelessService implements Service {
                         handleDelete(op);
                     }
                 } else if (op.getAction() == Action.OPTIONS) {
+                    if (ServiceHost.isForServiceNamespace(this, op)) {
+                        handleOptions(op);
+                        return;
+                    }
                     op.nestCompletion(o -> {
                         handleOptionsCompletion(op);
                     });
 
                     handleOptions(op);
-                } else {
-                    getHost().failRequestActionNotSupported(op);
+                } else if (op.getAction() == Action.PATCH) {
+                    handlePatch(op);
+                } else if (op.getAction() == Action.PUT) {
+                    handlePut(op);
                 }
             }
         } catch (Throwable e) {
             op.fail(e);
         }
+    }
+
+    public void handlePut(Operation put) {
+        getHost().failRequestActionNotSupported(put);
+    }
+
+    public void handlePatch(Operation patch) {
+        getHost().failRequestActionNotSupported(patch);
     }
 
     public void handleOptions(Operation options) {

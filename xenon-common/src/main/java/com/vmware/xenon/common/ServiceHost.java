@@ -450,6 +450,8 @@ public class ServiceHost {
     private ScheduledExecutorService scheduledExecutor;
 
     private final ConcurrentSkipListMap<String, Service> attachedServices = new ConcurrentSkipListMap<>();
+    private final ConcurrentSkipListMap<String, Service> attachedNamespaceServices = new ConcurrentSkipListMap<>();
+
     private final ConcurrentSkipListSet<String> coreServices = new ConcurrentSkipListSet<>();
     private ConcurrentSkipListMap<String, Class<? extends Service>> privilegedServiceTypes = new ConcurrentSkipListMap<>();
 
@@ -1857,6 +1859,10 @@ public class ServiceHost {
                     return this;
                 }
 
+                if (service.hasOption(ServiceOption.URI_NAMESPACE_OWNER)) {
+                    this.attachedNamespaceServices.put(servicePath, service);
+                }
+
                 this.state.serviceCount++;
             }
         }
@@ -2663,6 +2669,9 @@ public class ServiceHost {
 
         if (existing != null) {
             existing.setProcessingStage(ProcessingStage.STOPPED);
+            if (existing.hasOption(ServiceOption.URI_NAMESPACE_OWNER)) {
+                this.attachedNamespaceServices.remove(path);
+            }
         }
 
         this.pendingPauseServices.remove(path);
@@ -2677,6 +2686,10 @@ public class ServiceHost {
     }
 
     protected Service findService(String uriPath) {
+        return findService(uriPath, true);
+    }
+
+    protected Service findService(String uriPath, boolean doExactMatch) {
         Service s = this.attachedServices.get(uriPath);
         if (s != null) {
             return s;
@@ -2691,7 +2704,36 @@ public class ServiceHost {
             return findHelperService(uriPath);
         }
 
-        // nothing found: maybe a full path in the /core/ui/* namespace?
+        if (!doExactMatch) {
+            s = findNamespaceOwnerService(uriPath);
+        }
+
+        return s;
+    }
+
+    private Service findNamespaceOwnerService(String uriPath) {
+        // TODO We do not expect a lot of name space owner services, but we should switch to
+        // radix trees
+        int charsNotMatched = Integer.MAX_VALUE;
+        int uriPathLength = uriPath.length();
+        Service candidate = null;
+        // pick the service with the longest match
+        for (Entry<String, Service> e : this.attachedNamespaceServices.entrySet()) {
+            if (!uriPath.startsWith(e.getKey())) {
+                continue;
+            }
+            int notMatchedCount = uriPathLength - e.getKey().length();
+            if (notMatchedCount < charsNotMatched) {
+                candidate = e.getValue();
+                charsNotMatched = notMatchedCount;
+            }
+        }
+
+        if (candidate != null) {
+            return candidate;
+        }
+
+        // Remove this special case: https://www.pivotaltracker.com/story/show/114447679
         if (uriPath.startsWith(ServiceUriPaths.UI_SERVICE_CORE_PATH)) {
             return this.attachedServices.get(ServiceUriPaths.UI_SERVICE_CORE_PATH);
         }
@@ -2785,7 +2827,9 @@ public class ServiceHost {
                 failRequestServiceNotFound(inboundOp);
                 return;
             }
-            service = findService(path);
+
+            // request service using either prefix or longest match
+            service = findService(path, false);
         } else {
             path = service.getSelfLink();
         }
@@ -3447,6 +3491,7 @@ public class ServiceHost {
         stopCoreServices();
 
         this.attachedServices.clear();
+        this.attachedNamespaceServices.clear();
         this.maintenanceHelper.close();
         this.state.isStarted = false;
 
@@ -3621,6 +3666,16 @@ public class ServiceHost {
     public static boolean isServiceStop(Operation op) {
         return op.getAction() == Action.DELETE
                 && op.hasPragmaDirective(Operation.PRAGMA_DIRECTIVE_NO_INDEX_UPDATE);
+    }
+
+    /**
+     * Returns value indicating whether the request targets the service itself,
+     * or, if ServiceOption.URI_NAMESPACE_OWNER is set, and does not match the self link,
+     * targets portion the name space
+     */
+    public static boolean isForServiceNamespace(Service s, Operation op) {
+        return s.hasOption(ServiceOption.URI_NAMESPACE_OWNER)
+                && !op.getUri().getPath().equals(s.getSelfLink());
     }
 
     public static boolean isHelperServicePath(String serviceUriPath) {
@@ -3839,7 +3894,7 @@ public class ServiceHost {
     }
 
     public boolean checkServiceAvailable(String servicePath) {
-        Service s = this.findService(servicePath);
+        Service s = this.findService(servicePath, true);
         if (s == null) {
             return false;
         }
