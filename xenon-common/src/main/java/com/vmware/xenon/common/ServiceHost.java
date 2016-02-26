@@ -3443,9 +3443,15 @@ public class ServiceHost {
 
         if (op.getCompletion() == null) {
             op.setCompletion((o, e) -> {
-                if (e != null) {
-                    log(Level.WARNING, "Operation to %s failed: %s", o.getUri(), e.getMessage());
+                if (e == null) {
+                    return;
                 }
+
+                log(Level.WARNING, "%s (ctx id:%d) to %s, from %s failed: %s", o.getAction(),
+                        o.getContextId(),
+                        o.getUri(),
+                        o.getReferer(),
+                        e.getMessage());
             });
         }
         // TODO Set default expiration on all out bound operations and track
