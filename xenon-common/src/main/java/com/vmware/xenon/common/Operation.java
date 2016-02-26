@@ -71,7 +71,7 @@ public class Operation implements Cloneable {
 
         private static int maxRequestSize = 1024 * 1024 * 16;
 
-        private static int MAX_CLIENT_REQUEST_SIZE = 1024 * 1024 * 128;
+        private static final int MAX_CLIENT_REQUEST_SIZE = 1024 * 1024 * 128;
 
         /**
          * Set maximum request/response size for socket I/O.
@@ -976,7 +976,7 @@ public class Operation implements Cloneable {
             return;
         }
 
-        if (!completionUpdater.compareAndSet(this, c, (CompletionHandler) null)) {
+        if (!completionUpdater.compareAndSet(this, c, null)) {
             Utils.logWarning("%s:%s",
                     Utils.toString(new IllegalStateException("double completion")),
                     toString());

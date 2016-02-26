@@ -204,13 +204,7 @@ public class NettyHttpServiceClient implements ServiceClient {
             return;
         }
 
-        if (op.getExpirationMicrosUtc() == 0) {
-            long defaultTimeoutMicros = ServiceHost.ServiceHostState.DEFAULT_OPERATION_TIMEOUT_MICROS;
-            if (this.host != null) {
-                defaultTimeoutMicros = this.host.getOperationTimeoutMicros();
-            }
-            op.setExpiration(Utils.getNowMicrosUtc() + defaultTimeoutMicros);
-        }
+        setExpiration(clone);
 
         setCookies(clone);
 
@@ -238,6 +232,16 @@ public class NettyHttpServiceClient implements ServiceClient {
             // we must restore the operation context after each send, since
             // it can be reset by the host, depending on queuing and dispatching behavior
             OperationContext.restoreOperationContext(ctx);
+        }
+    }
+
+    private void setExpiration(Operation op) {
+        if (op.getExpirationMicrosUtc() == 0) {
+            long defaultTimeoutMicros = ServiceHost.ServiceHostState.DEFAULT_OPERATION_TIMEOUT_MICROS;
+            if (this.host != null) {
+                defaultTimeoutMicros = this.host.getOperationTimeoutMicros();
+            }
+            op.setExpiration(Utils.getNowMicrosUtc() + defaultTimeoutMicros);
         }
     }
 
@@ -286,15 +290,13 @@ public class NettyHttpServiceClient implements ServiceClient {
     }
 
     private void sendWithCallbackSingleRequest(Operation req) {
-        if (req.getExpirationMicrosUtc() == 0) {
-            req.setExpiration(Utils.getNowMicrosUtc()
-                    + this.host.getOperationTimeoutMicros());
-        }
-
         Operation op = clone(req);
         if (op == null) {
             return;
         }
+
+        setExpiration(op);
+
         if (!req.isRemote() && this.host != null && this.host.handleRequest(op)) {
             // request was accepted by an in-process service host
             return;
