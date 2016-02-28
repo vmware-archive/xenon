@@ -49,6 +49,7 @@ public class BasicReusableHostTestCase {
         HOST.setMaintenanceIntervalMicros(TimeUnit.MILLISECONDS
                 .toMicros(MAINTENANCE_INTERVAL_MILLIS));
         CommandLineArgumentParser.parseFromProperties(HOST);
+        HOST.setStressTest(HOST.isStressTest);
         try {
             HOST.start();
             HOST.waitForServiceAvailable(ExampleService.FACTORY_LINK);
