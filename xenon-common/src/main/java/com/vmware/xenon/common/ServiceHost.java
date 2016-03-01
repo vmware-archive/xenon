@@ -2244,6 +2244,7 @@ public class ServiceHost {
     }
 
     private void scheduleNodeGroupChangeMaintenance(String nodeSelectorPath, Operation op) {
+        OperationContext.setAuthorizationContext(this.getSystemAuthorizationContext());
         if (nodeSelectorPath == null) {
             throw new IllegalArgumentException("nodeGroupPath is required");
         }
