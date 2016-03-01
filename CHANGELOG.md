@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 0.7.2-SNAPSHOT
+
 ## 0.7.1
 
 * Added VerificationHost.waitFor() utility method
