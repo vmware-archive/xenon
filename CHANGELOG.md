@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.7.1-SNAPSHOT
+## 0.7.1
 
 * Added VerificationHost.waitFor() utility method
   useful for convergence loops in tests.
