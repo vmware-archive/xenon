@@ -297,6 +297,57 @@ public class TestNodeGroupService {
     }
 
     @Test
+    public void commandLineJoinRetries() throws Throwable {
+        this.host = VerificationHost.create(0);
+        this.host.start();
+
+        ExampleServiceHost nodeA = null;
+        TemporaryFolder tmpFolderA = new TemporaryFolder();
+        tmpFolderA.create();
+        this.setUp(1);
+        try {
+            // start a node, supplying a bogus peer. Verify we retry, up to expiration which is
+            // the operation timeout
+            nodeA = new ExampleServiceHost();
+
+            String id = "nodeA-" + VerificationHost.hostNumber.incrementAndGet();
+            int bogusPort = 1;
+            String[] args = {
+                    "--port=0",
+                    "--id=" + id,
+                    "--bindAddress=127.0.0.1",
+                    "--sandbox="
+                            + tmpFolderA.getRoot().getAbsolutePath(),
+                    "--peerNodes=" + "http://127.0.0.1:" + bogusPort
+            };
+
+            nodeA.initialize(args);
+            nodeA.setMaintenanceIntervalMicros(TimeUnit.MILLISECONDS
+                    .toMicros(VerificationHost.FAST_MAINT_INTERVAL_MILLIS));
+            nodeA.setOperationTimeOutMicros(nodeA.getMaintenanceIntervalMicros() * 5);
+            nodeA.start();
+
+            // verify we see a specific retry stat
+            URI nodeGroupUri = UriUtils.buildUri(nodeA, ServiceUriPaths.DEFAULT_NODE_GROUP);
+            URI statsUri = UriUtils.buildStatsUri(nodeGroupUri);
+            this.host.waitFor("expected stat did not converge", () -> {
+                ServiceStats stats = this.host.getServiceState(null, ServiceStats.class, statsUri);
+                ServiceStat st = stats.entries.get(NodeGroupService.STAT_NAME_JOIN_RETRY_COUNT);
+                if (st == null || st.latestValue < 1) {
+                    return false;
+                }
+                return true;
+            });
+
+        } finally {
+            if (nodeA != null) {
+                nodeA.stop();
+                tmpFolderA.delete();
+            }
+        }
+    }
+
+    @Test
     public void customNodeGroupWithObservers() throws Throwable {
         setUp(this.nodeCount);
         // on one of the hosts create the custom group but with self as an observer. That peer should

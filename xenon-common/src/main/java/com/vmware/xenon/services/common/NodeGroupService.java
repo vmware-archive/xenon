@@ -38,8 +38,7 @@ import com.vmware.xenon.services.common.NodeState.NodeStatus;
  * are added to a group through POST
  */
 public class NodeGroupService extends StatefulService {
-
-    private static final String STAT_NAME_REFERER_SEGMENT = ".referer.";
+    public static final String STAT_NAME_JOIN_RETRY_COUNT = "joinRetryCount";
 
     private enum NodeGroupChange {
         PEER_ADDED, PEER_STATUS_CHANGE, SELF_CHANGE
@@ -200,7 +199,6 @@ public class NodeGroupService extends StatefulService {
             return;
         }
 
-        adjustStat(patch.getAction() + STAT_NAME_REFERER_SEGMENT + body.documentOwner, 1);
         EnumSet<NodeGroupChange> changes = EnumSet.noneOf(NodeGroupChange.class);
         mergeRemoteAndLocalMembership(
                 localState,
@@ -318,7 +316,8 @@ public class NodeGroupService extends StatefulService {
 
         JoinPeerRequest joinBody = post.getBody(JoinPeerRequest.class);
         if (joinBody != null && joinBody.memberGroupReference != null) {
-            handleJoinPost(joinBody, post, getState(post), null);
+            handleJoinPost(joinBody, post, post.getExpirationMicrosUtc(),
+                    getState(post), null);
             return;
         }
 
@@ -327,8 +326,6 @@ public class NodeGroupService extends StatefulService {
             post.fail(new IllegalArgumentException("id is required"));
             return;
         }
-
-        adjustStat(post.getAction() + STAT_NAME_REFERER_SEGMENT + body.id, 1);
 
         boolean isLocalNode = body.id.equals(getHost().getId());
 
@@ -360,6 +357,7 @@ public class NodeGroupService extends StatefulService {
 
     private void handleJoinPost(JoinPeerRequest joinBody,
             Operation joinOp,
+            long expirationMicros,
             NodeGroupState localState,
             NodeGroupState remotePeerState) {
 
@@ -403,13 +401,14 @@ public class NodeGroupService extends StatefulService {
                     .setCompletion(
                             (o, e) -> {
                                 if (e != null) {
-                                    logWarning("Failure getting peer %s state:%s", o.getUri(),
-                                            e.toString());
+                                    handleJoinFailure(e, joinBody, localState,
+                                            expirationMicros);
                                     return;
                                 }
 
                                 NodeGroupState remoteState = getStateFromBody(o);
-                                handleJoinPost(joinBody, null, localState, remoteState);
+                                handleJoinPost(joinBody, null, expirationMicros,
+                                        localState, remoteState);
                             }));
             return;
         }
@@ -433,6 +432,25 @@ public class NodeGroupService extends StatefulService {
                             // maintenance interval with a stable group membership
                     });
         sendRequest(insertSelfToPeer);
+    }
+
+    private void handleJoinFailure(Throwable e, JoinPeerRequest joinBody,
+            NodeGroupState localState,
+            long expirationMicros) {
+        if (expirationMicros < Utils.getNowMicrosUtc()) {
+            logWarning("Failure joining peer %s, attempt expired, will not retry",
+                    joinBody.memberGroupReference);
+            return;
+        }
+
+        getHost().schedule(() -> {
+            logWarning("Retrying GET to %s, due to %s",
+                    joinBody.memberGroupReference,
+                    e.toString());
+            handleJoinPost(joinBody, null, expirationMicros, localState, null);
+            adjustStat(STAT_NAME_JOIN_RETRY_COUNT, 1);
+        } , getHost().getMaintenanceIntervalMicros(), TimeUnit.MICROSECONDS);
+
     }
 
     private boolean validateNodeOptions(Operation joinOp, EnumSet<NodeOption> options) {

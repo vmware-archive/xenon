@@ -16,7 +16,6 @@ package com.vmware.xenon.common;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.ServerSocket;
@@ -1434,8 +1433,7 @@ public class ServiceHost {
                 URI localNodeGroupUri = UriUtils.buildUri(this, nodeGroupUriPath);
                 JoinPeerRequest joinBody = JoinPeerRequest.create(
                         UriUtils.extendUri(peerNodeBaseUri, nodeGroupUriPath), null);
-                boolean doRetry = true;
-                sendJoinPeerRequest(joinBody, localNodeGroupUri, doRetry);
+                sendJoinPeerRequest(joinBody, localNodeGroupUri);
             }
         } catch (Throwable e) {
             log(Level.WARNING, "%s", Utils.toString(e));
@@ -1471,33 +1469,20 @@ public class ServiceHost {
         return peerList;
     }
 
-    private void sendJoinPeerRequest(JoinPeerRequest joinBody, URI localNodeGroupUri,
-            boolean doRetry) {
-        if (!doRetry) {
-            log(Level.WARNING, "Retrying connection to peer %s", joinBody.memberGroupReference);
-        }
-        ScheduledExecutorService se = this.scheduledExecutor;
+    private void sendJoinPeerRequest(JoinPeerRequest joinBody, URI localNodeGroupUri) {
         Operation peerRequestOp = Operation
                 .createPost(localNodeGroupUri)
                 .setReferer(UriUtils.buildUri(this, ""))
                 .setBody(joinBody)
                 .setCompletion((o, e) -> {
-                    if (e instanceof ConnectException && doRetry && se != null) {
-                        // the remote peer has likely not started, retry, once
-                        se.schedule(() -> {
-                            sendJoinPeerRequest(joinBody, localNodeGroupUri, false);
-                        }, 15, TimeUnit.SECONDS);
+                    if (e == null) {
                         return;
                     }
-
                     if (e != null) {
-                        log(Level.WARNING, "Failure joining host: %s: %s",
+                        log(Level.WARNING, "Failure from local node group for join to: %s: %s",
                                 joinBody.memberGroupReference,
                                 e.toString());
-                    } else {
-                        log(Level.INFO, "Joined peer %s", joinBody.memberGroupReference);
                     }
-
                 });
         peerRequestOp.setAuthorizationContext(getSystemAuthorizationContext());
         sendRequest(peerRequestOp);
