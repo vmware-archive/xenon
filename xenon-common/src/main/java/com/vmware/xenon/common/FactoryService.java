@@ -478,7 +478,9 @@ public abstract class FactoryService extends StatelessService {
         if (!o.isFromReplication() && !o.isReplicationDisabled()) {
             o.nestCompletion(startOp -> {
                 publish(o);
-                if (!hasOption(ServiceOption.REPLICATION)) {
+                if (o.getAction() == Action.PUT || !hasOption(ServiceOption.REPLICATION)) {
+                    // if the operation was converted to PUT, due to IDEMPOTENT_POST or
+                    // the service does not support replication, complete and return
                     o.complete();
                     return;
                 }

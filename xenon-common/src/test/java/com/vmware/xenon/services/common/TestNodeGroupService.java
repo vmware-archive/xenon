@@ -73,6 +73,7 @@ import com.vmware.xenon.common.Utils;
 import com.vmware.xenon.common.test.AuthorizationHelper;
 import com.vmware.xenon.common.test.MinimalTestServiceState;
 import com.vmware.xenon.common.test.RoundRobinIterator;
+import com.vmware.xenon.common.test.TestContext;
 import com.vmware.xenon.common.test.TestProperty;
 import com.vmware.xenon.common.test.VerificationHost;
 import com.vmware.xenon.services.common.ExampleService.ExampleServiceState;
@@ -1265,6 +1266,18 @@ public class TestNodeGroupService {
 
             Map<String, ExampleServiceState> childStates = doExampleFactoryPostReplicationTest(
                     this.serviceCount);
+            totalOperations += this.serviceCount;
+
+            // verify IDEMPOTENT POST conversion to PUT, with replication
+            TestContext ctx = this.host.testCreate(childStates.size());
+            for (Entry<String, ExampleServiceState> entry : childStates.entrySet()) {
+                Operation post = Operation
+                        .createPost(this.host.getPeerServiceUri(ExampleService.FACTORY_LINK))
+                        .setBody(entry.getValue())
+                        .setCompletion(ctx.getCompletion());
+                this.host.send(post);
+            }
+            ctx.await();
 
             totalOperations += this.serviceCount;
 
