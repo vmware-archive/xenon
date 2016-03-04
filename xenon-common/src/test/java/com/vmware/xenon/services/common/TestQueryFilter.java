@@ -61,6 +61,14 @@ public class TestQueryFilter {
 
         public Map<String, String> m1;
         public Map<String, String> m2;
+
+        public NestedClass nc1;
+    }
+
+    public static class NestedClass {
+        public String ns1;
+        public String ns2;
+        public Color ne1;
     }
 
     public enum Color {
@@ -498,6 +506,39 @@ public class TestQueryFilter {
 
         document.b1 = null;
         assertFalse(filter.evaluate(document, this.description));
+    }
+
+    Query createWithCompositeField() {
+        return Query.Builder.create().addCompositeFieldClause("nc1", "ns1", "v1").build();
+    }
+
+    @Test
+    public void simpleCompositeField() {
+        Set<String> dnf = createDisjunctiveNormalForm(createWithCompositeField());
+        assertEquals(1, dnf.size());
+        assertTrue(dnf.contains("nc1.ns1=v1"));
+    }
+
+    @Test
+    public void evaluateWithCompositeField() throws QueryFilterException {
+        String n1 = QueryTask.QuerySpecification.buildCompositeFieldName("nc1", "ns1");
+        QueryFilter filter = QueryFilter.create(Query.Builder.create()
+                .addFieldClause(n1, "v1")
+                .build());
+        QueryFilterDocument document;
+
+        document = new QueryFilterDocument();
+        document.nc1 = new NestedClass();
+        document.nc1.ns1 = "v1";
+        assertTrue(filter.evaluate(document, this.description));
+
+        document = new QueryFilterDocument();
+        document.nc1 = new NestedClass();
+        document.nc1.ns1 = "v2";
+        assertFalse(filter.evaluate(document,  this.description));
+
+        document = new QueryFilterDocument();
+        assertFalse(filter.evaluate(document,  this.description));
     }
 
     @Test()
