@@ -38,8 +38,8 @@ new products, services and features, within VMware.
 
 ## Getting started
 
-For detailed information please refer to the [wiki](https://github.com/vmware/xenon/wiki). Tutorials for each
-Xenon service patterns will be made available in the coming months. Various samples are under the dcp-samples directory.
+For detailed information please refer to the [wiki](https://github.com/vmware/xenon/wiki).
+Various samples are under the xenon-samples directory.
 
 ### Building the code
 
