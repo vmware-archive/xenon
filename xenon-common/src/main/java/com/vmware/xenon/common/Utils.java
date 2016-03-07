@@ -365,6 +365,7 @@ public class Utils {
             lr.setSourceMethodName(stack.getMethodName());
         }
         lr.setSourceClassName(classOrUri);
+        lr.setLoggerName(lg.getName());
         lg.log(lr);
     }
 
