@@ -58,6 +58,17 @@ public class TestOperation extends BasicReusableHostTestCase {
     }
 
     @Test
+    public void defaultFailureCompletion() {
+        Operation getToNowhere = Operation
+                .createGet(UriUtils.buildUri(this.host, "/somethingnotvalid"))
+                .setReferer(this.host.getUri())
+                .setContextId("some context");
+        // we are just making no exceptions are thrown in the context of the sendRequest call
+        this.host.sendRequest(getToNowhere);
+
+    }
+
+    @Test
     public void setterValidation() {
         Operation op = Operation.createGet(this.host.getUri());
 

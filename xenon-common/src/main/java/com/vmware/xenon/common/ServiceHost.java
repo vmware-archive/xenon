@@ -3620,7 +3620,7 @@ public class ServiceHost implements ServiceRequestSender {
                     return;
                 }
 
-                log(Level.WARNING, "%s (ctx id:%d) to %s, from %s failed: %s", o.getAction(),
+                log(Level.WARNING, "%s (ctx id:%s) to %s, from %s failed: %s", o.getAction(),
                         o.getContextId(),
                         o.getUri(),
                         o.getReferer(),
