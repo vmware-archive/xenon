@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.logging.Logger;
 
 import org.apache.lucene.store.LockObtainFailedException;
 import org.junit.After;
@@ -128,6 +129,11 @@ public class TestNodeGroupService {
     public static final long DEFAULT_MAINT_INTERVAL_MICROS = TimeUnit.MILLISECONDS
             .toMicros(VerificationHost.FAST_MAINT_INTERVAL_MILLIS);
     private VerificationHost host;
+
+    /**
+     * Command line argument specifying number of times to run the same test method
+     */
+    public int testIterationCount = 1;
 
     /**
      * Command line argument specifying default number of in process service hosts
@@ -296,6 +302,7 @@ public class TestNodeGroupService {
         this.host.tearDownInProcessPeers();
         this.host.toggleNegativeTestMode(false);
         this.host.tearDown();
+        this.host = null;
     }
 
     @Test
@@ -1925,14 +1932,16 @@ public class TestNodeGroupService {
 
     @Test
     public void synchronizationWithNodeStartStopStart() throws Throwable {
-        this.isPeerSynchronizationEnabled = true;
-        doSynchNodeStartStopStart();
+        for (int i = 0; i < this.testIterationCount; i++) {
+            tearDown();
+            Logger.getAnonymousLogger().info("Iteration " + i);
+            this.isPeerSynchronizationEnabled = true;
+            doSynchNodeStartStopStart();
+        }
     }
 
     private void doSynchNodeStartStopStart() throws Throwable {
-
         int additionalHostCount = Math.min(this.nodeCount, 2);
-
         setUp(this.nodeCount);
         this.host.joinNodesAndVerifyConvergence(this.host.getPeerCount());
 
@@ -2043,11 +2052,12 @@ public class TestNodeGroupService {
         stopHostsAndVerifyQueuing(originalHosts,
                 newHost, childStates.keySet());
 
-        this.host.setNodeGroupQuorum(newHosts.size());
-
         // verify nodes expire and removed entirely from the group state
         this.host.waitForNodeGroupConvergence(this.host.getNodeGroupMap().size(), this.host
                 .getNodeGroupMap().size());
+
+        // reduce quorum, since we stopped hosts
+        this.host.setNodeGroupQuorum(newHosts.size());
 
         childStatesPerLink = doStateUpdateReplicationTest(Action.PATCH, this.serviceCount,
                 this.updateCount,
@@ -2092,9 +2102,10 @@ public class TestNodeGroupService {
         }
         this.host.testWait();
 
-        this.host.setNodeGroupQuorum(quorum);
-
         this.host.waitForNodeGroupConvergence(this.host.getNodeGroupMap().size());
+
+        // increase quorum
+        this.host.setNodeGroupQuorum(quorum);
 
         if (!this.isPeerSynchronizationEnabled) {
             for (ServiceHost h : this.host.getInProcessHostMap().values()) {

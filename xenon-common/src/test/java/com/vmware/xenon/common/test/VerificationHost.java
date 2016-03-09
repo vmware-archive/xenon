@@ -2218,6 +2218,7 @@ public class VerificationHost extends ExampleServiceHost {
         // everyone in the group
 
         for (URI nodeGroup : getNodeGroupMap().values()) {
+            log("Changing quorum to %d on group %s", quorum, nodeGroup);
             setNodeGroupQuorum(quorum, nodeGroup);
         }
 
