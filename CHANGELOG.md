@@ -17,6 +17,9 @@
   to be dealt with uniformly. Clients may need to recompile as a lot
   of overloaded methods are removed.
 
+* Add ServiceHost helper method startFactoryServicesSynchronously
+  for starting factory services.
+
 ## 0.7.1
 
 * Added VerificationHost.waitFor() utility method
