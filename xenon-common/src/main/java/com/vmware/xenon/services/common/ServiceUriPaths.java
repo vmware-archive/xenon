@@ -37,6 +37,8 @@ public class ServiceUriPaths {
     public static final String GO_PROCESS_LOG = CORE_MANAGEMENT + "/go-dcp-process-log";
     public static final String SYSTEM_LOG = CORE_MANAGEMENT + "/system-log";
 
+    public static final String CORE_PROCESSES = CORE + "/processes";
+
     public static final String COORDINATED_UPDATE_FACTORY = CORE + "/coordinated-updates";
     public static final String NODE_GROUP_FACTORY = CORE + "/node-groups";
     public static final String DEFAULT_NODE_GROUP_NAME = "default";
@@ -106,4 +108,9 @@ public class ServiceUriPaths {
     public static final String WS_SERVICE_LIB_JS_PATH =
             Utils.buildUiResourceUriPrefixPath(WebSocketService.class) + "/ws-service-lib.js";
 
+    /**
+     * Swagger discovery service is started on this URI.
+     * @see com.vmware.xenon.swagger.SwaggerDescriptorService
+     */
+    public static final String SWAGGER = "/discovery/swagger";
 }

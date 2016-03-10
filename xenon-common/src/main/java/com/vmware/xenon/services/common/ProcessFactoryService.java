@@ -17,7 +17,7 @@ import com.vmware.xenon.common.FactoryService;
 import com.vmware.xenon.common.Service;
 
 public class ProcessFactoryService extends FactoryService {
-    public static final String SELF_LINK = ServiceUriPaths.CORE + "/processes";
+    public static final String SELF_LINK = ServiceUriPaths.CORE_PROCESSES;
 
     public ProcessFactoryService() {
         super(ProcessState.class);

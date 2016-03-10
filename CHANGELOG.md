@@ -8,6 +8,8 @@
 * New Operation.createXXXX(ServiceHost h, link) helpers
   to eliminate need for UriUtils.buildUri
 
+* Option to serve a Swagger 2.0 API description of a ServiceHost
+
 ## 0.7.2
 
 * Simplify service synchronization logic during node group
