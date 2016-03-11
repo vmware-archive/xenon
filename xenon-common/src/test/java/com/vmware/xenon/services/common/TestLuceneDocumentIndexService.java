@@ -349,6 +349,7 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
             args.port = 0;
             args.sandbox = tmpFolder.getRoot().toPath();
             h.initialize(args);
+            h.setMaintenanceIntervalMicros(TimeUnit.MILLISECONDS.toMicros(250));
             h.setOperationTimeOutMicros(this.host.getOperationTimeoutMicros());
             h.start();
 
@@ -408,8 +409,19 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
                 h.setMaintenanceIntervalMicros(TimeUnit.MILLISECONDS.toMicros(100));
             }
 
-            long start = Utils.getNowMicrosUtc();
-            h.start();
+            long start = 0;
+            while (new Date().before(this.host.getTestExpiration())) {
+                try {
+                    start = Utils.getNowMicrosUtc();
+                    h.start();
+                    break;
+                } catch (org.apache.lucene.store.LockObtainFailedException e) {
+                    this.host.log("Lock still held on lucene index: %s", e.toString());
+                    // The attempt to restart might rarely timeout because the FS did not release lock in time
+                    Thread.sleep(250);
+                    continue;
+                }
+            }
 
             this.host.toggleServiceOptions(h.getDocumentIndexServiceUri(),
                     EnumSet.of(ServiceOption.INSTRUMENTATION),
