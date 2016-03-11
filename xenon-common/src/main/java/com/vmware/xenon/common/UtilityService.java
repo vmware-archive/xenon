@@ -203,7 +203,7 @@ public class UtilityService implements Service {
 
     public void notifySubscribers(Operation op) {
         try {
-            if (this.subscriptions == null) {
+            if (this.subscriptions == null || this.subscriptions.subscribers == null) {
                 return;
             }
 

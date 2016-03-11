@@ -60,6 +60,11 @@ public class TransactionService extends StatefulService {
         RESOLVING_CIRCULAR,
 
         /**
+         * Received request to abort; in the process of rolling back
+         */
+        ABORTING,
+
+        /**
          * Commit tombstone
          */
         COMMITTED,
@@ -310,7 +315,7 @@ public class TransactionService extends StatefulService {
             ResolutionRequest resolution = patch.getBody(ResolutionRequest.class);
             // both commit and abort are now handled asynchronously, so complete ASAP
             if (resolution.kind == ResolutionKind.ABORT) {
-                updateStage(patch, SubStage.ABORTED);
+                updateStage(patch, SubStage.ABORTING);
                 patch.complete();
                 handleAbort(patch);
             } else if (resolution.kind == ResolutionKind.COMMIT) {

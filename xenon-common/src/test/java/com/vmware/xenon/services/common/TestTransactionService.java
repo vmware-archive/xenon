@@ -413,7 +413,7 @@ public class TestTransactionService extends BasicReusableHostTestCase {
             this.host.log("Read account %s, runnin sum=%f", accountId, sum);
         }
         if (createNewTransaction) {
-            commit(transactionId, task.results.documentLinks.size());
+            abort(transactionId, task.results.documentLinks.size());
         }
         assertEquals(expected, sum, 0);
     }

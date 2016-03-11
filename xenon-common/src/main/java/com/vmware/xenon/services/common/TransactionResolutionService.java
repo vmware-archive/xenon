@@ -50,32 +50,41 @@ public class TransactionResolutionService extends StatelessService {
      * TODO: Use reliable subscriptions
      */
     public void handleResolutionRequest(Operation op) {
+        ResolutionRequest resolutionRequest = op.getBody(ResolutionRequest.class);
         Operation subscribeToCoordinator = Operation.createPost(
                 UriUtils.buildSubscriptionUri(this.parent.getUri()))
                 .setCompletion((o, e) -> {
-                    // if we could not subscribe, let's notify the client
                     if (e != null) {
                         op.fail(e);
                         return;
                     }
+                    Operation operation = Operation
+                            .createPatch(this.parent.getUri())
+                            .setBody(resolutionRequest);
+                    logInfo("Sending transaction resolution request to %s with kind %s", this.parent.getSelfLink(), resolutionRequest.kind);
+                    sendRequest(operation);
                 }).setReferer(getUri());
+
+        logInfo("Subscribing to transaction resolution on %s", this.parent.getSelfLink());
         getHost().startSubscriptionService(subscribeToCoordinator, (notifyOp) -> {
-            // simply clone the raw body and status code (possible error code); forward to the client
             ResolutionRequest resolve = notifyOp.getBody(ResolutionRequest.class);
             notifyOp.complete();
+            logInfo("%s received notification: action=%s, resolution=%s", getSelfLink(), notifyOp.getAction(), resolve.kind);
             if (isNotComplete(resolve.kind)) {
                 return;
             }
-            op.setBodyNoCloning(notifyOp.getBodyRaw());
-            op.setStatusCode(notifyOp.getStatusCode());
-            op.complete();
+            if ((resolve.kind == ResolutionKind.COMMITTED && resolutionRequest.kind == ResolutionKind.COMMIT) ||
+                    (resolve.kind == ResolutionKind.ABORTED && resolutionRequest.kind == ResolutionKind.ABORT)) {
+                logInfo("Resolution of transaction %s is complete", this.parent.getSelfLink());
+                op.setBodyNoCloning(notifyOp.getBodyRaw());
+                op.setStatusCode(notifyOp.getStatusCode());
+                op.complete();
+            } else {
+                String errorMsg = String.format("Resolution %s of transaction %s is different than requested", resolve.kind, this.parent.getSelfLink());
+                logInfo(errorMsg);
+                op.fail(new IllegalStateException(errorMsg));
+            }
         });
-
-        ResolutionRequest resolve = op.getBody(ResolutionRequest.class);
-        Operation operation = Operation
-                .createPatch(this.parent.getUri())
-                .setBody(resolve);
-        sendRequest(operation);
     }
 
     private boolean isNotComplete(ResolutionKind kind) {
