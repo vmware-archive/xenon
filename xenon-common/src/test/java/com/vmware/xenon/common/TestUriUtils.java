@@ -171,9 +171,6 @@ public class TestUriUtils {
         assertEquals(queryContainingQueryChar, u.getQuery());
     }
 
-
-
-
     @Test
     public void extendUri() throws URISyntaxException {
         String basePath = UriUtils.buildUriPath("some", UUID.randomUUID().toString());
@@ -258,5 +255,19 @@ public class TestUriUtils {
         assertEquals("example", UriUtils.getLastPathSegment(UriUtils.buildUri("http://example.com:8000/example?one=1")));
         assertEquals("", UriUtils.getLastPathSegment(UriUtils.buildUri("http://example.com:8000")));
         assertEquals("", UriUtils.getLastPathSegment(UriUtils.buildUri("http://example.com:8000/example/")));
+    }
+
+    @Test
+    public void hasODataExpandParamValue() {
+        URI u = UriUtils.buildUri("http://example.com:8000?$expand=documentLinks");
+        assertTrue(UriUtils.hasODataExpandParamValue(u));
+        u = UriUtils.buildUri("http://example.com:8000?expand=documentLinks");
+        assertTrue(UriUtils.hasODataExpandParamValue(u));
+        u = UriUtils.buildUri("http://example.com:8000?$blablabla=documentLinks");
+        assertFalse(UriUtils.hasODataExpandParamValue(u));
+        u = UriUtils.buildUri("http://example.com:8000");
+        assertFalse(UriUtils.hasODataExpandParamValue(u));
+        u = UriUtils.buildUri("http://example.com:8000?");
+        assertFalse(UriUtils.hasODataExpandParamValue(u));
     }
 }

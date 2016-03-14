@@ -688,9 +688,14 @@ public class UriUtils {
     }
 
     public static boolean hasODataExpandParamValue(URI uri) {
-        boolean doExpand = uri.getQuery().contains(UriUtils.URI_PARAM_ODATA_EXPAND);
+        String query = uri.getQuery();
+        if (query == null || query.isEmpty()) {
+            return false;
+        }
+
+        boolean doExpand = query.contains(UriUtils.URI_PARAM_ODATA_EXPAND);
         if (!doExpand) {
-            doExpand = uri.getQuery().contains(UriUtils.URI_PARAM_ODATA_EXPAND_NO_DOLLAR_SIGN);
+            doExpand = query.contains(UriUtils.URI_PARAM_ODATA_EXPAND_NO_DOLLAR_SIGN);
         }
         return doExpand;
     }

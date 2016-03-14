@@ -18,3 +18,8 @@ tmp/
 # maven-release-plugin artifacts
 /release.properties
 pom.xml.releaseBackup
+
+# go artifacts
+xenon-client/src/main/resources/*
+xenon-client/src/main/go/_vendor/src/*
+xenon-common/src/main/go/_vendor/src/*
