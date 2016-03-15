@@ -36,14 +36,20 @@ import com.vmware.xenon.services.common.ServiceUriPaths;
  */
 public abstract class FactoryService extends StatelessService {
 
-    public static Service create(Class<? extends Service> childServiceType,
+    public static FactoryService create(Class<? extends Service> childServiceType,
             Class<? extends ServiceDocument> childServiceDocumentType) {
-        FactoryService fs = new FactoryService(childServiceDocumentType) {
+        return new FactoryService(childServiceDocumentType) {
             @Override
             public Service createServiceInstance() throws Throwable {
                 return childServiceType.newInstance();
             }
         };
+    }
+
+    public static FactoryService createWithOptions(Class<? extends Service> childServiceType,
+            Class<? extends ServiceDocument> childServiceDocumentType, EnumSet<ServiceOption> options) {
+        FactoryService fs = create(childServiceType, childServiceDocumentType);
+        options.forEach(option -> fs.toggleOption(option, true));
         return fs;
     }
 

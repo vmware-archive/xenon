@@ -15,13 +15,13 @@ package com.vmware.xenon.services.common;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.vmware.xenon.common.FactoryService;
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.OperationJoin;
-import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.ServiceDocument;
 import com.vmware.xenon.common.ServiceDocumentDescription.PropertyUsageOption;
 import com.vmware.xenon.common.StatefulService;
@@ -76,13 +76,9 @@ public class ExampleTaskService extends StatefulService {
     /**
      * Create a default factory service that starts instances of this task service on POST.
      */
-    public static Service createFactory() {
-        Service fs = FactoryService.create(ExampleTaskService.class, ExampleTaskServiceState.class);
-        // Set additional factory service option. This can be set in service constructor as well
-        // but its really relevant on the factory of a service.
-        fs.toggleOption(ServiceOption.IDEMPOTENT_POST, true);
-        fs.toggleOption(ServiceOption.INSTRUMENTATION, true);
-        return fs;
+    public static FactoryService createFactory() {
+        return FactoryService.createWithOptions(ExampleTaskService.class, ExampleTaskServiceState.class,
+                EnumSet.of(ServiceOption.IDEMPOTENT_POST, ServiceOption.INSTRUMENTATION));
     }
 
     public static class ExampleTaskServiceState extends ServiceDocument {
