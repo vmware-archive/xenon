@@ -36,12 +36,12 @@ import (
 var (
 	fs = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 
-	xenon   = fs.String("xenon", os.Getenv("DCP"), "Root URI of DCP node")
+	xenon   = fs.String("xenon", os.Getenv("XENON"), "Root URI of Xenon node")
 	input   = fs.String("i", "", "Body input")
 	oselect = fs.String("s", "", "Output field selector")
 	nonl    = fs.Bool("n", false, "Do not print a trailing newline character")
 	execute = fs.Bool("x", false, "Execute body template and print request to stdout")
-	trace   = fs.String("t", os.Getenv("DCPC_TRACE"), "Enables trace dump of all HTTP data, to the given output file")
+	trace   = fs.String("t", os.Getenv("XENONC_TRACE"), "Enables trace dump of all HTTP data, to the given output file")
 
 	defaultInput  io.Reader = os.Stdin
 	defaultOutput io.Writer = os.Stdout
@@ -63,7 +63,7 @@ func setenv() {
 	vars := []string{"HTTP_PROXY", "HTTPS_PROXY"}
 
 	for _, key := range vars {
-		val := os.Getenv("DCP_" + key)
+		val := os.Getenv("XENON_" + key)
 
 		if val != "" {
 			os.Setenv(key, val)
