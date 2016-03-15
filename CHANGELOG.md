@@ -2,6 +2,11 @@
 
 ## 0.7.5-SNAPSHOT
 
+* New FactoryService.create helpers and ServiceHost.startFactory
+  and startService helpers that reduce duplicate code
+
+* New Operation.createXXXX(ServiceHost h, link) helpers
+  to eliminate need for UriUtils.buildUri
 
 ## 0.7.2
 

@@ -25,12 +25,73 @@ import java.util.function.Consumer;
 import org.junit.Test;
 
 import com.vmware.xenon.common.Operation.CompletionHandler;
+import com.vmware.xenon.common.Service.Action;
 import com.vmware.xenon.common.test.MinimalTestServiceState;
 import com.vmware.xenon.services.common.ExampleService;
 import com.vmware.xenon.services.common.MinimalTestService;
 
 public class TestOperation extends BasicReusableHostTestCase {
     private List<Service> services;
+
+    @Test
+    public void create() throws Throwable {
+        String link = ExampleService.FACTORY_LINK;
+        Service s = this.host.startServiceAndWait(new MinimalTestService(),
+                UUID.randomUUID().toString(), null);
+
+        Action a = Action.POST;
+        Operation op = Operation.createPost(this.host, link);
+        verifyOp(link, a, op);
+        op = Operation.createPost(s, link);
+        verifyOp(link, a, op);
+        op = Operation.createPost(s.getUri());
+        verifyOp(s.getSelfLink(), a, op);
+
+        a = Action.PATCH;
+        op = Operation.createPatch(this.host, link);
+        verifyOp(link, a, op);
+        op = Operation.createPatch(s, link);
+        verifyOp(link, a, op);
+        op = Operation.createPatch(s.getUri());
+        verifyOp(s.getSelfLink(), a, op);
+
+        a = Action.PUT;
+        op = Operation.createPut(this.host, link);
+        verifyOp(link, a, op);
+        op = Operation.createPut(s, link);
+        verifyOp(link, a, op);
+        op = Operation.createPut(s.getUri());
+        verifyOp(s.getSelfLink(), a, op);
+
+        a = Action.DELETE;
+        op = Operation.createDelete(this.host, link);
+        verifyOp(link, a, op);
+        op = Operation.createDelete(s, link);
+        verifyOp(link, a, op);
+        op = Operation.createDelete(s.getUri());
+        verifyOp(s.getSelfLink(), a, op);
+
+        a = Action.GET;
+        op = Operation.createGet(this.host, link);
+        verifyOp(link, a, op);
+        op = Operation.createGet(s, link);
+        verifyOp(link, a, op);
+        op = Operation.createGet(s.getUri());
+        verifyOp(s.getSelfLink(), a, op);
+
+        a = Action.OPTIONS;
+        op = Operation.createOptions(this.host, link);
+        verifyOp(link, a, op);
+        op = Operation.createOptions(s, link);
+        verifyOp(link, a, op);
+        op = Operation.createOptions(s.getUri());
+        verifyOp(s.getSelfLink(), a, op);
+    }
+
+    private void verifyOp(String link, Action a, Operation op) {
+        assertEquals(a, op.getAction());
+        assertEquals(link, op.getUri().getPath());
+    }
 
     @Test
     public void addRemovePragma() {

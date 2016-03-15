@@ -13,7 +13,6 @@
 
 package com.vmware.xenon.services.common;
 
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -39,8 +38,7 @@ public class ExampleService extends StatefulService {
      * This method is optional, {@code FactoryService.create} can be used directly
      */
     public static FactoryService createFactory() {
-        return FactoryService.createWithOptions(ExampleService.class, ExampleServiceState.class,
-                EnumSet.of(ServiceOption.IDEMPOTENT_POST));
+        return FactoryService.createIdempotent(ExampleService.class);
     }
 
     public static class ExampleServiceState extends ServiceDocument {

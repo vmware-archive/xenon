@@ -46,6 +46,20 @@ public abstract class FactoryService extends StatelessService {
         };
     }
 
+    public static FactoryService createIdempotent(Class<? extends Service> childServiceType) {
+        try {
+            Service s = childServiceType.newInstance();
+            Class<? extends ServiceDocument> childServiceDocumentType = s.getStateType();
+            FactoryService fs = create(childServiceType, childServiceDocumentType);
+            fs.toggleOption(ServiceOption.IDEMPOTENT_POST, true);
+            return fs;
+        } catch (Throwable e) {
+            Utils.logWarning("Failure creating factory for %s: %s", childServiceType,
+                    Utils.toString(e));
+            return null;
+        }
+    }
+
     public static FactoryService createWithOptions(Class<? extends Service> childServiceType,
             Class<? extends ServiceDocument> childServiceDocumentType, EnumSet<ServiceOption> options) {
         FactoryService fs = create(childServiceType, childServiceDocumentType);

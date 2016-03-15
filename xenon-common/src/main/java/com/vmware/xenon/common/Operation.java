@@ -538,7 +538,11 @@ public class Operation implements Cloneable {
     }
 
     public static Operation createPost(Service sender, String targetPath) {
-        return createPost(UriUtils.buildUri(sender.getHost(), targetPath));
+        return createPost(sender.getHost(), targetPath);
+    }
+
+    public static Operation createPost(ServiceHost sender, String targetPath) {
+        return createPost(UriUtils.buildUri(sender, targetPath));
     }
 
     public static Operation createPost(URI uri) {
@@ -546,7 +550,11 @@ public class Operation implements Cloneable {
     }
 
     public static Operation createPatch(Service sender, String targetPath) {
-        return createPatch(UriUtils.buildUri(sender.getHost(), targetPath));
+        return createPatch(sender.getHost(), targetPath);
+    }
+
+    public static Operation createPatch(ServiceHost sender, String targetPath) {
+        return createPatch(UriUtils.buildUri(sender, targetPath));
     }
 
     public static Operation createPatch(URI uri) {
@@ -557,12 +565,32 @@ public class Operation implements Cloneable {
         return createPut(UriUtils.buildUri(sender.getHost(), targetPath));
     }
 
+    public static Operation createPut(ServiceHost sender, String targetPath) {
+        return createPut(UriUtils.buildUri(sender, targetPath));
+    }
+
     public static Operation createPut(URI uri) {
         return createOperation(Action.PUT, uri);
     }
 
+    public static Operation createOptions(Service sender, String targetPath) {
+        return createOptions(UriUtils.buildUri(sender.getHost(), targetPath));
+    }
+
+    public static Operation createOptions(ServiceHost sender, String targetPath) {
+        return createOptions(UriUtils.buildUri(sender, targetPath));
+    }
+
+    public static Operation createOptions(URI uri) {
+        return createOperation(Action.OPTIONS, uri);
+    }
+
     public static Operation createDelete(Service sender, String targetPath) {
         return createDelete(UriUtils.buildUri(sender.getHost(), targetPath));
+    }
+
+    public static Operation createDelete(ServiceHost sender, String targetPath) {
+        return createDelete(UriUtils.buildUri(sender, targetPath));
     }
 
     public static Operation createDelete(URI uri) {
@@ -571,6 +599,10 @@ public class Operation implements Cloneable {
 
     public static Operation createGet(Service sender, String targetPath) {
         return createGet(UriUtils.buildUri(sender.getHost(), targetPath));
+    }
+
+    public static Operation createGet(ServiceHost sender, String targetPath) {
+        return createGet(UriUtils.buildUri(sender, targetPath));
     }
 
     public static Operation createGet(URI uri) {
@@ -722,6 +754,16 @@ public class Operation implements Cloneable {
         return this;
     }
 
+    /**
+     * Deserializes the body associated with the operation, given the type.
+     *
+     * Note: This method is *not* idempotent. It will modify the body contents
+     * so subsequent calls will not have access to the original instance. This
+     * occurs only for local operations, not operations that have a serialized
+     * body already attached (in the form of a JSON string).
+     *
+     * If idempotent behavior is desired, use {@link getBodyRaw}
+     */
     @SuppressWarnings("unchecked")
     public <T> T getBody(Class<T> type) {
         if (this.body != null && this.body.getClass() == type) {
