@@ -323,7 +323,6 @@ public class TransactionService extends StatefulService {
                 handleAbort(patch);
             } else if (resolution.kind == ResolutionKind.COMMIT) {
                 updateStage(patch, SubStage.RESOLVING);
-                patch.complete();
                 handleCommitIfAllPendingOperationsReceived(patch);
             } else if (resolution.kind == ResolutionKind.COMMITTED) {
                 updateStage(patch, SubStage.COMMITTED);
@@ -346,6 +345,7 @@ public class TransactionService extends StatefulService {
         TransactionServiceState currentState = getState(op);
         ResolutionRequest commitRequest = op.getBody(ResolutionRequest.class);
         currentState.expectedOperationCount = commitRequest.pendingOperations;
+        op.complete();
 
         this.logInfo("Transaction %s: handling commit requst: pendingOperationsCount=%d, expectedOperationCount=%d", this.getSelfId(),
                 currentState.pendingOperationCount, currentState.expectedOperationCount);
@@ -360,7 +360,7 @@ public class TransactionService extends StatefulService {
             String errorMsg = String.format("Illegal commit request: client provided pending operations %d is less than already received %d",
                     currentState.expectedOperationCount, currentState.pendingOperationCount);
             logWarning(errorMsg);
-            op.fail(new IllegalStateException(errorMsg));
+            handleAbort(op);
             return;
         }
 
