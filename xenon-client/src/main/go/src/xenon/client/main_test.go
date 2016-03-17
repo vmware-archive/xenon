@@ -23,6 +23,7 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/pborman/uuid"
 )
@@ -39,6 +40,7 @@ func init() {
 	http.DefaultClient.Transport = &http.Transport{
 		DisableKeepAlives: true,
 	}
+	http.DefaultClient.Timeout = time.Minute
 }
 
 // reset all vars/flags before calling run(args)
