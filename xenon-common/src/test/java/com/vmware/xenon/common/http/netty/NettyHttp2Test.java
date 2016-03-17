@@ -25,7 +25,6 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.vmware.xenon.common.CommandLineArgumentParser;
@@ -42,7 +41,6 @@ import com.vmware.xenon.services.common.MinimalTestService;
 /**
  * Tests for our Netty-based HTTP/2 implementation
  */
-@Ignore("https://www.pivotaltracker.com/story/show/110535602")
 public class NettyHttp2Test {
 
     private static VerificationHost HOST;
@@ -327,8 +325,30 @@ public class NettyHttp2Test {
         // that we had sent data before the SETTINGS frame, which was not true. This tests runs
         // in about a third of a second on a Macbook Pro, so it's not too intense for daily tests
         //
-        // NOTE: Increasing this number (e.g. 9999) still exhibits failures that need to be
-        // solved
+        // NOTE: Increasing this number (e.g. 9999) fails test with
+        //  "java.net.SocketException: Too many open files in system" or similar.
+        //  It is expected behavior with following reason: closing connection is not keeping up
+        //  with the pace of opening new connections.
+        //
+        //  Problem Details:
+        //  "channel.close()" is called in "NettyChannelPool.closeHtp2Context()" which is called
+        //  from "client.handleMaintenance()". However, performing closing channel is delayed by
+        //  two reasons.
+        //    1) "NettyChannelPool.closeHtp2Context()" has threashold time. Thereby calling
+        //        "channel.close()" only happens when it exceeds the threashold time.
+        //    2) In netty implementation, actual logic closing channel inside of "channel.close()"
+        //       is done asynchronously. Therefore, even though "channel.close()" is called, it
+        //       may not perform immediately.
+        //
+        //  Due to the aforementioned reasons, opening connections(new open file descriptor)
+        //  surpass the number of closing connections, thus from outside, it looks like open file
+        //  descriptors are kept increasing, and it reaches the max number of open files in
+        //  operating system.
+        //  Therefore, test case with "setMaxStreamId=5" and "counter=9999" fails. By setting
+        //  "setMaxStreamId" to larger number(e.g.: 51), it slows down the new number of
+        //  connections and test will pass.
+        //
+        //  for more detail: https://www.pivotaltracker.com/story/show/110535602
         int count = 99;
         URI serviceUri = service.getUri();
         for (int i = 0; i < count; i++) {
