@@ -370,6 +370,24 @@ public class ServiceDocument {
     }
 
     /**
+     * Returns whether or not the {@code name} should support auto merge by default or not
+     *
+     * @param name Field name
+     * @return true/false
+     *
+     * @see PropertyUsageOption#AUTO_MERGE_IF_NOT_NULL
+     * @see ServiceDocumentDescription
+     */
+    public static boolean isAutoMergeEnabledByDefaultForField(String name) {
+        switch (name) {
+        case ServiceDocument.FIELD_NAME_EXPIRATION_TIME_MICROS:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    /**
      * Returns whether or not the {@code name} is a built-in field that should be excluded from
      * the service document signature computation.
      *

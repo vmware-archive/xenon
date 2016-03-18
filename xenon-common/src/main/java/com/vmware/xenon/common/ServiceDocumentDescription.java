@@ -283,6 +283,9 @@ public class ServiceDocumentDescription {
                 if (ServiceDocument.isBuiltInInfrastructureDocumentField(f.getName())) {
                     fd.usageOptions.add(PropertyUsageOption.INFRASTRUCTURE);
                 }
+                if (ServiceDocument.isAutoMergeEnabledByDefaultForField(f.getName())) {
+                    fd.usageOptions.add(PropertyUsageOption.AUTO_MERGE_IF_NOT_NULL);
+                }
                 if (ServiceDocument.isBuiltInSignatureExcludedDocumentField(f.getName())) {
                     fd.indexingOptions.add(PropertyIndexingOption.EXCLUDE_FROM_SIGNATURE);
                 }

@@ -66,10 +66,13 @@ public class TestUtils {
 
     public static final Integer SOME_INT_VALUE = 100;
     public static final Integer SOME_OTHER_INT_VALUE = 200;
+    public static final long SOME_EXPIRATION_VALUE = Utils.getNowMicrosUtc();
     public static final String SOME_STRING_VALUE = "some value";
     public static final String SOME_OTHER_STRING_VALUE = "some other value";
     public static final String SOME_IGNORE_VALUE = "ignore me";
     public static final String SOME_OTHER_IGNORE_VALUE = "ignore me please";
+    public static final long SOME_OTHER_EXPIRATION_VALUE =
+            Utils.getNowMicrosUtc() + TimeUnit.MINUTES.toMicros(5);
 
     private static class Range {
         public final int from;
@@ -646,16 +649,21 @@ public class TestUtils {
         source.s = SOME_STRING_VALUE;
         source.x = SOME_INT_VALUE;
         source.ignore = SOME_IGNORE_VALUE;
+        source.documentExpirationTimeMicros = SOME_EXPIRATION_VALUE;
         MergeTest patch = new MergeTest();
         patch.s = SOME_OTHER_STRING_VALUE;
         patch.x = SOME_OTHER_INT_VALUE;
         patch.ignore = SOME_OTHER_IGNORE_VALUE;
+        patch.documentExpirationTimeMicros = SOME_OTHER_EXPIRATION_VALUE;
+
         ServiceDocumentDescription d = ServiceDocumentDescription.Builder.create()
                 .buildDescription(MergeTest.class);
         Assert.assertTrue("There should be changes", Utils.mergeWithState(d, source, patch));
         Assert.assertEquals("Annotated s field", source.s, SOME_OTHER_STRING_VALUE);
         Assert.assertEquals("Annotated x field", source.x, SOME_OTHER_INT_VALUE);
         Assert.assertEquals("Non-annotated ignore field", source.ignore, SOME_IGNORE_VALUE);
+        Assert.assertEquals("Auto-annotated expiration field", source.documentExpirationTimeMicros,
+                SOME_OTHER_EXPIRATION_VALUE);
     }
 
     /**
