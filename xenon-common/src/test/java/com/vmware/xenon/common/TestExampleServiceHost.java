@@ -26,7 +26,7 @@ import org.junit.rules.TemporaryFolder;
 
 import com.vmware.xenon.services.common.ExampleServiceHost;
 import com.vmware.xenon.services.common.ServiceUriPaths;
-import com.vmware.xenon.services.common.UserFactoryService;
+import com.vmware.xenon.services.common.UserService;
 import com.vmware.xenon.services.common.authn.AuthenticationRequest;
 import com.vmware.xenon.services.common.authn.BasicAuthenticationService;
 
@@ -128,7 +128,7 @@ public class TestExampleServiceHost extends BasicReusableHostTestCase {
      * so this polls.
      */
     private void waitForUsers(URI hostUri, String authToken) throws Throwable {
-        URI exampleUri = UriUtils.buildUri(hostUri, UserFactoryService.SELF_LINK);
+        URI exampleUri = UriUtils.buildUri(hostUri, UserService.FACTORY_LINK);
 
         Integer[] numberUsers = new Integer[1];
         for (int i = 0; i < 20; i++) {

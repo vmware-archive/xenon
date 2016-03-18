@@ -2667,7 +2667,7 @@ public class TestQueryTaskService {
     public void testQueryBuilderShouldOccur() throws Throwable {
         setUpHost();
         URI exampleFactoryUri = UriUtils.buildFactoryUri(this.host, ExampleService.class);
-        URI tenantFactoryUri = UriUtils.buildUri(this.host, TenantFactoryService.SELF_LINK);
+        URI tenantFactoryUri = UriUtils.buildUri(this.host, TenantService.FACTORY_LINK);
         this.host.testStart(2);
 
         ExampleServiceState exampleServiceState = new ExampleServiceState();

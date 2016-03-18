@@ -18,7 +18,9 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
+import com.vmware.xenon.common.FactoryService;
 import com.vmware.xenon.common.Operation;
+import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.ServiceDocument;
 import com.vmware.xenon.common.ServiceDocumentDescription;
 import com.vmware.xenon.common.StatefulService;
@@ -27,6 +29,12 @@ import com.vmware.xenon.common.StatefulService;
  * Describes the authentication credentials to authenticate with internal/external APIs.
  */
 public class AuthCredentialsService extends StatefulService {
+    public static final String FACTORY_LINK = ServiceUriPaths.CORE_CREDENTIALS;
+
+    public static Service createFactory() {
+        return FactoryService.createIdempotent(AuthCredentialsService.class);
+    }
+
     public static class AuthCredentialsServiceState extends ServiceDocument {
 
         public static final String FIELD_NAME_EMAIL = "userEmail";

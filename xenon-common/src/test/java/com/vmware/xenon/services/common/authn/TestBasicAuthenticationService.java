@@ -28,9 +28,9 @@ import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.http.netty.CookieJar;
 import com.vmware.xenon.common.test.VerificationHost;
-import com.vmware.xenon.services.common.AuthCredentialsFactoryService;
+import com.vmware.xenon.services.common.AuthCredentialsService;
 import com.vmware.xenon.services.common.AuthCredentialsService.AuthCredentialsServiceState;
-import com.vmware.xenon.services.common.UserFactoryService;
+import com.vmware.xenon.services.common.UserService;
 import com.vmware.xenon.services.common.UserService.UserState;
 import com.vmware.xenon.services.common.authn.AuthenticationRequest.AuthenticationRequestType;
 
@@ -54,9 +54,9 @@ public class TestBasicAuthenticationService extends BasicTestCase {
     public void setUp() throws Exception {
         try {
             this.host.setSystemAuthorizationContext();
-            this.host.waitForServiceAvailable(AuthCredentialsFactoryService.SELF_LINK);
+            this.host.waitForServiceAvailable(AuthCredentialsService.FACTORY_LINK);
             this.host.waitForServiceAvailable(BasicAuthenticationService.SELF_LINK);
-            this.host.waitForServiceAvailable(UserFactoryService.SELF_LINK);
+            this.host.waitForServiceAvailable(UserService.FACTORY_LINK);
 
             // initialize users
             UserState state = new UserState();
@@ -65,7 +65,7 @@ public class TestBasicAuthenticationService extends BasicTestCase {
             authServiceState.userEmail = USER;
             authServiceState.privateKey = PASSWORD;
 
-            URI userUri = UriUtils.buildUri(this.host, UserFactoryService.SELF_LINK);
+            URI userUri = UriUtils.buildUri(this.host, UserService.FACTORY_LINK);
             Operation userOp = Operation.createPost(userUri)
                     .setBody(state)
                     .setCompletion((o, e) -> {
@@ -75,7 +75,7 @@ public class TestBasicAuthenticationService extends BasicTestCase {
                         }
                         this.host.completeIteration();
                     });
-            URI authUri = UriUtils.buildUri(this.host, AuthCredentialsFactoryService.SELF_LINK);
+            URI authUri = UriUtils.buildUri(this.host, AuthCredentialsService.FACTORY_LINK);
             Operation authOp = Operation.createPost(authUri)
                     .setBody(authServiceState)
                     .setCompletion((o, e) -> {

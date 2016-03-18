@@ -13,11 +13,19 @@
 
 package com.vmware.xenon.services.common;
 
+import com.vmware.xenon.common.FactoryService;
 import com.vmware.xenon.common.Operation;
+import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.ServiceDocument;
 import com.vmware.xenon.common.StatefulService;
 
 public class UserService extends StatefulService {
+    public static final String FACTORY_LINK = ServiceUriPaths.CORE_AUTHZ_USERS;
+
+    public static Service createFactory() {
+        return FactoryService.createIdempotent(UserService.class);
+    }
+
     /**
      * The {@link UserState} represents a single user's identity.
      */

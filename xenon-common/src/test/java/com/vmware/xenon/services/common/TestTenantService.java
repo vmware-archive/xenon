@@ -39,7 +39,7 @@ public class TestTenantService extends BasicReusableHostTestCase {
 
     @Before
     public void setUp() throws Exception {
-        this.factoryURI = UriUtils.buildUri(this.host, TenantFactoryService.class);
+        this.factoryURI = UriUtils.buildFactoryUri(this.host, TenantService.class);
     }
 
     @After
@@ -61,7 +61,6 @@ public class TestTenantService extends BasicReusableHostTestCase {
             assertEquals(state.name, initialState.name);
             assertEquals(state.parentLink, initialState.parentLink);
             assertNotNull(state.id);
-            assertTrue(state.documentSelfLink.endsWith(state.id));
         }
     }
 
@@ -74,7 +73,6 @@ public class TestTenantService extends BasicReusableHostTestCase {
         for (Object s : res.documents.values()) {
             TenantService.TenantState state = Utils.fromJson(s, TenantService.TenantState.class);
             assertNotNull(state.id);
-            assertTrue(state.documentSelfLink.endsWith(state.id));
         }
     }
 
@@ -88,7 +86,7 @@ public class TestTenantService extends BasicReusableHostTestCase {
 
         TenantService.TenantState responseState =
                 (TenantService.TenantState) this.host.verifyPost(TenantService.TenantState.class,
-                TenantFactoryService.SELF_LINK,
+                TenantService.FACTORY_LINK,
                 state,
                 Operation.STATUS_CODE_OK);
 
@@ -97,7 +95,7 @@ public class TestTenantService extends BasicReusableHostTestCase {
         assertEquals(state.parentLink, responseState.parentLink);
 
         responseState = (TenantService.TenantState) this.host.verifyPost(TenantService.TenantState.class,
-                TenantFactoryService.SELF_LINK,
+                TenantService.FACTORY_LINK,
                 state,
                 Operation.STATUS_CODE_NOT_MODIFIED);
 
@@ -108,7 +106,7 @@ public class TestTenantService extends BasicReusableHostTestCase {
         state.name = UUID.randomUUID().toString();
 
         responseState = (TenantService.TenantState) this.host.verifyPost(TenantService.TenantState.class,
-                TenantFactoryService.SELF_LINK,
+                TenantService.FACTORY_LINK,
                 state,
                 Operation.STATUS_CODE_OK);
 

@@ -13,13 +13,22 @@
 
 package com.vmware.xenon.services.common;
 
+import com.vmware.xenon.common.FactoryService;
 import com.vmware.xenon.common.Operation;
+import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.ServiceDocument;
 import com.vmware.xenon.common.ServiceDocumentDescription;
 import com.vmware.xenon.common.StatefulService;
 import com.vmware.xenon.services.common.QueryTask.Query;
 
 public class UserGroupService extends StatefulService {
+
+    public static final String FACTORY_LINK = ServiceUriPaths.CORE_AUTHZ_USER_GROUPS;
+
+    public static Service createFactory() {
+        return FactoryService.createIdempotent(UserGroupService.class);
+    }
+
     /**
      * The {@link UserGroupState} holds the query that is used to represent a group of users.
      */

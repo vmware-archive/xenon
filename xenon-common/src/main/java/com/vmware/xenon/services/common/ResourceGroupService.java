@@ -13,13 +13,28 @@
 
 package com.vmware.xenon.services.common;
 
+import com.vmware.xenon.common.FactoryService;
 import com.vmware.xenon.common.Operation;
+import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.ServiceDocument;
 import com.vmware.xenon.common.ServiceDocumentDescription;
 import com.vmware.xenon.common.StatefulService;
+import com.vmware.xenon.common.Utils;
 import com.vmware.xenon.services.common.QueryTask.Query;
 
 public class ResourceGroupService extends StatefulService {
+    public static final String FACTORY_LINK = ServiceUriPaths.CORE_AUTHZ_RESOURCE_GROUPS;
+
+    public static Service createFactory() {
+
+        // workaround for GSON issue https://github.com/google/gson/issues/764
+        // We serialize the complex type once, on service creation, to avoid possible GSON race
+        ResourceGroupState st = new ResourceGroupState();
+        st.query = QueryTask.Query.Builder.create().addFieldClause("one", "one").build();
+        Utils.toJson(st);
+        return FactoryService.createIdempotent(ResourceGroupService.class);
+    }
+
     /**
      * The {@link ResourceGroupState} holds a query that is used to represent a group of
      * resources (services). {@link ResourceGroupState} and {@link UserGroupState) are used

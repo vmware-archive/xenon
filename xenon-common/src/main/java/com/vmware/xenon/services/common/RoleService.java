@@ -15,13 +15,21 @@ package com.vmware.xenon.services.common;
 
 import java.util.Set;
 
+import com.vmware.xenon.common.FactoryService;
 import com.vmware.xenon.common.Operation;
+import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.ServiceDocument;
 import com.vmware.xenon.common.ServiceDocumentDescription;
 import com.vmware.xenon.common.StatefulService;
 import com.vmware.xenon.common.Utils;
 
 public class RoleService extends StatefulService {
+    public static final String FACTORY_LINK = ServiceUriPaths.CORE_AUTHZ_ROLES;
+
+    public static Service createFactory() {
+        return FactoryService.createIdempotent(RoleService.class);
+    }
+
     public enum Policy {
         ALLOW,
         DENY,

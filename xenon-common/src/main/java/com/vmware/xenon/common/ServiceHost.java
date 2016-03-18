@@ -91,7 +91,7 @@ import com.vmware.xenon.common.http.netty.NettyHttpServiceClient;
 import com.vmware.xenon.common.jwt.Signer;
 import com.vmware.xenon.common.jwt.Verifier;
 import com.vmware.xenon.common.jwt.Verifier.TokenException;
-import com.vmware.xenon.services.common.AuthCredentialsFactoryService;
+import com.vmware.xenon.services.common.AuthCredentialsService;
 import com.vmware.xenon.services.common.AuthorizationContextService;
 import com.vmware.xenon.services.common.ConsistentHashingNodeSelectorService;
 import com.vmware.xenon.services.common.FileContentService;
@@ -110,18 +110,18 @@ import com.vmware.xenon.services.common.OperationIndexService;
 import com.vmware.xenon.services.common.ProcessFactoryService;
 import com.vmware.xenon.services.common.QueryFilter;
 import com.vmware.xenon.services.common.ReliableSubscriptionService;
-import com.vmware.xenon.services.common.ResourceGroupFactoryService;
-import com.vmware.xenon.services.common.RoleFactoryService;
+import com.vmware.xenon.services.common.ResourceGroupService;
+import com.vmware.xenon.services.common.RoleService;
 import com.vmware.xenon.services.common.ServiceContextIndexService;
 import com.vmware.xenon.services.common.ServiceHostLogService;
 import com.vmware.xenon.services.common.ServiceHostManagementService;
 import com.vmware.xenon.services.common.ServiceUriPaths;
 import com.vmware.xenon.services.common.SystemUserService;
-import com.vmware.xenon.services.common.TenantFactoryService;
+import com.vmware.xenon.services.common.TenantService;
 import com.vmware.xenon.services.common.TransactionFactoryService;
 import com.vmware.xenon.services.common.UpdateIndexRequest;
-import com.vmware.xenon.services.common.UserFactoryService;
-import com.vmware.xenon.services.common.UserGroupFactoryService;
+import com.vmware.xenon.services.common.UserGroupService;
+import com.vmware.xenon.services.common.UserService;
 import com.vmware.xenon.services.common.authn.AuthenticationConstants;
 import com.vmware.xenon.services.common.authn.BasicAuthenticationService;
 
@@ -1222,14 +1222,15 @@ public class ServiceHost implements ServiceRequestSender {
         }
 
         // Start persisted factories here, after document index is added
-        coreServices.add(new AuthCredentialsFactoryService());
-        coreServices.add(new UserGroupFactoryService());
-        coreServices.add(new ResourceGroupFactoryService());
-        coreServices.add(new RoleFactoryService());
-        coreServices.add(new UserFactoryService());
+        coreServices.add(AuthCredentialsService.createFactory());
+        coreServices.add(UserGroupService.createFactory());
+        coreServices.add(ResourceGroupService.createFactory());
+        coreServices.add(RoleService.createFactory());
+        coreServices.add(UserService.createFactory());
+        coreServices.add(TenantService.createFactory());
         coreServices.add(new SystemUserService());
         coreServices.add(new GuestUserService());
-        coreServices.add(new TenantFactoryService());
+
         coreServices.add(new BasicAuthenticationService());
 
         Service transactionFactoryService = new TransactionFactoryService();
@@ -1577,7 +1578,15 @@ public class ServiceHost implements ServiceRequestSender {
     protected void startCoreServicesSynchronously(Service... services) throws Throwable {
         List<Operation> posts = new ArrayList<>();
         for (Service s : services) {
-            URI u = UriUtils.buildUri(this, s.getClass());
+            URI u = null;
+            if (ReflectionUtils.hasField(s.getClass(), UriUtils.FIELD_NAME_SELF_LINK)) {
+                u = UriUtils.buildUri(this, s.getClass());
+            } else if (s instanceof FactoryService) {
+                u = UriUtils.buildFactoryUri(this,
+                        ((FactoryService) s).createServiceInstance().getClass());
+            } else {
+                throw new IllegalStateException("field SELF_LINK or FACTORY_LINK is required");
+            }
             Operation startPost = Operation.createPost(u);
             posts.add(startPost);
         }
