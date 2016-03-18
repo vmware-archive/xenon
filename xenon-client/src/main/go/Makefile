@@ -1,5 +1,6 @@
 GOVENDORCOMMON := $(CURDIR)/../../../../xenon-common/src/main/go/_vendor/
 GOVENDOR :=$(CURDIR)/_vendor
+TMPDIR :=$(CURDIR)/_tmp
 GOPATH := $(GOVENDOR):$(GOVENDORCOMMON):$(CURDIR)
 GO ?= go
 OS := $(shell uname)
@@ -14,6 +15,7 @@ endif
 FOUND_GO = $(shell $(GO) version)
 export FOUND_GO
 export GOPATH
+export TMPDIR
 
 all: deps verify test
 

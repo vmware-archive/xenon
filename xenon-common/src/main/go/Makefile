@@ -1,4 +1,5 @@
 GOVENDOR ?= $(CURDIR)/_vendor
+TMPDIR := $(CURDIR)/_tmp
 GOPATH := $(GOVENDOR):$(CURDIR)
 GO ?= go
 GO1.5 ?= go1.5
@@ -15,6 +16,7 @@ endif
 FOUND_GO = $(shell $(GO) version)
 export FOUND_GO
 export GOPATH
+export TMPDIR
 
 all: goversion deps verify
 
