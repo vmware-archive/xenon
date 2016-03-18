@@ -1762,7 +1762,8 @@ public class TestNodeGroupService {
         for (MinimalTestServiceState s : states.values()) {
             NodeState ns = this.host.getNodeStateMap().get(s.id);
             if (ns == null) {
-                throw new IllegalStateException("host id not valid for " + s.documentSelfLink);
+                throw new IllegalStateException("host id not valid for " + s.documentSelfLink
+                        + " id:" + s.id);
             }
             URI expectedServiceUri = nodeIdToServiceURI.get(s.id);
             if (expectedServiceUri == null
@@ -1879,7 +1880,11 @@ public class TestNodeGroupService {
                 this.host.log("Node group %s assigned node id %s %d keys", nodeGroup, e.getKey(),
                         e.getValue());
 
-                if (!countPerNode.get(e.getKey()).equals(e.getValue())) {
+                Long count = countPerNode.get(e.getKey());
+                if (count == null) {
+                    continue;
+                }
+                if (!count.equals(e.getValue())) {
                     throw new IllegalStateException(
                             "Node id got assigned the same key different number of times, on one of the nodes");
                 }
