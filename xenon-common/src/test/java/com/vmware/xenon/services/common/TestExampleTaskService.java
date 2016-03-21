@@ -16,7 +16,6 @@ package com.vmware.xenon.services.common;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
@@ -31,7 +30,6 @@ import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.ServiceDocumentQueryResult;
 import com.vmware.xenon.common.TaskState.TaskStage;
 import com.vmware.xenon.common.UriUtils;
-import com.vmware.xenon.common.Utils;
 import com.vmware.xenon.services.common.ExampleService.ExampleServiceState;
 import com.vmware.xenon.services.common.ExampleTaskService.ExampleTaskServiceState;
 
@@ -124,7 +122,6 @@ public class TestExampleTaskService extends BasicReusableHostTestCase {
         URI exampleTaskFactoryUri = UriUtils.buildFactoryUri(this.host, ExampleTaskService.class);
 
         String[] taskUri = new String[1];
-        long[] initialExpiration = new long[1];
         ExampleTaskServiceState task = new ExampleTaskServiceState();
         Operation createPost = Operation.createPost(exampleTaskFactoryUri)
                 .setBody(task)
@@ -136,7 +133,6 @@ public class TestExampleTaskService extends BasicReusableHostTestCase {
                             }
                             ExampleTaskServiceState taskResponse = op.getBody(ExampleTaskServiceState.class);
                             taskUri[0] = taskResponse.documentSelfLink;
-                            initialExpiration[0] = taskResponse.documentExpirationTimeMicros;
                             this.host.completeIteration();
                         });
 
@@ -145,18 +141,6 @@ public class TestExampleTaskService extends BasicReusableHostTestCase {
         this.host.testWait();
 
         assertNotNull(taskUri[0]);
-
-        // Since our task body didn't set expiration, the default from TaskService should be used
-        long expectedExpiration = Utils.getNowMicrosUtc() + TimeUnit.MINUTES.toMicros(TaskService.DEFAULT_EXPIRATION_MINUTES);
-        long wiggleRoom = TimeUnit.MINUTES.toMicros(5); // ensure it's accurate within 5 minutes
-        long minExpectedTime = expectedExpiration - wiggleRoom;
-        long maxExpectedTime = expectedExpiration + wiggleRoom;
-        long actual = initialExpiration[0];
-
-        String msg = String.format(
-                "Task's expiration is incorrect. [minExpected=%tc] [maxExpected=%tc] : [actual=%tc]",
-                minExpectedTime, maxExpectedTime, actual);
-        assertTrue(msg, actual >= minExpectedTime && actual <= maxExpectedTime);
         return taskUri[0];
     }
 

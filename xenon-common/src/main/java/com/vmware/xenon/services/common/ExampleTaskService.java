@@ -151,7 +151,6 @@ public class ExampleTaskService
      * CREATED state.
      */
     protected void initializeState(ExampleTaskServiceState task, Operation taskOperation) {
-        super.initializeState(task, taskOperation);
         task.subStage = SubStage.QUERY_EXAMPLES;
 
         if (task.taskLifetime != null) {
@@ -161,6 +160,10 @@ public class ExampleTaskService
             task.documentExpirationTimeMicros = Utils.getNowMicrosUtc()
                     + TimeUnit.SECONDS.toMicros(DEFAULT_TASK_LIFETIME);
         }
+
+        // Do our task-specific logic... This will allow our ExampleTaskService's "default"
+        // expiration to take precedence over the default expiration set by TaskService
+        super.initializeState(task, taskOperation);
     }
 
     /**
