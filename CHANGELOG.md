@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.7.5-SNAPSHOT
+## 0.7.5
 
 * New TaskService.java base class to reduce duplicate code when
   implementing a task service. Subclasses no longer need to
