@@ -22,6 +22,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.vmware.xenon.common.BasicReusableHostTestCase;
@@ -60,6 +61,7 @@ public class TestOperationIndexService extends BasicReusableHostTestCase {
         this.host.toggleOperationTracing(this.host.getUri(), true);
     }
 
+    @Ignore("https://www.pivotaltracker.com/story/show/116147825")
     @Test
     public void testPost() throws Throwable {
         this.host.testStart(this.updateCount);
