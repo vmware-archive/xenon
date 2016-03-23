@@ -104,7 +104,9 @@ class ModelRegistry {
             return new DoubleProperty();
         case ENUM:
             StringProperty prop = new StringProperty();
-            prop._enum(Arrays.asList(pd.enumValues));
+            if (pd.enumValues != null) {
+                prop._enum(Arrays.asList(pd.enumValues));
+            }
             return prop;
         case InternetAddressV4:
             return new StringProperty();
