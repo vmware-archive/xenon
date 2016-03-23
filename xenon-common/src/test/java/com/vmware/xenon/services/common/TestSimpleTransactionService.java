@@ -25,7 +25,6 @@ import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.vmware.xenon.common.BasicReusableHostTestCase;
@@ -105,6 +104,8 @@ public class TestSimpleTransactionService extends BasicReusableHostTestCase {
         }
 
         this.defaultHost = this.host.getPeerHost();
+        this.defaultHost.waitForReplicatedFactoryServiceAvailable(getTransactionFactoryUri());
+        this.defaultHost.waitForReplicatedFactoryServiceAvailable(getAccountFactoryUri());
     }
 
     @After
@@ -150,7 +151,6 @@ public class TestSimpleTransactionService extends BasicReusableHostTestCase {
         countAccounts(null, 0);
     }
 
-    @Ignore("https://www.pivotaltracker.com/story/show/116143207")
     @Test
     public void testBasicCRUDMultiHost() throws Throwable {
         setUpMultiHost();
