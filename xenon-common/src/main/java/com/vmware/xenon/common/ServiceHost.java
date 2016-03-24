@@ -431,6 +431,7 @@ public class ServiceHost implements ServiceRequestSender {
                         ServiceUriPaths.DEFAULT_NODE_SELECTOR,
                         ServiceUriPaths.CORE_DOCUMENT_INDEX,
                         ServiceUriPaths.CORE_OPERATION_INDEX,
+                        ServiceUriPaths.CORE_LOCAL_QUERY_TASKS,
                         ServiceUriPaths.CORE_QUERY_TASKS }));
         public String[] initialPeerNodes;
     }
