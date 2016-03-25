@@ -64,19 +64,25 @@ public class TransactionResolutionService extends StatelessService {
                             .setCompletion((o2, e2) -> {
                                 if (e2 != null) {
                                     op.fail(e2);
+                                    return;
                                 }
+                                logInfo("Transaction resolution request has been accepted by %s", this.parent.getSelfLink());
                             });
+                    logInfo("Sending transaction resolution request to %s with kind %s", this.parent.getSelfLink(), resolutionRequest.resolutionKind);
                     sendRequest(operation);
                 }).setReferer(getUri());
 
+        logInfo("Subscribing to transaction resolution on %s", this.parent.getSelfLink());
         getHost().startSubscriptionService(subscribeToCoordinator, (notifyOp) -> {
             ResolutionRequest resolve = notifyOp.getBody(ResolutionRequest.class);
             notifyOp.complete();
+            logInfo("Received notification: action=%s, resolution=%s", notifyOp.getAction(), resolve.resolutionKind);
             if (isNotComplete(resolve.resolutionKind)) {
                 return;
             }
             if ((resolve.resolutionKind == ResolutionKind.COMMITTED && resolutionRequest.resolutionKind == ResolutionKind.COMMIT) ||
                     (resolve.resolutionKind == ResolutionKind.ABORTED && resolutionRequest.resolutionKind == ResolutionKind.ABORT)) {
+                logInfo("Resolution of transaction %s is complete", this.parent.getSelfLink());
                 op.setBodyNoCloning(notifyOp.getBodyRaw());
                 op.setStatusCode(notifyOp.getStatusCode());
                 op.complete();
