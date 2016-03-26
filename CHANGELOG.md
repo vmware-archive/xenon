@@ -2,6 +2,11 @@
 
 ## 0.7.6-SNAPSHOT
 
+* Switch consistent hashing algorithm used by the default
+  node selector, to Murmur3 32bit, instead of SHA1. Much less
+  memory use, faster, leaner. This is an implementation detail,
+  not visible to consumers to xenon.
+
 * Add ServiceHost.checkFactoryAvailable and
   NodeGroupUtils.checkServiceAvailability convenience methods
   that use broadcast GET requests to all peers, to the service
