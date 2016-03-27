@@ -534,16 +534,29 @@ public class TestSimpleTransactionService extends BasicReusableHostTestCase {
     }
 
     private void countAccounts(String transactionId, long expected) throws Throwable {
-        Query.Builder queryBuilder = Query.Builder.create().addKindFieldClause(BankAccountServiceState.class)
-                .addFieldClause(ServiceDocument.FIELD_NAME_SELF_LINK,
-                        BankAccountFactoryService.SELF_LINK + UriUtils.URI_PATH_CHAR + this.baseAccountId + UriUtils.URI_WILDCARD_CHAR,
-                        MatchType.WILDCARD);
-        if (transactionId != null) {
-            queryBuilder.addFieldClause(ServiceDocument.FIELD_NAME_TRANSACTION_ID, transactionId);
-        }
-        QueryTask task = QueryTask.Builder.createDirectTask().setQuery(queryBuilder.build()).addOption(QueryOption.BROADCAST).build();
-        this.defaultHost.createQueryTaskService(task, false, true, task, null);
-        assertEquals(expected, task.results.documentCount.longValue());
+        this.host.waitFor("results did not converge, expected: " + expected, () -> {
+            Query.Builder queryBuilder = Query.Builder
+                    .create()
+                    .addKindFieldClause(BankAccountServiceState.class)
+                    .addFieldClause(
+                            ServiceDocument.FIELD_NAME_SELF_LINK,
+                            BankAccountFactoryService.SELF_LINK + UriUtils.URI_PATH_CHAR
+                                    + this.baseAccountId + UriUtils.URI_WILDCARD_CHAR,
+                            MatchType.WILDCARD);
+            if (transactionId != null) {
+                queryBuilder.addFieldClause(ServiceDocument.FIELD_NAME_TRANSACTION_ID,
+                        transactionId);
+            }
+            QueryTask task = QueryTask.Builder.createDirectTask()
+                    .setQuery(queryBuilder.build()).addOption(QueryOption.BROADCAST)
+                    .build();
+            this.defaultHost.createQueryTaskService(task, false, true, task, null);
+            if (expected == task.results.documentCount.longValue()) {
+                return true;
+            }
+
+            return false;
+        });
     }
 
     private void sumAccounts(String transactionId, double expected) throws Throwable {
