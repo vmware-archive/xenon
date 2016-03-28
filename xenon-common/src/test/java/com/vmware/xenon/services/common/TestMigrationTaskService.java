@@ -69,7 +69,7 @@ public class TestMigrationTaskService extends BasicReusableHostTestCase {
     private static VerificationHost destinationHost;
 
     public long serviceCount = 10;
-    private int nodeCount = 3;
+    private int nodeCount = 2;
 
     @Before
     public void setUp() throws Throwable {
@@ -109,6 +109,11 @@ public class TestMigrationTaskService extends BasicReusableHostTestCase {
         this.exampleSourceFactory = UriUtils.buildUri(getSourceHost(), ExampleService.FACTORY_LINK);
         this.exampleDestinationFactory = UriUtils.buildUri(getDestinationHost(),
                 ExampleService.FACTORY_LINK);
+
+        this.host.waitForReplicatedFactoryServiceAvailable(this.destinationFactoryUri);
+        this.host.waitForReplicatedFactoryServiceAvailable(this.sourceFactoryUri);
+        this.host.waitForReplicatedFactoryServiceAvailable(this.exampleSourceFactory);
+        this.host.waitForReplicatedFactoryServiceAvailable(this.exampleDestinationFactory);
     }
 
     private VerificationHost getDestinationHost() {
