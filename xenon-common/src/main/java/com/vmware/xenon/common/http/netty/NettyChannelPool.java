@@ -13,18 +13,19 @@
 
 package com.vmware.xenon.common.http.netty;
 
+import static java.util.stream.Collectors.toList;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
-
 import javax.net.ssl.SSLContext;
 
 import io.netty.bootstrap.Bootstrap;
@@ -655,20 +656,15 @@ public class NettyChannelPool {
     private void expireHttp2Operations(NettyChannelGroup group) {
         long now = Utils.getNowMicrosUtc();
         for (NettyChannelContext c : group.http2Channels) {
-            List<Operation> opsToExpire = new ArrayList<Operation>();
+            List<Operation> opsToExpire = new ArrayList<>();
             // Synchronize on the stream map: same as in NettyChannelContext
             synchronized (c.streamIdMap) {
-                for (Iterator<Map.Entry<Integer, Operation>> it = c.streamIdMap.entrySet()
-                        .iterator(); it.hasNext();) {
-                    Map.Entry<Integer, Operation> entry = it.next();
-
-                    final Operation activeOp = entry.getValue();
-                    if (activeOp == null || activeOp.getExpirationMicrosUtc() > now) {
-                        continue;
-                    }
-                    it.remove();
-                    opsToExpire.add(activeOp);
-                }
+                opsToExpire.addAll(
+                        c.streamIdMap.values().stream()
+                                .filter(Objects::nonNull)
+                                .filter(activeOp -> activeOp.getExpirationMicrosUtc() <= now)
+                                .collect(toList())
+                );
             }
             for (Operation opToExpire : opsToExpire) {
                 this.executor.execute(() -> {
