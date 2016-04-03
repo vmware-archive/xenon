@@ -2081,6 +2081,7 @@ public class VerificationHost extends ExampleServiceHost {
         }
 
         // additional check using convergence utility
+        VerificationHost peerHost = getPeerHost();
         Date exp = getTestExpiration();
         while (new Date().before(exp)) {
             boolean[] isConverged = new boolean[1];
@@ -2090,12 +2091,13 @@ public class VerificationHost extends ExampleServiceHost {
             Operation op = Operation.createPost(null)
                     .setReferer(getReferer())
                     .setExpiration(Utils.getNowMicrosUtc() + getOperationTimeoutMicros());
-            NodeGroupUtils.checkConvergence(this, ngs, op.setCompletion((o, e) -> {
+            NodeGroupUtils.checkConvergenceFromAnyHost(peerHost, ngs, op.setCompletion((o, e) -> {
                 if (e != null && waitForTimeSync) {
                     log(Level.INFO, "Convergence failure, will retry: %s", e.getMessage());
+                    isConverged[0] = false;
+                } else {
+                    isConverged[0] = true;
                 }
-
-                isConverged[0] = true;
                 completeIteration();
             }));
             testWait();

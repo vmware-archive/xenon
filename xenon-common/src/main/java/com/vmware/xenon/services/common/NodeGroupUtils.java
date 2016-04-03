@@ -90,7 +90,19 @@ public class NodeGroupUtils {
 
     /**
      * Issues a convergence request to the node group service on all peers and returns success
-     * if all nodes confirm that they are converged (in terms of last membership update)
+     * if all nodes confirm that they are converged (in terms of last membership update).
+     * This method should be used when the supplied host is not part of the node group
+     */
+    public static void checkConvergenceFromAnyHost(ServiceHost host, NodeGroupState ngs,
+            Operation parentOp) {
+        checkConvergenceAcrossPeers(host, ngs, parentOp);
+    }
+
+    /**
+     * Issues a convergence request to the node group service on all peers and returns success
+     * if all nodes confirm that they are converged (in terms of last membership update).
+     *
+     * It is expected the supplied host is listed as a peer in node group state
      */
     public static void checkConvergence(ServiceHost host, NodeGroupState ngs, Operation parentOp) {
         NodeState self = ngs.nodes.get(host.getId());
