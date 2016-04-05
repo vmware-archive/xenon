@@ -3773,6 +3773,8 @@ public class ServiceHost implements ServiceRequestSender {
      * See {@code ServiceClient} for details. Sends a request using a callback pattern
      */
     public void sendRequestWithCallback(Operation op) {
+        prepareRequest(op);
+        traceOperation(op);
         this.client.sendWithCallback(op);
     }
 

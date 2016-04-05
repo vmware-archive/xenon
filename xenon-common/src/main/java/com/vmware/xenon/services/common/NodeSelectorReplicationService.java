@@ -144,6 +144,8 @@ public class NodeSelectorReplicationService extends StatelessService {
                 .addPragmaDirective(Operation.PRAGMA_DIRECTIVE_REPLICATED)
                 .setReferer(outboundOp.getReferer());
 
+        update.removeRequestCallbackLocation();
+
         if (update.getCookies() != null) {
             update.getCookies().clear();
         }

@@ -225,9 +225,6 @@ public class NettyHttpServiceClient implements ServiceClient {
                     return;
                 }
             }
-            addAuthorizationContextHeader(clone);
-            addContextIdHeader(clone);
-            addTransactionIdHeader(clone);
             sendRemote(clone);
         } finally {
             // we must restore the operation context after each send, since
@@ -273,6 +270,9 @@ public class NettyHttpServiceClient implements ServiceClient {
     }
 
     private void sendRemote(Operation op) {
+        addAuthorizationContextHeader(op);
+        addContextIdHeader(op);
+        addTransactionIdHeader(op);
         connect(op);
     }
 
@@ -292,11 +292,7 @@ public class NettyHttpServiceClient implements ServiceClient {
      * implement it)
      */
     @Override
-    public void sendWithCallback(Operation op) {
-        sendWithCallbackSingleRequest(op);
-    }
-
-    private void sendWithCallbackSingleRequest(Operation req) {
+    public void sendWithCallback(Operation req) {
         Operation op = clone(req);
         if (op == null) {
             return;
