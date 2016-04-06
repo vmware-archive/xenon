@@ -66,6 +66,7 @@ import com.vmware.xenon.common.TaskState.TaskStage;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.Utils;
 import com.vmware.xenon.common.test.MinimalTestServiceState;
+import com.vmware.xenon.common.test.TestContext;
 import com.vmware.xenon.common.test.VerificationHost;
 import com.vmware.xenon.services.common.ExampleService.ExampleServiceState;
 import com.vmware.xenon.services.common.QueryTask.NumericRange;
@@ -796,6 +797,7 @@ public class TestQueryTaskService {
                     QuerySpecification.buildCollectionItemName("ignoredArrayOfStrings"),
                     newState.ignoredArrayOfStrings[1], services.size(), 0);
         }
+        verifyNoPaginatedIndexSearchers();
     }
 
     @SuppressWarnings({ "rawtypes" })
@@ -1686,6 +1688,8 @@ public class TestQueryTaskService {
             String s = iter.next();
             assertTrue(s.endsWith(Integer.toString(--ordinal)));
         }
+
+        verifyNoPaginatedIndexSearchers();
     }
 
     @Test
@@ -1787,6 +1791,7 @@ public class TestQueryTaskService {
         assertTrue(finishedTaskState.results != null);
         assertTrue(finishedTaskState.results.documentLinks != null);
         assertTrue(finishedTaskState.results.documentLinks.size() == sc / 2);
+        verifyNoPaginatedIndexSearchers();
     }
 
     @Test
@@ -2040,6 +2045,7 @@ public class TestQueryTaskService {
         this.host.waitForQueryTaskCompletion(q, 0, 0, taskURI, false, false);
 
         verifyTaskAutoExpiration(taskURI);
+        verifyPaginatedIndexSearcherExpiration();
     }
 
     @Test
@@ -2111,6 +2117,20 @@ public class TestQueryTaskService {
 
         verifyTaskAutoExpiration(taskURI);
         this.host.log("Query task has expired: %s", taskURI.getPath());
+
+        verifyNoPaginatedIndexSearchers();
+    }
+
+    private void verifyNoPaginatedIndexSearchers() throws Throwable {
+        // verify that paginated index searchers did not get created
+        URI indexStatsUri = UriUtils.buildStatsUri(this.host.getDocumentIndexServiceUri());
+        ServiceStats stats = this.host.getServiceState(null, ServiceStats.class,
+                indexStatsUri);
+        ServiceStat pgqStat = stats.entries
+                .get(LuceneDocumentIndexService.STAT_NAME_ACTIVE_PAGINATED_QUERIES);
+        if (pgqStat != null && pgqStat.latestValue > 0) {
+            throw new IllegalStateException("Found paginated index searchers, not expected");
+        }
     }
 
     private URI doPaginatedQueryTest(QueryTask task, int sc, int resultLimit,
@@ -2163,11 +2183,8 @@ public class TestQueryTaskService {
         targetServiceURIs.addAll(services);
         newState = putStateOnQueryTargetServices(services, 1);
 
-        int numberOfPages = sc / resultLimit;
-        this.host.testStart(Math.max(1, numberOfPages));
-
+        this.host.testStart(1);
         getNextPageLinks(nextPageLink, resultLimit, numberOfDocumentLinks, queryPageURIs);
-
         this.host.testWait();
 
         assertEquals(sc, numberOfDocumentLinks[0]);
@@ -2289,30 +2306,25 @@ public class TestQueryTaskService {
         this.host.log("Starting page link expiration test");
 
         // Test that page services have expired and been deleted
-        Date exp = this.host.getTestExpiration();
-        while (new Date().before(exp)) {
-            this.host.testStart(serviceURIs.size());
+        this.host.waitFor("Query task did not expire", () -> {
+            TestContext ctx = this.host.testCreate(serviceURIs.size());
             AtomicInteger remaining = new AtomicInteger(serviceURIs.size());
-
             for (URI u : serviceURIs) {
                 Operation get = Operation.createGet(u).setCompletion((o, e) -> {
                     if (e != null && (e instanceof ServiceNotFoundException)) {
                         remaining.decrementAndGet();
                     }
-                    this.host.completeIteration();
+                    ctx.completeIteration();
                 });
 
                 this.host.send(get);
             }
 
-            this.host.testWait();
-            if (remaining.get() == 0) {
-                return;
-            }
-            Thread.sleep(timeoutMillis / 8);
-        }
+            this.host.testWait(ctx);
+            return remaining.get() == 0;
+        });
 
-        throw new TimeoutException("Next page services should have expired");
+        verifyPaginatedIndexSearcherExpiration();
     }
 
     private void getNextPageLinks(String nextPageLink, int resultLimit,
@@ -2339,13 +2351,11 @@ public class TestQueryTaskService {
                         numberOfDocumentLinks[0] += nlinks;
 
                         if (page.results.nextPageLink == null || nlinks == 0) {
-                            if (numberOfDocumentLinks[0] == 0) {
-                                this.host.completeIteration();
-                            }
+                            // complete only when we are out of pages
+                            this.host.completeIteration();
                             return;
                         }
 
-                        this.host.completeIteration();
                         getNextPageLinks(page.results.nextPageLink,
                                 resultLimit, numberOfDocumentLinks, serviceURIs);
                     } catch (Throwable e1) {
@@ -2556,13 +2566,30 @@ public class TestQueryTaskService {
                     }
                 }
 
-                if (!taskExists) {
-                    return;
+                if (taskExists) {
+                    continue;
                 }
+
+                return;
             }
         }
 
         throw new TimeoutException("Task should have expired");
+    }
+
+    private void verifyPaginatedIndexSearcherExpiration() throws Throwable {
+        this.host.waitFor("Paginated index searchers never expired", () -> {
+            URI indexStatsUri = UriUtils.buildStatsUri(this.host.getDocumentIndexServiceUri());
+            // check the index statistic tracking paginated queries
+            ServiceStats stats = this.host.getServiceState(null, ServiceStats.class,
+                    indexStatsUri);
+            ServiceStat pgqStat = stats.entries
+                    .get(LuceneDocumentIndexService.STAT_NAME_ACTIVE_PAGINATED_QUERIES);
+            if (pgqStat != null && pgqStat.latestValue != 0) {
+                return false;
+            }
+            return true;
+        });
     }
 
     private void validateFinishedQueryTask(List<URI> services,

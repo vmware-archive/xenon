@@ -24,12 +24,14 @@ import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -140,7 +142,9 @@ public class LuceneDocumentIndexService extends StatelessService {
 
     private static final String LUCENE_FIELD_NAME_JSON_SERIALIZED_STATE = "jsonSerializedState";
 
-    public static final String STAT_NAME_ACTIVE_QUERY_FILTERS = "activeQueryFilters";
+    public static final String STAT_NAME_ACTIVE_QUERY_FILTERS = "activeQueryFilterCount";
+
+    public static final String STAT_NAME_ACTIVE_PAGINATED_QUERIES = "activePaginatedQueryCount";
 
     public static final String STAT_NAME_COMMIT_COUNT = "commitCount";
 
@@ -178,6 +182,7 @@ public class LuceneDocumentIndexService extends StatelessService {
 
     protected final Object searchSync = new Object();
     protected Queue<IndexSearcher> searchersPendingClose = new ConcurrentLinkedQueue<>();
+    protected TreeMap<Long, List<IndexSearcher>> searchersForPaginatedQueries = new TreeMap<>();
     protected IndexSearcher searcher = null;
     protected IndexWriter writer = null;
     protected final Semaphore writerAvailable = new Semaphore(
@@ -548,11 +553,36 @@ public class LuceneDocumentIndexService extends StatelessService {
             }
         }
 
+        if (s == null && qs.resultLimit != null && qs.resultLimit > 0
+                && qs.resultLimit != Integer.MAX_VALUE
+                && !qs.options.contains(QueryOption.TOP_RESULTS)) {
+            // this is a paginated query. If this is the start of the query, create a dedicated searcher
+            // for this query and all its pages. It will be expired when the query task itself expires
+            s = createPaginatedQuerySearcher(task.documentExpirationTimeMicros, this.writer);
+        }
+
         if (!queryIndex(s, op, null, qs.options, luceneQuery, luceneSort, lucenePage,
                 qs.resultLimit,
                 task.documentExpirationTimeMicros, task.indexLink, rsp)) {
             op.setBodyNoCloning(rsp).complete();
         }
+    }
+
+    private IndexSearcher createPaginatedQuerySearcher(long expirationMicros, IndexWriter w)
+            throws IOException {
+        if (w == null) {
+            throw new IllegalStateException("Writer not available");
+        }
+        IndexSearcher s = new IndexSearcher(DirectoryReader.open(w, true));
+        synchronized (this.searchSync) {
+            List<IndexSearcher> searchers = this.searchersForPaginatedQueries.get(expirationMicros);
+            if (searchers == null) {
+                searchers = new ArrayList<>();
+            }
+            searchers.add(s);
+            this.searchersForPaginatedQueries.put(expirationMicros, searchers);
+        }
+        return s;
     }
 
     public void handleGetImpl(Operation get) throws Throwable {
@@ -1843,7 +1873,7 @@ public class LuceneDocumentIndexService extends StatelessService {
 
             applyMemoryLimit();
 
-            boolean reOpenWriter = applyIndexFileLimit();
+            boolean reOpenWriter = applyIndexSearcherAndFileLimit();
 
             if (!forceMerge && !reOpenWriter) {
                 return;
@@ -1856,7 +1886,7 @@ public class LuceneDocumentIndexService extends StatelessService {
         }
     }
 
-    private boolean applyIndexFileLimit() {
+    private boolean applyIndexSearcherAndFileLimit() {
         File directory = new File(new File(getHost().getStorageSandbox()), this.indexDirectory);
         String[] list = directory.list();
         int count = list == null ? 0 : list.length;
@@ -1872,7 +1902,6 @@ public class LuceneDocumentIndexService extends StatelessService {
         // loosing pending commits on writer re-open. Notice this code executes if we either have
         // too many index files on disk, thus we need to re-open the writer to consolidate, or
         // when we have too many pending searchers
-
         final int acquireReleaseCount = QUERY_THREAD_COUNT + UPDATE_THREAD_COUNT;
         try {
             if (getHost().isStopping()) {
@@ -1892,6 +1921,7 @@ public class LuceneDocumentIndexService extends StatelessService {
                 }
             }
             this.searchersPendingClose.clear();
+
             IndexWriter w = this.writer;
             if (w != null) {
                 try {
@@ -2022,6 +2052,37 @@ public class LuceneDocumentIndexService extends StatelessService {
         if (count > 0) {
             logInfo("Cleared %d link access times", count);
         }
+
+        // close any paginated query searchers that have expired
+        long now = Utils.getNowMicrosUtc();
+        Map<Long, List<IndexSearcher>> entriesToClose = new HashMap<>();
+        synchronized (this.searchSync) {
+            Iterator<Entry<Long, List<IndexSearcher>>> itr = this.searchersForPaginatedQueries
+                    .entrySet().iterator();
+            while (itr.hasNext()) {
+                Entry<Long, List<IndexSearcher>> entry = itr.next();
+                if (entry.getKey() > now) {
+                    // all entries beyond this one, are in the future, since we use a sorted tree map
+                    break;
+                }
+                entriesToClose.put(entry.getKey(), entry.getValue());
+                itr.remove();
+            }
+            setStat(STAT_NAME_ACTIVE_PAGINATED_QUERIES, this.searchersForPaginatedQueries.size());
+        }
+
+        for (Entry<Long, List<IndexSearcher>> entry : entriesToClose.entrySet()) {
+            List<IndexSearcher> searchers = entry.getValue();
+            for (IndexSearcher s : searchers) {
+                try {
+                    logInfo("Closing paginated query searcher, expired at %d", entry.getKey());
+                    s.getIndexReader().close();
+                } catch (Throwable e) {
+
+                }
+            }
+        }
+
     }
 
     private void applyDocumentExpirationPolicy(IndexWriter w) throws Throwable {

@@ -2,6 +2,12 @@
 
 ## 0.7.6-SNAPSHOT
 
+* Improve index searcher management in lucene document index
+  service. Track index searchers for paginated query tasks
+  using a sorted tree map, and close them when their query
+  task expiration is reached. This avoid query failures
+  under load, for paginated tasks.
+
 * Add replication request header that allows the replication
   level to be set per operation. Useful for scenarios that
   require all peer nodes to see an update, independent of the
