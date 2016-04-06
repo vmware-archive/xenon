@@ -180,7 +180,7 @@ public class LuceneDocumentIndexService extends StatelessService {
 
     protected static final int QUERY_THREAD_COUNT = 2;
 
-    protected final Object searchSync = new Object();
+    protected Object searchSync;
     protected Queue<IndexSearcher> searchersPendingClose = new ConcurrentLinkedQueue<>();
     protected TreeMap<Long, List<IndexSearcher>> searchersForPaginatedQueries = new TreeMap<>();
     protected IndexSearcher searcher = null;
@@ -249,18 +249,8 @@ public class LuceneDocumentIndexService extends StatelessService {
                 r -> new Thread(r, getUri() + "/queries/" + Utils.getNowMicrosUtc()));
         this.privateIndexingExecutor = Executors.newFixedThreadPool(UPDATE_THREAD_COUNT,
                 r -> new Thread(r, getSelfLink() + "/updates/" + Utils.getNowMicrosUtc()));
-        this.versionSort = new Sort(new SortField(ServiceDocument.FIELD_NAME_VERSION,
-                SortField.Type.LONG, true));
 
-        this.fieldsToLoadNoExpand = new HashSet<>();
-        this.fieldsToLoadNoExpand.add(ServiceDocument.FIELD_NAME_SELF_LINK);
-        this.fieldsToLoadNoExpand.add(ServiceDocument.FIELD_NAME_VERSION);
-        this.fieldsToLoadNoExpand.add(ServiceDocument.FIELD_NAME_UPDATE_TIME_MICROS);
-        this.fieldsToLoadNoExpand.add(ServiceDocument.FIELD_NAME_UPDATE_ACTION);
-        this.fieldsToLoadNoExpand.add(ServiceDocument.FIELD_NAME_EXPIRATION_TIME_MICROS);
-        this.fieldsToLoadWithExpand = new HashSet<>(this.fieldsToLoadNoExpand);
-        this.fieldsToLoadWithExpand.add(LUCENE_FIELD_NAME_JSON_SERIALIZED_STATE);
-        this.fieldsToLoadWithExpand.add(LUCENE_FIELD_NAME_BINARY_SERIALIZED_STATE);
+        initializeInstance();
 
         // create durable index writer
         for (int retryCount = 0; retryCount < 2; retryCount++) {
@@ -287,6 +277,26 @@ public class LuceneDocumentIndexService extends StatelessService {
         }
 
         post.complete();
+    }
+
+    private void initializeInstance() {
+        this.searchSync = new Object();
+        this.searcher = null;
+        this.searchersForPaginatedQueries.clear();
+        this.searchersPendingClose.clear();
+
+        this.versionSort = new Sort(new SortField(ServiceDocument.FIELD_NAME_VERSION,
+                SortField.Type.LONG, true));
+
+        this.fieldsToLoadNoExpand = new HashSet<>();
+        this.fieldsToLoadNoExpand.add(ServiceDocument.FIELD_NAME_SELF_LINK);
+        this.fieldsToLoadNoExpand.add(ServiceDocument.FIELD_NAME_VERSION);
+        this.fieldsToLoadNoExpand.add(ServiceDocument.FIELD_NAME_UPDATE_TIME_MICROS);
+        this.fieldsToLoadNoExpand.add(ServiceDocument.FIELD_NAME_UPDATE_ACTION);
+        this.fieldsToLoadNoExpand.add(ServiceDocument.FIELD_NAME_EXPIRATION_TIME_MICROS);
+        this.fieldsToLoadWithExpand = new HashSet<>(this.fieldsToLoadNoExpand);
+        this.fieldsToLoadWithExpand.add(LUCENE_FIELD_NAME_JSON_SERIALIZED_STATE);
+        this.fieldsToLoadWithExpand.add(LUCENE_FIELD_NAME_BINARY_SERIALIZED_STATE);
     }
 
     public IndexWriter createWriter(File directory, boolean doUpgrade) throws Exception {

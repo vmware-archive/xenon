@@ -964,8 +964,6 @@ public class TestServiceHost {
 
         public ParentService() {
             super(ExampleServiceState.class);
-            super.toggleOption(ServiceOption.REPLICATION, true);
-            super.toggleOption(ServiceOption.OWNER_SELECTION, true);
             super.toggleOption(ServiceOption.PERSISTENCE, true);
         }
     }
@@ -979,8 +977,6 @@ public class TestServiceHost {
 
         public ChildDependsOnParentService() {
             super(ExampleServiceState.class);
-            super.toggleOption(ServiceOption.REPLICATION, true);
-            super.toggleOption(ServiceOption.OWNER_SELECTION, true);
             super.toggleOption(ServiceOption.PERSISTENCE, true);
         }
 
@@ -1039,6 +1035,7 @@ public class TestServiceHost {
         ctx = this.host.testCreate(1);
         String childPath = UriUtils.buildUriPath(ChildDependsOnParentService.FACTORY_LINK, id);
         Operation get = Operation.createGet(UriUtils.buildUri(this.host, childPath))
+                .addPragmaDirective(Operation.PRAGMA_DIRECTIVE_QUEUE_FOR_SERVICE_AVAILABILITY)
                 .setCompletion(ctx.getCompletion());
         this.host.send(get);
         ctx.await();
