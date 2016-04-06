@@ -1943,9 +1943,10 @@ public class ServiceHost implements ServiceRequestSender {
         if (isHelperServicePath(servicePath)) {
             // do not directly attach utility services
             if (!service.hasOption(Service.ServiceOption.UTILITY)) {
-                post.fail(new IllegalStateException(
-                        "Service is using an utility URI path but has not enabled "
-                                + ServiceOption.UTILITY));
+                String errorMsg = "Service is using an utility URI path but has not enabled "
+                        + ServiceOption.UTILITY;
+                log(Level.WARNING, errorMsg);
+                post.fail(new IllegalStateException(errorMsg));
                 return this;
             }
 

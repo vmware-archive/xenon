@@ -301,6 +301,18 @@ public class TestUtilityService extends BasicReusableHostTestCase {
     }
 
     @Test
+    public void failureOnReservedSuffixServiceStart() throws Throwable {
+        TestContext ctx = this.testCreate(ServiceHost.RESERVED_SERVICE_URI_PATHS.length);
+        for (String reservedSuffix : ServiceHost.RESERVED_SERVICE_URI_PATHS) {
+            Operation post = Operation.createPost(this.host,
+                    UUID.randomUUID().toString() + "/" + reservedSuffix)
+                    .setCompletion(ctx.getExpectedFailureCompletion());
+            this.host.startService(post, new MinimalTestService());
+        }
+        this.testWait(ctx);
+    }
+
+    @Test
     public void testIsAvailableStatAndSuffix() throws Throwable {
         long c = 1;
         URI factoryURI = UriUtils.buildFactoryUri(this.host, ExampleService.class);
