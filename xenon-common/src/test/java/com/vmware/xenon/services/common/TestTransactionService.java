@@ -166,13 +166,17 @@ public class TestTransactionService extends BasicReusableHostTestCase {
         assertTrue(committed);
         countAccounts(null, this.accountCount);
 
-        // deposit 100 in each account in a single transaction, commit and verify balances
+     // deposit a different amount to each account in a single transaction, commit and verify balances
         txid = newTransaction();
-        depositToAccounts(txid, this.accountCount, 100.0);
+        TestContext ctx = testCreate(this.accountCount);
+        for (int i = 0; i < this.accountCount; i++) {
+            depositToAccount(txid, buildAccountId(i), i, ctx);
+        }
+        testWait(ctx);
         committed = commit(txid, this.accountCount);
         assertTrue(committed);
         for (int i = 0; i < this.accountCount; i++) {
-            verifyAccountBalance(null, buildAccountId(i), 100.0);
+            verifyAccountBalance(null, buildAccountId(i), i);
         }
 
         // delete ACCOUNT accounts in a single transaction, commit, query and verify count == 0
@@ -493,15 +497,6 @@ public class TestTransactionService extends BasicReusableHostTestCase {
             sum += account.balance;
         }
         assertEquals(expected, sum, 0);
-    }
-
-    private void depositToAccounts(String transactionId, int accounts, double amountToDeposit)
-            throws Throwable {
-        TestContext ctx = testCreate(accounts);
-        for (int i = 0; i < accounts; i++) {
-            depositToAccount(transactionId, buildAccountId(i), amountToDeposit, ctx);
-        }
-        testWait(ctx);
     }
 
     private void depositToAccount(String transactionId, String accountId, double amountToDeposit,
