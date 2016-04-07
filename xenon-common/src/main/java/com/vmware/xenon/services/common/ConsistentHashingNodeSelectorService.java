@@ -112,7 +112,7 @@ public class ConsistentHashingNodeSelectorService extends StatelessService imple
                 (o, e) -> {
                     if (e == null) {
                         NodeGroupState ngs = o.getBody(NodeGroupState.class);
-                        updateCachedNodeGroupState(ngs);
+                        updateCachedNodeGroupState(ngs, null);
                     } else {
                         logSevere(e);
                     }
@@ -138,6 +138,7 @@ public class ConsistentHashingNodeSelectorService extends StatelessService imple
             if (notifyOp.getAction() == Action.PATCH) {
                 UpdateQuorumRequest bd = notifyOp.getBody(UpdateQuorumRequest.class);
                 if (UpdateQuorumRequest.KIND.equals(bd.kind)) {
+                    updateCachedNodeGroupState(null, bd);
                     return;
                 }
             } else if (notifyOp.getAction() != Action.POST) {
@@ -148,7 +149,7 @@ public class ConsistentHashingNodeSelectorService extends StatelessService imple
             if (ngs.nodes == null || ngs.nodes.isEmpty()) {
                 return;
             }
-            updateCachedNodeGroupState(ngs);
+            updateCachedNodeGroupState(ngs, null);
         };
     }
 
@@ -282,7 +283,6 @@ public class ConsistentHashingNodeSelectorService extends StatelessService imple
         }
 
         SortedMap<Long, NodeState> closestNodes = new TreeMap<>();
-        int maxQuorum = quorum;
         long neighbourCount = 1;
         if (this.cachedState.replicationFactor != null) {
             neighbourCount = this.cachedState.replicationFactor;
@@ -299,9 +299,6 @@ public class ConsistentHashingNodeSelectorService extends StatelessService imple
             }
 
             response.availableNodeCount++;
-
-            quorum = Math.max(m.membershipQuorum, quorum);
-            maxQuorum = Math.max(quorum, maxQuorum);
             int nodeIdHash = 0;
             Long nodeIdHashLong = this.hashedNodeIds.get(m.id);
             if (nodeIdHashLong == null) {
@@ -318,11 +315,6 @@ public class ConsistentHashingNodeSelectorService extends StatelessService imple
                 // keep sorted map with only the N closest neighbors to the key
                 closestNodes.remove(closestNodes.lastKey());
             }
-        }
-
-        if (maxQuorum != quorum) {
-            logWarning("Self quorum: %d, max quorum: %d. Using max", quorum, maxQuorum);
-            quorum = maxQuorum;
         }
 
         if (availableNodes < quorum) {
@@ -522,7 +514,7 @@ public class ConsistentHashingNodeSelectorService extends StatelessService imple
 
             final int quorumWarningsBeforeQuiet = 10;
             NodeGroupState ngs = o.getBody(NodeGroupState.class);
-            updateCachedNodeGroupState(ngs);
+            updateCachedNodeGroupState(ngs, null);
             Operation op = Operation.createPost(null)
                     .setReferer(getUri())
                     .setExpiration(Utils.getNowMicrosUtc() + getHost().getOperationTimeoutMicros());
@@ -564,9 +556,21 @@ public class ConsistentHashingNodeSelectorService extends StatelessService imple
         sendRequest(Operation.createGet(this, this.cachedState.nodeGroupLink).setCompletion(c));
     }
 
-    private void updateCachedNodeGroupState(NodeGroupState ngs) {
-        logInfo("Node count: %d", ngs.nodes.size());
+    private void updateCachedNodeGroupState(NodeGroupState ngs, UpdateQuorumRequest quorumUpdate) {
+        if (ngs != null) {
+            logInfo("Node count: %d", ngs.nodes.size());
+        } else {
+            logInfo("Quorum update: %d", quorumUpdate.membershipQuorum);
+        }
+
         synchronized (this.cachedState) {
+            if (quorumUpdate != null) {
+                if (this.cachedGroupState != null) {
+                    NodeState selfNode = this.cachedGroupState.nodes.get(getHost().getId());
+                    selfNode.membershipQuorum = quorumUpdate.membershipQuorum;
+                }
+                return;
+            }
             // every time we update cached state, request convergence check
             this.isNodeGroupConverged = false;
             this.isSynchronizationRequired = true;
