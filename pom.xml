@@ -60,6 +60,7 @@
     <module>xenon-slf4j</module>
     <module>xenon-ui</module>
     <module>xenon-swagger</module>
+    <module>xenon-dns</module>
   </modules>
 
   <properties>
