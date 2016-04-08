@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.7.6-SNAPSHOT
+## 0.7.6
 
 * Improve index searcher management in lucene document index
   service. Track index searchers for paginated query tasks
