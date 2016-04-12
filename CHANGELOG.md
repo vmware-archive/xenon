@@ -2,6 +2,8 @@
 
 ## 0.8.0-SNAPSHOT
 
+* Use HTTP/2 for replication requests
+
 * Add logging methods that take lambda expression to construct
   log message. The lambda is evaluated lazily.
 
