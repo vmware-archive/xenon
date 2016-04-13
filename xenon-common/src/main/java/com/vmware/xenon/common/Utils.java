@@ -335,25 +335,11 @@ public class Utils {
     }
 
     public static void log(Logger lg, Integer nestingLevel, String classOrUri, Level level,
-            String fmt,
-            Object... args) {
+            String fmt, Object... args) {
         if (nestingLevel == null) {
             nestingLevel = 2;
         }
-        Level l = lg.getLevel();
-        Logger parent = lg.getParent();
-        while (l == null && parent != null) {
-            l = parent.getLevel();
-            if (l == null) {
-                parent = parent.getParent();
-            }
-        }
-
-        if (l == null) {
-            //Set default level
-            l = level;
-        }
-        if (l.intValue() > level.intValue()) {
+        if (!lg.isLoggable(level)) {
             return;
         }
 
