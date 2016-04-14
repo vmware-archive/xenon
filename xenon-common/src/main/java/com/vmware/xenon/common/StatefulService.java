@@ -1508,7 +1508,7 @@ public class StatefulService implements Service {
         doLogging(level, messageSupplier);
     }
 
-    private void doLogging(Level level, Supplier<String> messageSupplier) {
+    protected void doLogging(Level level, Supplier<String> messageSupplier) {
         String uri = this.context.host != null && getUri() != null ? getUri().toString() : this.getClass().getSimpleName();
         Logger lg = Logger.getLogger(this.getClass().getName());
         Utils.log(lg, 3, uri, level, messageSupplier);
