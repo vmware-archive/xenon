@@ -173,6 +173,14 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
             // the index, might leave the index lock file under use. The attempt to restart might
             // rarely timeout because the FS did not release lock in time
             return;
+        } catch (IllegalStateException e) {
+            // on occasion, the lock held exception is caught by the index service and it attempts
+            // recovery, which swallows the exception but leads to host not starting
+            if (e.getMessage().toLowerCase().contains("not started")) {
+                return;
+            } else {
+                throw e;
+            }
         }
 
         // now *prove* that the index retry code was invoke, by looking at stats
