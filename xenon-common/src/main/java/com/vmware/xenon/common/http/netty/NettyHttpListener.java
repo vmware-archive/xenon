@@ -48,7 +48,7 @@ public class NettyHttpListener implements ServiceRequestListener {
     private ExecutorService nettyExecutorService;
     private SslContext sslContext;
     private ChannelHandler childChannelHandler;
-    private boolean isListening = false;
+    private boolean isListening;
 
     public NettyHttpListener(ServiceHost host) {
         this.host = host;

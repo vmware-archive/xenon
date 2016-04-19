@@ -2164,6 +2164,7 @@ public class TestNodeGroupService {
         // they occur
         Thread.sleep(1000);
         hostToStop.setPort(0);
+        hostToStop.setSecurePort(0);
         hostToStop.start();
         Thread.sleep(250);
         hostToStop.waitForReplicatedFactoryServiceAvailable(UriUtils.buildUri(hostToStop,
