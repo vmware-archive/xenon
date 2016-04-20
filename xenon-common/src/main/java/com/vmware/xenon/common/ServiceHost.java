@@ -66,7 +66,6 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
@@ -88,6 +87,7 @@ import com.vmware.xenon.common.ServiceStats.ServiceStat;
 import com.vmware.xenon.common.ServiceSubscriptionState.ServiceSubscriber;
 import com.vmware.xenon.common.http.netty.NettyHttpListener;
 import com.vmware.xenon.common.http.netty.NettyHttpServiceClient;
+import com.vmware.xenon.common.jwt.JWTUtils;
 import com.vmware.xenon.common.jwt.Signer;
 import com.vmware.xenon.common.jwt.Verifier;
 import com.vmware.xenon.common.jwt.Verifier.TokenException;
@@ -178,7 +178,7 @@ public class ServiceHost implements ServiceRequestSender {
         public SslClientAuthMode sslClientAuthMode = SslClientAuthMode.NONE;
 
         /**
-         * File path to key file
+         * File path to key file(PKCS#8 private key file in PEM format)
          */
         public Path keyFile;
 
@@ -258,6 +258,7 @@ public class ServiceHost implements ServiceRequestSender {
          * the JAR file of the host
          */
         public Path resourceSandbox;
+
     }
 
     private static final LogFormatter LOG_FORMATTER = new LogFormatter();
@@ -605,12 +606,6 @@ public class ServiceHost implements ServiceRequestSender {
 
         updateSystemInfo(false);
 
-        // Create token signer and verifier
-        this.tokenSigner = new Signer(
-                AuthenticationConstants.JWT_SECRET.getBytes(Utils.CHARSET));
-        this.tokenVerifier = new Verifier(
-                AuthenticationConstants.JWT_SECRET.getBytes(Utils.CHARSET));
-
         // Set default limits for memory utilization on core services and the host
         if (getServiceMemoryLimitMB(ROOT_PATH, MemoryLimitType.EXACT) == null) {
             setServiceMemoryLimit(ROOT_PATH, DEFAULT_PCT_MEMORY_LIMIT);
@@ -633,8 +628,19 @@ public class ServiceHost implements ServiceRequestSender {
         return this;
     }
 
-    private void initializeStateFromArguments(File s, Arguments args) throws URISyntaxException {
+    /**
+     * Retrieve secret for sign/verify JSON(JWT)
+     */
+    protected byte[] getJWTSecret() throws IOException {
+        URI privateKeyFileUri = this.state.privateKeyFileReference;
+        String privateKeyPassphrase = this.state.privateKeyPassphrase;
 
+        return JWTUtils.getJWTSecret(privateKeyFileUri, privateKeyPassphrase,
+                this.isAuthorizationEnabled());
+    }
+
+    private void initializeStateFromArguments(File s, Arguments args) throws
+            URISyntaxException {
         if (args.resourceSandbox != null) {
             File resDir = args.resourceSandbox.toFile();
             if (resDir.exists()) {
@@ -1094,6 +1100,10 @@ public class ServiceHost implements ServiceRequestSender {
         if (this.isAuthorizationEnabled() && this.authorizationService == null) {
             this.authorizationService = new AuthorizationContextService();
         }
+
+        byte[] secret = getJWTSecret();
+        this.tokenSigner = new Signer(secret);
+        this.tokenVerifier = new Verifier(secret);
 
         this.executor = Executors.newWorkStealingPool(Utils.DEFAULT_THREAD_COUNT);
         this.scheduledExecutor = Executors.newScheduledThreadPool(Utils.DEFAULT_THREAD_COUNT,
@@ -3177,7 +3187,7 @@ public class ServiceHost implements ServiceRequestSender {
             if (cookies == null) {
                 return null;
             }
-            token = cookies.get(AuthenticationConstants.XENON_JWT_COOKIE);
+            token = cookies.get(AuthenticationConstants.REQUEST_AUTH_TOKEN_COOKIE);
         }
 
         if (token == null) {
@@ -5633,7 +5643,7 @@ public class ServiceHost implements ServiceRequestSender {
      */
     private AuthorizationContext createAuthorizationContext(String userLink) {
         Claims.Builder cb = new Claims.Builder();
-        cb.setIssuer(AuthenticationConstants.JWT_ISSUER);
+        cb.setIssuer(AuthenticationConstants.DEFAULT_ISSUER);
         cb.setSubject(userLink);
 
         // Set an effective expiration to never
