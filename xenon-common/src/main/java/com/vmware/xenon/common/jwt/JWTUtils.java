@@ -39,13 +39,9 @@ public class JWTUtils {
         byte[] secret;
 
         if (privateKeyFileUri != null) {
-            logger.log(Level.INFO, "Using %s for secret to sign/verify JSON(JWT)",
-                    privateKeyFileUri);
-
             Path privateKeyFilePath = Paths.get(privateKeyFileUri);
             PrivateKey privateKey = PrivateKeyReader
                     .fromPem(privateKeyFilePath, privateKeyPassphrase);
-
             secret = privateKey.getEncoded();
         } else {
             if (isAuthorizationEnabled) {
@@ -56,8 +52,6 @@ public class JWTUtils {
                         + "########################################################\n"
                         + "\n";
                 logger.log(Level.WARNING, msg);
-            } else {
-                logger.log(Level.INFO, "Using default secret to sign/verify JSON(JWT)");
             }
             secret = AuthenticationConstants.DEFAULT_JWT_SECRET.getBytes(Utils.CHARSET);
         }
