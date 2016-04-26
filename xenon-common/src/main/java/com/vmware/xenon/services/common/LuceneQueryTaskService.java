@@ -168,7 +168,7 @@ public class LuceneQueryTaskService extends StatefulService {
                                     "task will proceed, received %d responses (for quorum size %d)"
                                             + "even though %d errors were received: %s",
                                     rsp.jsonResponses.size(), rsp.membershipQuorum,
-                                    rsp.failures.keySet());
+                                    rsp.failures.size(), rsp.failures.keySet());
                         }
                     }
 
