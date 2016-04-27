@@ -14,6 +14,7 @@
 package com.vmware.xenon.common;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 
 import com.vmware.xenon.common.ServiceDocumentDescription.PropertyDescription;
 
@@ -59,4 +60,19 @@ public class ReflectionUtils {
             return false;
         }
     }
+
+    /**
+     * Retrieve field and make it accessible.
+     */
+    public static Field getField(Class<?> clazz, String name) {
+        try {
+            // TODO: cache declared fields per class for performance improvement
+            Field field = clazz.getDeclaredField(name);
+            field.setAccessible(true);
+            return field;
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }
