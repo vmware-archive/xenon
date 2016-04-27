@@ -13,12 +13,21 @@
 
 package com.vmware.xenon.common;
 
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.vmware.xenon.common.ServiceDocumentDescription.PropertyDescription;
 
 public class ReflectionUtils {
+
+    private static final ConcurrentHashMap<Class<?>, Map<String, Field>> DECLARED_FIELDS_CACHE = new ConcurrentHashMap<>();
+
     public static <T> T instantiate(Class<T> clazz) {
         try {
             Constructor<T> ctor = clazz.getDeclaredConstructor();
@@ -65,14 +74,23 @@ public class ReflectionUtils {
      * Retrieve field and make it accessible.
      */
     public static Field getField(Class<?> clazz, String name) {
-        try {
-            // TODO: cache declared fields per class for performance improvement
-            Field field = clazz.getDeclaredField(name);
-            field.setAccessible(true);
-            return field;
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
+
+        Map<String, Field> fieldMap = DECLARED_FIELDS_CACHE.computeIfAbsent(clazz, key ->
+                        Arrays.stream(key.getDeclaredFields())
+                                .collect(toMap(Field::getName, identity()))
+        );
+
+        Field field = fieldMap.get(name);
+        if (field == null) {
+            return null;
         }
+
+        if (!field.isAccessible()) {
+            synchronized (field) {
+                field.setAccessible(true);
+            }
+        }
+        return field;
     }
 
 }
