@@ -145,13 +145,13 @@ public class NettyHttpToHttp2Handler extends Http2ConnectionHandler {
                 }
             }
 
-            promiseAggregator.doneAllocatingPromises();
         } catch (Throwable t) {
             promiseAggregator.setFailure(t);
         } finally {
             if (release) {
                 ReferenceCountUtil.release(msg);
             }
+            promiseAggregator.doneAllocatingPromises();
         }
     }
 }
