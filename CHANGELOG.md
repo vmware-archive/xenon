@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 0.7.6.CR-SNAPSHOT
+
 ## 0.7.6
 
 * Improve index searcher management in lucene document index
