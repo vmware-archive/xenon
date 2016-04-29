@@ -417,12 +417,9 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
                 h.setMaintenanceIntervalMicros(TimeUnit.MILLISECONDS.toMicros(100));
             }
 
-            long start = 0;
-            try {
-                start = Utils.getNowMicrosUtc();
-                h.start();
-            } catch (org.apache.lucene.store.LockObtainFailedException e) {
-                this.host.log("Lock still held on lucene index: %s, aborting", e.toString());
+            long start = Utils.getNowMicrosUtc();
+            if (!VerificationHost.restartStatefulHost(h)) {
+                this.host.log("Failed restart of host, aborting");
                 return;
             }
 

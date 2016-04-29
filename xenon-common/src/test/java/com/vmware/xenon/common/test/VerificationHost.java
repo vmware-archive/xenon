@@ -51,12 +51,14 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.net.ssl.SSLContext;
 
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
+import org.apache.lucene.store.LockObtainFailedException;
 import org.junit.rules.TemporaryFolder;
 
 import com.vmware.xenon.common.Claims;
@@ -3055,5 +3057,38 @@ public class VerificationHost extends ExampleServiceHost {
 
     public void setSingleton(boolean enable) {
         this.isSingleton = enable;
+    }
+
+    /*
+    * Running restart tests in VMs, in over provisioned CI will cause a restart using the same
+    * index sand box to fail, due to a file system LockHeldException.
+    * The sleep just reduces the false negative test failure rate, but it can still happen.
+    * Not much else we can do other adding some weird polling on all the index files.
+    *
+    * Returns true of host restarted, false if retry attempts expired or other exceptions where thrown
+     */
+    public static boolean restartStatefulHost(ServiceHost host) throws Throwable {
+        long exp = Utils.getNowMicrosUtc() + host.getOperationTimeoutMicros();
+
+        do {
+            Thread.sleep(2000);
+            try {
+                host.start();
+                return true;
+            } catch (Throwable e) {
+                try {
+                    host.stop();
+                } catch (Throwable e1) {
+                    return false;
+                }
+                if (e instanceof LockObtainFailedException) {
+                    Logger.getAnonymousLogger()
+                            .warning("Lock held exception on host restart, retrying");
+                    continue;
+                }
+                return false;
+            }
+        } while (Utils.getNowMicrosUtc() < exp);
+        return false;
     }
 }
