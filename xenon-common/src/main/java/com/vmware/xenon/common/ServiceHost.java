@@ -455,6 +455,8 @@ public class ServiceHost implements ServiceRequestSender {
     private final ConcurrentSkipListSet<String> coreServices = new ConcurrentSkipListSet<>();
     private ConcurrentSkipListMap<String, Class<? extends Service>> privilegedServiceTypes = new ConcurrentSkipListMap<>();
 
+    private final Set<String> pendingServiceDeletions = Collections.synchronizedSet(new HashSet<String>());
+
     private ServiceHostState state;
     private Service documentIndexService;
     private Service authorizationService;
@@ -1937,7 +1939,6 @@ public class ServiceHost implements ServiceRequestSender {
                 post.fail(new IllegalStateException(errorMsg));
                 return this;
             }
-
         } else if (checkIfServiceExistsAndAttach(service, servicePath, post)) {
             // service exists, do not proceed with start
             return this;
@@ -2633,7 +2634,7 @@ public class ServiceHost implements ServiceRequestSender {
             return true;
         }
 
-        boolean isDeleted = ServiceDocument.isDeleted(stateFromStore);
+        boolean isDeleted = ServiceDocument.isDeleted(stateFromStore) || this.pendingServiceDeletions.contains(s.getSelfLink());
 
         if (!serviceStartPost.hasBody()) {
             // this POST is due to a restart, or synchronization attempt which will never have a body
@@ -2674,6 +2675,18 @@ public class ServiceHost implements ServiceRequestSender {
         }
 
         return true;
+    }
+
+    void markAsPendingDelete(Service service) {
+        if (isServiceIndexed(service)) {
+            this.pendingServiceDeletions.add(service.getSelfLink());
+        }
+    }
+
+    void unmarkAsPendingDelete(Service service) {
+        if (isServiceIndexed(service)) {
+            this.pendingServiceDeletions.remove(service.getSelfLink());
+        }
     }
 
     /**
@@ -3531,6 +3544,7 @@ public class ServiceHost implements ServiceRequestSender {
 
         this.attachedServices.clear();
         this.attachedNamespaceServices.clear();
+        this.pendingServiceDeletions.clear();
         this.state.isStarted = false;
 
         removeLogging();
@@ -4652,11 +4666,6 @@ public class ServiceHost implements ServiceRequestSender {
     }
 
     void saveServiceState(Service s, Operation op, ServiceDocument state) {
-        if (state == null) {
-            op.fail(new IllegalArgumentException("linkedState is required"));
-            return;
-        }
-
         // If this request doesn't originate from replication (which might happen asynchronously, i.e. through
         // (re-)synchronization after a node group change), don't update the documentAuthPrincipalLink because
         // it will be set to the system user. The specified state is expected to have the documentAuthPrincipalLink
@@ -4678,10 +4687,6 @@ public class ServiceHost implements ServiceRequestSender {
         }
 
         Service indexService = this.documentIndexService;
-        if (indexService == null) {
-            op.fail(new IllegalStateException("document index service is required"));
-            return;
-        }
 
         // serialize state and compute signature. The index service will take
         // the serialized state and store as is, and it will index all fields
@@ -4691,16 +4696,14 @@ public class ServiceHost implements ServiceRequestSender {
         // retrieve the description through the cached template so its the thread safe,
         // immutable version
         body.description = buildDocumentDescription(s);
-        try {
-            cacheServiceState(s, state, op);
-        } catch (Throwable e1) {
-            op.fail(e1);
-            return;
-        }
+        cacheServiceState(s, state, op);
 
         Operation post = Operation.createPost(indexService.getUri())
                 .setBodyNoCloning(body)
                 .setCompletion((o, e) -> {
+                    if (op.getAction() == Action.DELETE) {
+                        unmarkAsPendingDelete(s);
+                    }
                     if (e != null) {
                         clearCachedServiceState(s.getSelfLink());
                         op.fail(e);
