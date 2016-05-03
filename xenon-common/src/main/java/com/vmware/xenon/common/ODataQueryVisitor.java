@@ -189,6 +189,13 @@ public class ODataQueryVisitor {
             if (rightSide.occurance != Query.Occurance.MUST_NOT_OCCUR) {
                 rightSide.occurance = Query.Occurance.MUST_OCCUR;
             }
+
+            if (leftSide.occurance == Query.Occurance.MUST_NOT_OCCUR &&
+                    rightSide.occurance == Query.Occurance.MUST_NOT_OCCUR) {
+                q.occurance = Query.Occurance.MUST_NOT_OCCUR;
+                leftSide.occurance = Query.Occurance.SHOULD_OCCUR;
+                rightSide.occurance = Query.Occurance.SHOULD_OCCUR;
+            }
             break;
         case OR:
             /*
@@ -201,6 +208,13 @@ public class ODataQueryVisitor {
 
             if (rightSide.occurance != Query.Occurance.MUST_NOT_OCCUR) {
                 rightSide.occurance = Query.Occurance.SHOULD_OCCUR;
+            }
+
+            if (leftSide.occurance == Query.Occurance.MUST_NOT_OCCUR &&
+                    rightSide.occurance == Query.Occurance.MUST_NOT_OCCUR) {
+                q.occurance = Query.Occurance.MUST_NOT_OCCUR;
+                leftSide.occurance = Query.Occurance.MUST_OCCUR;
+                rightSide.occurance = Query.Occurance.MUST_OCCUR;
             }
             break;
         default:

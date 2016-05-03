@@ -403,9 +403,12 @@ public class TestODataQueryService extends BasicReusableHostTestCase {
         testOrWithNEQuery();
         testAndWithNestedORQuery();
         testOrWithNestedAndQuery();
+        testNEAndNEQuery();
+        testNEOrNEQuery();
     }
 
     private void testSimpleOrQuery() throws Throwable {
+        this.host.deleteAllChildServices(UriUtils.buildUri(this.host, ExampleService.FACTORY_LINK));
         ExampleService.ExampleServiceState document1 = new ExampleService.ExampleServiceState();
         document1.name = "STRING1";
         postExample(document1);
@@ -416,7 +419,7 @@ public class TestODataQueryService extends BasicReusableHostTestCase {
 
         String queryString = "$filter=name eq STRING1 or name eq STRING2";
 
-        Map<String, Object> out = doQuery(queryString, false).documents;
+        Map<String, Object> out = doFactoryServiceQuery(queryString, false);
         assertNotNull(out);
         assertEquals(2, out.keySet().size());
         ExampleService.ExampleServiceState outState1 = Utils.fromJson(
@@ -429,6 +432,7 @@ public class TestODataQueryService extends BasicReusableHostTestCase {
     }
 
     private void testSimpleAndQuery() throws Throwable {
+        this.host.deleteAllChildServices(UriUtils.buildUri(this.host, ExampleService.FACTORY_LINK));
         ExampleService.ExampleServiceState document1 = new ExampleService.ExampleServiceState();
         document1.name = "STRING1";
         document1.counter = 10L;
@@ -441,7 +445,7 @@ public class TestODataQueryService extends BasicReusableHostTestCase {
 
         String queryString = "$filter=name eq STRING* and counter lt 13";
 
-        Map<String, Object> out = doQuery(queryString, false).documents;
+        Map<String, Object> out = doFactoryServiceQuery(queryString, false);
         assertNotNull(out);
         assertEquals(1, out.keySet().size());
         ExampleService.ExampleServiceState outState1 = Utils.fromJson(
@@ -450,6 +454,7 @@ public class TestODataQueryService extends BasicReusableHostTestCase {
     }
 
     private void testAndWithNEQuery() throws Throwable {
+        this.host.deleteAllChildServices(UriUtils.buildUri(this.host, ExampleService.FACTORY_LINK));
         ExampleService.ExampleServiceState document1 = new ExampleService.ExampleServiceState();
         document1.name = "MAPPING1";
         document1.keyValues.put("A","a");
@@ -468,7 +473,7 @@ public class TestODataQueryService extends BasicReusableHostTestCase {
 
         String queryString1 = "$filter=name ne MAPPING2 and keyValues.A eq a";
 
-        Map<String, Object> out1 = doQuery(queryString1, false).documents;
+        Map<String, Object> out1 = doFactoryServiceQuery(queryString1, false);
         assertNotNull(out1);
         assertEquals(1, out1.keySet().size());
         ExampleService.ExampleServiceState outState1 = Utils.fromJson(
@@ -477,7 +482,7 @@ public class TestODataQueryService extends BasicReusableHostTestCase {
 
         String queryString2 = "$filter=name ne MAPPING3 and keyValues.B eq b";
 
-        Map<String, Object> out2 = doQuery(queryString2, false).documents;
+        Map<String, Object> out2 = doFactoryServiceQuery(queryString2, false);
         assertNotNull(out2);
         assertEquals(1, out2.keySet().size());
         ExampleService.ExampleServiceState outState2 = Utils.fromJson(
@@ -486,6 +491,7 @@ public class TestODataQueryService extends BasicReusableHostTestCase {
     }
 
     private void testOrWithNEQuery() throws Throwable {
+        this.host.deleteAllChildServices(UriUtils.buildUri(this.host, ExampleService.FACTORY_LINK));
         ExampleService.ExampleServiceState document1 = new ExampleService.ExampleServiceState();
         document1.name = "MAPPING4";
         document1.keyValues.put("P","p");
@@ -503,7 +509,7 @@ public class TestODataQueryService extends BasicReusableHostTestCase {
 
         String queryString1 = "$filter=name eq MAPPING4 or keyValues.P ne P";
 
-        Map<String, Object> out1 = doQuery(queryString1, false).documents;
+        Map<String, Object> out1 = doFactoryServiceQuery(queryString1, false);
         assertNotNull(out1);
         assertEquals(1, out1.keySet().size());
         ExampleService.ExampleServiceState outState1 = Utils.fromJson(
@@ -512,6 +518,7 @@ public class TestODataQueryService extends BasicReusableHostTestCase {
     }
 
     private void testAndWithNestedORQuery() throws Throwable {
+        this.host.deleteAllChildServices(UriUtils.buildUri(this.host, ExampleService.FACTORY_LINK));
         ExampleService.ExampleServiceState document1 = new ExampleService.ExampleServiceState();
         document1.name = "Java";
         document1.keyValues.put("version", "7");
@@ -532,7 +539,7 @@ public class TestODataQueryService extends BasicReusableHostTestCase {
 
         String queryString1 = "$filter=name eq Java and (keyValues.version eq '7' or keyValues.version eq '8')";
 
-        Map<String, Object> out1 = doQuery(queryString1, false).documents;
+        Map<String, Object> out1 = doFactoryServiceQuery(queryString1, false);
         assertNotNull(out1);
         assertEquals(2, out1.keySet().size());
         ExampleService.ExampleServiceState outState1 = Utils.fromJson(
@@ -547,7 +554,7 @@ public class TestODataQueryService extends BasicReusableHostTestCase {
 
         String queryString2 = "$filter=name eq Java and (keyValues.arch eq 'arm64' or keyValues.version ne '7')";
 
-        Map<String, Object> out2 = doQuery(queryString2, false).documents;
+        Map<String, Object> out2 = doFactoryServiceQuery(queryString2, false);
         assertNotNull(out2);
         assertEquals(1, out2.keySet().size());
         ExampleService.ExampleServiceState outState3 = Utils.fromJson(
@@ -557,6 +564,7 @@ public class TestODataQueryService extends BasicReusableHostTestCase {
     }
 
     private void testOrWithNestedAndQuery() throws Throwable {
+        this.host.deleteAllChildServices(UriUtils.buildUri(this.host, ExampleService.FACTORY_LINK));
         ExampleService.ExampleServiceState document1 = new ExampleService.ExampleServiceState();
         document1.name = "gcc";
         document1.keyValues.put("version", "5");
@@ -577,7 +585,7 @@ public class TestODataQueryService extends BasicReusableHostTestCase {
 
         String queryString1 = "$filter=name eq llvm or (name eq gcc and keyValues.version eq '6')";
 
-        Map<String, Object> out1 = doQuery(queryString1, false).documents;
+        Map<String, Object> out1 = doFactoryServiceQuery(queryString1, false);
         assertNotNull(out1);
         assertEquals(2, out1.keySet().size());
         ExampleService.ExampleServiceState outState1 = Utils.fromJson(
@@ -592,7 +600,7 @@ public class TestODataQueryService extends BasicReusableHostTestCase {
 
         String queryString2 = "$filter=name eq llvm or (keyValues.version eq '5' and keyValues.arch ne 'amd64')";
 
-        Map<String, Object> out2 = doQuery(queryString2, false).documents;
+        Map<String, Object> out2 = doFactoryServiceQuery(queryString2, false);
         assertNotNull(out2);
         assertEquals(2, out2.keySet().size());
         ExampleService.ExampleServiceState outState3 = Utils.fromJson(
@@ -605,6 +613,49 @@ public class TestODataQueryService extends BasicReusableHostTestCase {
         assertTrue(outState4.name.equals(document3.name));
         assertTrue(outState4.keyValues.get("version").equals("3.8"));
         assertTrue(outState4.keyValues.get("arch").equals("ppc64le"));
+    }
+
+    private void testNEOrNEQuery() throws Throwable {
+        this.host.deleteAllChildServices(UriUtils.buildUri(this.host, ExampleService.FACTORY_LINK));
+        ExampleService.ExampleServiceState document1 = new ExampleService.ExampleServiceState();
+        document1.name = "STRING1";
+        postExample(document1);
+
+        ExampleService.ExampleServiceState document2 = new ExampleService.ExampleServiceState();
+        document2.name = "STRING2";
+        postExample(document2);
+
+        String queryString = "$filter=name ne STRING3 or name ne STRING4";
+
+        Map<String, Object> out = doFactoryServiceQuery(queryString, false);
+        assertNotNull(out);
+        assertEquals(2, out.keySet().size());
+        ExampleService.ExampleServiceState outState1 = Utils.fromJson(
+                out.get(document1.documentSelfLink), ExampleService.ExampleServiceState.class);
+        assertTrue(outState1.name.equals(document1.name));
+        ExampleService.ExampleServiceState outState2 = Utils.fromJson(
+                out.get(document2.documentSelfLink), ExampleService.ExampleServiceState.class);
+        assertTrue(outState2.name.equals(document2.name));
+    }
+
+    private void testNEAndNEQuery() throws Throwable {
+        this.host.deleteAllChildServices(UriUtils.buildUri(this.host, ExampleService.FACTORY_LINK));
+        ExampleService.ExampleServiceState document1 = new ExampleService.ExampleServiceState();
+        document1.name = "STRING1";
+        postExample(document1);
+
+        ExampleService.ExampleServiceState document2 = new ExampleService.ExampleServiceState();
+        document2.name = "STRING2";
+        postExample(document2);
+
+        String queryString = "$filter=name ne STRING3 and name ne STRING2";
+
+        Map<String, Object> out = doFactoryServiceQuery(queryString, false);
+        assertNotNull(out);
+        assertEquals(1, out.keySet().size());
+        ExampleService.ExampleServiceState outState1 = Utils.fromJson(
+                out.get(document1.documentSelfLink), ExampleService.ExampleServiceState.class);
+        assertTrue(outState1.name.equals(document1.name));
     }
 
     private ServiceDocumentQueryResult doQuery(String query, boolean remote) throws Throwable {
