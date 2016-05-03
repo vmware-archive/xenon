@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 0.8.1-SNAPSHOT
+
 ## 0.8.0
 
 * Upgrade netty from 4.1.0.CR3 to 4.1.0.CR7
