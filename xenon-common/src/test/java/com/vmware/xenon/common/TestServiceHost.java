@@ -469,6 +469,8 @@ public class TestServiceHost {
 
         this.host.setCertificateFileReference(certFileUri);
         this.host.setPrivateKeyFileReference(keyFileUri);
+        // must assign port to zero, so we get a *new*, available port on restart.
+        this.host.setPort(0);
         this.host.start();
 
         Signer newSigner = this.host.getTokenSigner();
