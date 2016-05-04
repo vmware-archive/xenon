@@ -13,7 +13,9 @@
 
 package com.vmware.xenon.common;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.ServerSocket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -22,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.vmware.xenon.common.Service.ServiceOption;
 import com.vmware.xenon.common.ServiceHost.ServiceHostState;
@@ -753,5 +756,31 @@ public class UriUtils {
             return "";
         }
         return link.substring(link.lastIndexOf(UriUtils.URI_PATH_CHAR) + 1);
+    }
+
+    /**
+     * Requests a random server socket port to be created, closes it, and returns the port picked
+     * as a potentially available port. Note, that this is not an atomic probe and acquire, so the port
+     * might be taken by the time a bind occurs.
+     */
+    public static int findAvailablePort() {
+        int port = 0;
+        ServerSocket socket = null;
+        try {
+            socket = new ServerSocket(0);
+            socket.setReuseAddress(true);
+            port = socket.getLocalPort();
+            Logger.getAnonymousLogger().info("port candidate:" + port);
+        } catch (Throwable e) {
+            Logger.getAnonymousLogger().severe(e.toString());
+        } finally {
+            try {
+                if (socket != null) {
+                    socket.close();
+                }
+            } catch (IOException e) {
+            }
+        }
+        return port;
     }
 }

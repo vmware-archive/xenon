@@ -48,6 +48,7 @@ import java.util.logging.Logger;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -586,6 +587,30 @@ public class Utils {
         }
 
         return null;
+    }
+
+    /**
+     * Infrastructure use only
+     */
+    static boolean validateServiceOptions(ServiceHost host, Service service, Operation post) {
+        for (ServiceOption o : service.getOptions()) {
+            String error = Utils.validateServiceOption(service.getOptions(), o);
+            if (error != null) {
+                host.log(Level.WARNING, error);
+                post.fail(new IllegalArgumentException(error));
+                return false;
+            }
+        }
+
+        if (service.getMaintenanceIntervalMicros() > 0 &&
+                service.getMaintenanceIntervalMicros() < host.getMaintenanceIntervalMicros()) {
+            host.log(
+                    Level.WARNING,
+                    "Service maint. interval %d is less than host interval %d, reducing host interval",
+                    service.getMaintenanceIntervalMicros(), host.getMaintenanceIntervalMicros());
+            host.setMaintenanceIntervalMicros(service.getMaintenanceIntervalMicros());
+        }
+        return true;
     }
 
     public static String getOsName(SystemHostInfo systemInfo) {

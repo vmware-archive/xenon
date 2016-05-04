@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.net.ServerSocket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -33,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -439,37 +437,6 @@ public class ServiceHost implements ServiceRequestSender {
         public String[] initialPeerNodes;
     }
 
-    private static ConcurrentSkipListSet<Operation> createOperationSet() {
-        return new ConcurrentSkipListSet<>(new Comparator<Operation>() {
-            @Override
-            public int compare(Operation o1, Operation o2) {
-                return Long.compare(o1.getExpirationMicrosUtc(),
-                        o2.getExpirationMicrosUtc());
-            }
-        });
-    }
-
-    public static int findListenPort() {
-        int port = 0;
-        ServerSocket socket = null;
-        try {
-            socket = new ServerSocket(0);
-            socket.setReuseAddress(true);
-            port = socket.getLocalPort();
-            Logger.getAnonymousLogger().info("port candidate:" + port);
-        } catch (Throwable e) {
-            Logger.getAnonymousLogger().severe(e.toString());
-        } finally {
-            try {
-                if (socket != null) {
-                    socket.close();
-                }
-            } catch (IOException e) {
-            }
-        }
-        return port;
-    }
-
     public enum HttpScheme {
         HTTP_ONLY, HTTPS_ONLY, HTTP_AND_HTTPS, NONE
     }
@@ -495,9 +462,6 @@ public class ServiceHost implements ServiceRequestSender {
     private final ConcurrentSkipListMap<String, Long> synchronizationRequiredServices = new ConcurrentSkipListMap<>();
     private final ConcurrentSkipListMap<String, Long> synchronizationActiveServices = new ConcurrentSkipListMap<>();
     private final ConcurrentSkipListMap<String, NodeGroupState> pendingNodeSelectorsForFactorySynch = new ConcurrentSkipListMap<>();
-    private final SortedSet<Operation> pendingStartOperations = createOperationSet();
-    private final Map<String, SortedSet<Operation>> pendingServiceAvailableCompletions = new ConcurrentSkipListMap<>();
-    private final ConcurrentSkipListMap<Long, Operation> pendingOperationsForRetry = new ConcurrentSkipListMap<>();
 
     private ServiceHostState state;
     private Service documentIndexService;
@@ -519,7 +483,10 @@ public class ServiceHost implements ServiceRequestSender {
     private ConcurrentSkipListSet<String> serviceFactoriesUnderMemoryPressure = new ConcurrentSkipListSet<>();
     private ConcurrentSkipListMap<String, Service> pendingPauseServices = new ConcurrentSkipListMap<>();
 
-    private final ServiceHostMaintenanceTracker maintenanceHelper = ServiceHostMaintenanceTracker
+    private final ServiceMaintenanceTracker serviceMaintTracker = ServiceMaintenanceTracker
+            .create(this);
+
+    private final OperationTracker operationTracker = OperationTracker
             .create(this);
 
     private String logPrefix;
@@ -1969,7 +1936,7 @@ public class ServiceHost implements ServiceRequestSender {
 
         // make sure we detach the service on start failure
         post.nestCompletion((o, e) -> {
-            this.pendingStartOperations.remove(post);
+            this.operationTracker.removeStartOperation(post);
             if (e == null) {
                 post.complete();
                 return;
@@ -1980,8 +1947,8 @@ public class ServiceHost implements ServiceRequestSender {
             processPendingServiceAvailableOperations(service, e);
         });
 
-        this.pendingStartOperations.add(post);
-        if (!validateServiceOptions(service, post)) {
+        this.operationTracker.trackStartOperation(post);
+        if (!Utils.validateServiceOptions(this, service, post)) {
             return this;
         }
 
@@ -2040,7 +2007,7 @@ public class ServiceHost implements ServiceRequestSender {
         // The alternative is to just let these operations timeout.
         SortedSet<Operation> ops = null;
         synchronized (this.state) {
-            ops = this.pendingServiceAvailableCompletions.remove(s.getSelfLink());
+            ops = this.operationTracker.removeServiceAvailableCompletions(s.getSelfLink());
             if (ops == null || ops.isEmpty()) {
                 return;
             }
@@ -2154,27 +2121,6 @@ public class ServiceHost implements ServiceRequestSender {
         post.addPragmaDirective(Operation.PRAGMA_DIRECTIVE_POST_TO_PUT);
 
         handleRequest(null, post);
-        return true;
-    }
-
-    private boolean validateServiceOptions(Service service, Operation post) {
-
-        for (ServiceOption o : service.getOptions()) {
-            String error = Utils.validateServiceOption(service.getOptions(), o);
-            if (error != null) {
-                log(Level.WARNING, error);
-                post.fail(new IllegalArgumentException(error));
-                return false;
-            }
-        }
-
-        if (service.getMaintenanceIntervalMicros() > 0 &&
-                service.getMaintenanceIntervalMicros() < getMaintenanceIntervalMicros()) {
-            log(Level.WARNING,
-                    "Service maint. interval %d is less than host interval %d, reducing host interval",
-                    service.getMaintenanceIntervalMicros(), getMaintenanceIntervalMicros());
-            this.setMaintenanceIntervalMicros(service.getMaintenanceIntervalMicros());
-        }
         return true;
     }
 
@@ -2379,7 +2325,7 @@ public class ServiceHost implements ServiceRequestSender {
                     startUiFileContentServices(s);
                 }
                 if (s.hasOption(ServiceOption.PERIODIC_MAINTENANCE)) {
-                    this.maintenanceHelper.schedule(s);
+                    this.serviceMaintTracker.schedule(s);
                 }
 
                 s.setProcessingStage(Service.ProcessingStage.AVAILABLE);
@@ -3496,11 +3442,7 @@ public class ServiceHost implements ServiceRequestSender {
             return;
         }
 
-        log(Level.WARNING, "Retrying id %d to %s (retries: %d). Failure: %s", op.getId(),
-                op.getUri().getHost() + ":" + op.getUri().getPort(), op.getRetryCount(),
-                fe.toString());
-        op.incrementRetryCount();
-        this.pendingOperationsForRetry.put(Utils.getNowMicrosUtc(), op);
+        this.operationTracker.trackOperationForRetry(Utils.getNowMicrosUtc(), fe, op);
     }
 
     /**
@@ -3805,7 +3747,8 @@ public class ServiceHost implements ServiceRequestSender {
             this.synchronizationActiveServices.clear();
         }
 
-        stopAndClearPendingQueues();
+        this.serviceMaintTracker.close();
+        this.operationTracker.close();
 
         ScheduledFuture<?> task = this.maintenanceTask;
         if (task != null) {
@@ -3822,7 +3765,6 @@ public class ServiceHost implements ServiceRequestSender {
         this.synchronizationTimes.clear();
         this.attachedServices.clear();
         this.attachedNamespaceServices.clear();
-        this.maintenanceHelper.close();
         this.state.isStarted = false;
 
         removeLogging();
@@ -3933,25 +3875,6 @@ public class ServiceHost implements ServiceRequestSender {
         this.coreServices.clear();
         waitForServiceStop(cLatch);
         log(Level.INFO, "All core services stopped");
-    }
-
-    private void stopAndClearPendingQueues() {
-        for (Operation op : this.pendingOperationsForRetry.values()) {
-            op.fail(new CancellationException());
-        }
-        this.pendingOperationsForRetry.clear();
-
-        for (Operation op : this.pendingStartOperations) {
-            op.fail(new CancellationException());
-        }
-        this.pendingStartOperations.clear();
-
-        for (SortedSet<Operation> opSet : this.pendingServiceAvailableCompletions.values()) {
-            for (Operation op : opSet) {
-                op.fail(new CancellationException());
-            }
-        }
-        this.pendingServiceAvailableCompletions.clear();
     }
 
     private void waitForServiceStop(final CountDownLatch latch) {
@@ -4122,15 +4045,9 @@ public class ServiceHost implements ServiceRequestSender {
                 if (s != null && s.getProcessingStage() == Service.ProcessingStage.AVAILABLE) {
                     continue;
                 }
-                SortedSet<Operation> pendingOps = this.pendingServiceAvailableCompletions
-                        .get(link);
-                if (pendingOps == null) {
-                    // create sorted set using the operation expiration as the key. This allows us
-                    // to efficiently detect expiration during host maintenance
-                    pendingOps = createOperationSet();
-                    this.pendingServiceAvailableCompletions.put(link, pendingOps);
-                }
-                pendingOps.add(doOpClone ? opTemplate.clone() : opTemplate);
+
+                this.operationTracker
+                        .trackServiceAvailableCompletion(link, opTemplate, doOpClone);
                 // null the link so we do not attempt to invoke the completion below
                 clonedLinks[i] = null;
             }
@@ -4487,7 +4404,7 @@ public class ServiceHost implements ServiceRequestSender {
                 performNodeSelectorChangeMaintenance(post, now, MaintenanceStage.SERVICE, true);
                 return;
             case SERVICE:
-                this.maintenanceHelper.performMaintenance(post, deadline);
+                this.serviceMaintTracker.performMaintenance(post, deadline);
                 stage = null;
                 break;
             default:
@@ -4563,35 +4480,7 @@ public class ServiceHost implements ServiceRequestSender {
 
     private void performPendingOperationMaintenance() {
         long now = Utils.getNowMicrosUtc();
-        Iterator<Operation> startOpsIt = this.pendingStartOperations.iterator();
-        checkOperationExpiration(now, startOpsIt);
-
-        for (SortedSet<Operation> ops : this.pendingServiceAvailableCompletions.values()) {
-            Iterator<Operation> it = ops.iterator();
-            checkOperationExpiration(now, it);
-        }
-
-        final long intervalMicros = TimeUnit.SECONDS.toMicros(1);
-        Iterator<Entry<Long, Operation>> it = this.pendingOperationsForRetry.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<Long, Operation> entry = it.next();
-            Operation o = entry.getValue();
-            if (isStopping()) {
-                o.fail(new CancellationException());
-                return;
-            }
-
-            // Apply linear back-off: we delay retry based on the number of retry attempts. We
-            // keep retrying until expiration of the operation (applied in retryOrFailRequest)
-            long queuingTimeMicros = entry.getKey();
-            long estimatedRetryTimeMicros = o.getRetryCount() * intervalMicros +
-                    queuingTimeMicros;
-            if (estimatedRetryTimeMicros > now) {
-                continue;
-            }
-            it.remove();
-            handleRequest(null, o);
-        }
+        this.operationTracker.performMaintenance(now);
     }
 
     private void performNodeSelectorChangeMaintenance(Operation post, long now,
@@ -4783,19 +4672,6 @@ public class ServiceHost implements ServiceRequestSender {
                 s.adjustStat(Service.STAT_NAME_NODE_GROUP_CHANGE_MAINTENANCE_COUNT, 1);
                 s.handleMaintenance(maintOp);
             });
-        }
-    }
-
-    private void checkOperationExpiration(long now, Iterator<Operation> iterator) {
-        while (iterator.hasNext()) {
-            Operation op = iterator.next();
-            if (op == null || op.getExpirationMicrosUtc() > now) {
-                // not expired, and since we walk in ascending order, no other operations
-                // are expired
-                break;
-            }
-            iterator.remove();
-            run(() -> op.fail(new TimeoutException(op.toString())));
         }
     }
 

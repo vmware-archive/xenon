@@ -27,9 +27,9 @@ import com.vmware.xenon.common.ServiceMaintenanceRequest.MaintenanceReason;
 /**
  * Sequences service periodic maintenance
  */
-class ServiceHostMaintenanceTracker {
-    public static ServiceHostMaintenanceTracker create(ServiceHost host) {
-        ServiceHostMaintenanceTracker smt = new ServiceHostMaintenanceTracker();
+class ServiceMaintenanceTracker {
+    public static ServiceMaintenanceTracker create(ServiceHost host) {
+        ServiceMaintenanceTracker smt = new ServiceMaintenanceTracker();
         smt.host = host;
         return smt;
     }
