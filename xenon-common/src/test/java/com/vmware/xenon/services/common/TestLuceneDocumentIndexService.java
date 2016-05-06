@@ -100,6 +100,8 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
 
         public OnDemandLoadFactoryService() {
             super(MinimalTestServiceState.class);
+            super.toggleOption(ServiceOption.REPLICATION, true);
+            super.toggleOption(ServiceOption.ON_DEMAND_LOAD, true);
         }
 
         private EnumSet<ServiceOption> childServiceCaps;
@@ -741,13 +743,14 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
         OnDemandLoadFactoryService s = new OnDemandLoadFactoryService();
         s.setChildServiceCaps(EnumSet.of(ServiceOption.PERSISTENCE,
                 ServiceOption.REPLICATION, ServiceOption.OWNER_SELECTION,
-                ServiceOption.ON_DEMAND_LOAD, ServiceOption.INSTRUMENTATION));
+                ServiceOption.INSTRUMENTATION));
         Operation factoryPost = Operation.createPost(
                 UriUtils.buildUri(h, s.getClass()))
                 .setCompletion(this.host.getCompletion());
         h.startService(factoryPost, s);
         this.host.testWait();
         String factoryLink = s.getSelfLink();
+        this.host.waitForReplicatedFactoryServiceAvailable(factoryPost.getUri());
         this.host.log("Started on demand load factory at %s", factoryLink);
         return factoryLink;
     }

@@ -813,8 +813,9 @@ public abstract class FactoryService extends StatelessService {
         }
 
         if (hasOption(ServiceOption.ON_DEMAND_LOAD)) {
-            // on demand load service are synchronized on first use, or when an explicit migration
-            // task runs
+            // on demand load child services are synchronized on first use, or when an explicit
+            // migration task runs
+            setAvailable(true);
             maintOp.complete();
             return;
         }
