@@ -68,6 +68,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <testHeapSizeMb>256</testHeapSizeMb>
     <testThreadStackSizeKb>256</testThreadStackSizeKb>
+    <autoReleaseAfterClose>true</autoReleaseAfterClose>
   </properties>
 
   <repositories>
@@ -251,7 +252,7 @@
             <configuration>
               <serverId>ossrh</serverId>
               <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-              <autoReleaseAfterClose>true</autoReleaseAfterClose>
+              <autoReleaseAfterClose>${autoReleaseAfterClose}</autoReleaseAfterClose>
             </configuration>
           </plugin>
         </plugins>
