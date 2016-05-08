@@ -1315,7 +1315,6 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
                 // updating expiration with either a PATCH or a DELETE, works.
                 op.setAction(Action.DELETE);
             }
-            this.host.log("Sending %s to %s with exp of %d", op.getAction(), op.getUri(), expTime);
             this.host.send(op);
         }
         this.host.testWait();

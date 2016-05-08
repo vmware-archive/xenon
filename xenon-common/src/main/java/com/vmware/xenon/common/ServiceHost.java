@@ -2727,7 +2727,9 @@ public class ServiceHost implements ServiceRequestSender {
             }
 
             this.serviceSynchTracker.removeService(path);
+            this.serviceResourceTracker.clearCachedServiceState(path);
             this.pendingPauseServices.remove(path);
+
             this.state.serviceCount--;
         }
 
