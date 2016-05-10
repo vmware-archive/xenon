@@ -127,8 +127,8 @@ public class Operation implements Cloneable {
 
     static class RemoteContext {
         public SocketContext socketCtx;
-        public Map<String, String> requestHeaders = new HashMap<>();
-        public Map<String, String> responseHeaders = new HashMap<>();
+        public Map<String, String> requestHeaders;
+        public Map<String, String> responseHeaders;
         public Principal peerPrincipal;
         public X509Certificate[] peerCertificateChain;
         public String connectionTag;
@@ -268,6 +268,7 @@ public class Operation implements Cloneable {
     }
 
     public static enum OperationOption {
+        CONNECTION_SHARING,
         KEEP_ALIVE,
         REPLICATED,
         REPLICATION_DISABLED,
@@ -420,11 +421,6 @@ public class Operation implements Cloneable {
      * due to state updates occurring when the subscriber was not available.
      */
     public static final String PRAGMA_DIRECTIVE_SKIPPED_NOTIFICATIONS = "xn-nt-skipped";
-
-    /**
-     * Infrastructure use only. Experimental. Forces the use of HTTP2 streams.
-     */
-    public static final String PRAGMA_DIRECTIVE_USE_HTTP2 = "xn-use-http2";
 
     /**
      *  Infrastructure use only. Does a strict update version check and if the service exists or
@@ -669,7 +665,7 @@ public class Operation implements Cloneable {
             clone.remoteCtx = new RemoteContext();
             // do not clone socket context
             clone.remoteCtx.socketCtx = null;
-            if (!this.remoteCtx.requestHeaders.isEmpty()) {
+            if (this.remoteCtx.requestHeaders != null && !this.remoteCtx.requestHeaders.isEmpty()) {
                 clone.remoteCtx.requestHeaders = new HashMap<>(this.remoteCtx.requestHeaders);
             }
             clone.remoteCtx.peerPrincipal = this.remoteCtx.peerPrincipal;
@@ -696,6 +692,18 @@ public class Operation implements Cloneable {
             return;
         }
         this.remoteCtx = new RemoteContext();
+    }
+
+    private void allocateRequestHeaders() {
+        if (this.remoteCtx.requestHeaders == null) {
+            this.remoteCtx.requestHeaders = new HashMap<>();
+        }
+    }
+
+    private void allocateResponseHeaders() {
+        if (this.remoteCtx.responseHeaders == null) {
+            this.remoteCtx.responseHeaders = new HashMap<>();
+        }
     }
 
     public boolean isRemote() {
@@ -1147,6 +1155,7 @@ public class Operation implements Cloneable {
 
     public Operation addRequestHeader(String name, String value) {
         allocateRemoteContext();
+        allocateRequestHeaders();
         value = value.replace(CR_LF, "").trim();
         this.remoteCtx.requestHeaders.put(name.toLowerCase(), value);
         return this;
@@ -1154,6 +1163,7 @@ public class Operation implements Cloneable {
 
     public Operation addResponseHeader(String name, String value) {
         allocateRemoteContext();
+        allocateResponseHeaders();
         value = value.replace(CR_LF, "");
         this.remoteCtx.responseHeaders.put(name.toLowerCase(), value);
         return this;
@@ -1290,6 +1300,7 @@ public class Operation implements Cloneable {
         if (this.remoteCtx == null) {
             return new HashMap<>();
         }
+        allocateRequestHeaders();
         return this.remoteCtx.requestHeaders;
     }
 
@@ -1297,7 +1308,16 @@ public class Operation implements Cloneable {
         if (this.remoteCtx == null) {
             return new HashMap<>();
         }
+        allocateResponseHeaders();
         return this.remoteCtx.responseHeaders;
+    }
+
+    public boolean hasResponseHeaders() {
+        return this.remoteCtx != null && this.remoteCtx.responseHeaders != null;
+    }
+
+    public boolean hasRequestHeaders() {
+        return this.remoteCtx != null && this.remoteCtx.requestHeaders != null;
     }
 
     public String getRequestHeader(String headerName) {
@@ -1401,6 +1421,27 @@ public class Operation implements Cloneable {
     }
 
     /**
+     * Infrastructure use only
+     */
+    public Operation setConnectionSharing(boolean enable) {
+        if (enable) {
+            this.options.add(OperationOption.CONNECTION_SHARING);
+        } else {
+            this.options.remove(OperationOption.CONNECTION_SHARING);
+        }
+        return this;
+    }
+
+    /**
+     * Infrastructure use only.
+     *
+     * Value indicating whether this operation is sharing a connection
+     */
+    public boolean isConnectionSharing() {
+        return this.options.contains(OperationOption.CONNECTION_SHARING);
+    }
+
+    /**
      * Infrastructure use only.
      *
      * Value indicating whether this operation was forwarded from a peer node
@@ -1410,15 +1451,16 @@ public class Operation implements Cloneable {
     }
 
     public String getRequestCallbackLocation() {
-        if (this.remoteCtx == null) {
+        if (this.remoteCtx == null || this.remoteCtx.requestHeaders == null) {
             return null;
         }
+
         return this.remoteCtx.requestHeaders
                 .get(REQUEST_CALLBACK_LOCATION_HEADER);
     }
 
     public String getResponseCallbackStatus() {
-        if (this.remoteCtx == null) {
+        if (this.remoteCtx == null || this.remoteCtx.responseHeaders == null) {
             return null;
         }
         return this.remoteCtx.requestHeaders
@@ -1426,13 +1468,16 @@ public class Operation implements Cloneable {
     }
 
     public Operation removeRequestCallbackLocation() {
-        allocateRemoteContext();
+        if (this.remoteCtx == null || this.remoteCtx.requestHeaders == null) {
+            return null;
+        }
         this.remoteCtx.requestHeaders.remove(REQUEST_CALLBACK_LOCATION_HEADER);
         return this;
     }
 
     public Operation setRequestCallbackLocation(URI location) {
         allocateRemoteContext();
+        allocateRequestHeaders();
         this.remoteCtx.requestHeaders.put(REQUEST_CALLBACK_LOCATION_HEADER,
                 location == null ? null : location.toString());
         return this;
@@ -1440,6 +1485,7 @@ public class Operation implements Cloneable {
 
     public Operation setResponseCallbackStatus(int status) {
         allocateRemoteContext();
+        allocateRequestHeaders();
         this.remoteCtx.requestHeaders.put(RESPONSE_CALLBACK_STATUS_HEADER,
                 Integer.toString(status));
         return this;
@@ -1456,6 +1502,7 @@ public class Operation implements Cloneable {
         }
 
         allocateRemoteContext();
+        allocateResponseHeaders();
         for (Entry<String, String> e : op.getResponseHeaders().entrySet()) {
             this.remoteCtx.responseHeaders.put(e.getKey(), e.getValue());
         }
@@ -1473,6 +1520,7 @@ public class Operation implements Cloneable {
         }
 
         allocateRemoteContext();
+        allocateRequestHeaders();
         for (Entry<String, String> e : op.getRequestHeaders().entrySet()) {
             this.remoteCtx.requestHeaders.put(e.getKey(), e.getValue());
         }
@@ -1486,6 +1534,7 @@ public class Operation implements Cloneable {
         }
 
         allocateRemoteContext();
+        allocateRequestHeaders();
         for (Entry<String, String> e : op.getResponseHeaders().entrySet()) {
             this.remoteCtx.requestHeaders.put(e.getKey(), e.getValue());
         }
@@ -1499,6 +1548,7 @@ public class Operation implements Cloneable {
         }
 
         allocateRemoteContext();
+        allocateResponseHeaders();
         for (Entry<String, String> e : op.getRequestHeaders().entrySet()) {
             this.remoteCtx.responseHeaders.put(e.getKey(), e.getValue());
         }
