@@ -4417,7 +4417,11 @@ public class ServiceHost implements ServiceRequestSender {
         // retrieve the description through the cached template so its the thread safe,
         // immutable version
         body.description = buildDocumentDescription(s);
-        cacheServiceState(s, state, op);
+        if (!op.isFromReplication()) {
+            // Do not cache state, in replicas, massively reducing the transient memory
+            // foot print.
+            cacheServiceState(s, state, op);
+        }
 
         Operation post = Operation.createPost(indexService.getUri())
                 .setBodyNoCloning(body)
