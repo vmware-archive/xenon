@@ -641,7 +641,7 @@ public class UriUtils {
         return getODataParamValue(uri, URI_PARAM_ODATA_TOP);
     }
 
-    public static Boolean getODataCountParamValue(URI uri) {
+    public static boolean getODataCountParamValue(URI uri) {
         String paramValue = getODataParamValueAsString(uri, URI_PARAM_ODATA_COUNT);
         return Boolean.valueOf(paramValue);
     }

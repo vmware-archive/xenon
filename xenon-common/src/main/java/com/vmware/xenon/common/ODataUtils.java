@@ -39,7 +39,7 @@ public class ODataUtils {
         Integer top = UriUtils.getODataTopParamValue(op.getUri());
         Integer skip = UriUtils.getODataSkipParamValue(op.getUri());
         Integer limit = UriUtils.getODataLimitParamValue(op.getUri());
-        Boolean count = UriUtils.getODataCountParamValue(op.getUri());
+        boolean count = UriUtils.getODataCountParamValue(op.getUri());
         UriUtils.ODataOrderByTuple orderBy = UriUtils.getODataOrderByParamValue(op.getUri());
 
         QueryTask task = new QueryTask();
@@ -50,7 +50,7 @@ public class ODataUtils {
         task.querySpec.options.add(QueryOption.EXPAND_CONTENT);
 
         if (orderBy != null) {
-            if (count.booleanValue()) {
+            if (count) {
                 op.fail(new IllegalArgumentException(UriUtils.URI_PARAM_ODATA_COUNT
                         + " cannot be used together with " + UriUtils.URI_PARAM_ODATA_ORDER_BY));
                 return null;
@@ -65,7 +65,7 @@ public class ODataUtils {
         }
 
         if (top != null) {
-            if (count.booleanValue()) {
+            if (count) {
                 op.fail(new IllegalArgumentException(UriUtils.URI_PARAM_ODATA_COUNT
                         + " cannot be used together with " + UriUtils.URI_PARAM_ODATA_TOP));
                 return null;
@@ -81,7 +81,7 @@ public class ODataUtils {
         }
 
         if (limit != null && limit > 0) {
-            if (count.booleanValue()) {
+            if (count) {
                 op.fail(new IllegalArgumentException(UriUtils.URI_PARAM_ODATA_COUNT
                         + " cannot be used together with " + UriUtils.URI_PARAM_ODATA_LIMIT));
                 return null;
@@ -94,7 +94,7 @@ public class ODataUtils {
             task.querySpec.resultLimit = limit;
         }
 
-        if (count.booleanValue()) {
+        if (count) {
             task.querySpec.options.remove(QueryOption.EXPAND_CONTENT);
             task.querySpec.options.add(QueryOption.COUNT);
         }
