@@ -9,5 +9,5 @@ push: build
 	docker push $(IMAGE):$(TAG)
 
 shell:
-	@docker run --rm -ti -v `pwd`:/src --entrypoint=/bin/bash $(IMAGE)
+	@docker run --rm -ti -v `pwd`:/src --entrypoint=/bin/sh $(IMAGE)
 
