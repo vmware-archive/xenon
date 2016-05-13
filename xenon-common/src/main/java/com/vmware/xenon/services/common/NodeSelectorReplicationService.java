@@ -126,6 +126,11 @@ public class NodeSelectorReplicationService extends StatelessService {
                 }
             }
 
+            if (e != null && o != null) {
+                logWarning("Replication request to %s failed with %d, %s",
+                        o.getUri(), o.getStatusCode(), e.getMessage());
+            }
+
             if (sCount == successThresholdFinal) {
                 outboundOp.complete();
                 return;
@@ -200,6 +205,7 @@ public class NodeSelectorReplicationService extends StatelessService {
             }
 
             if (NodeState.isUnAvailable(m)) {
+                update.setStatusCode(Operation.STATUS_CODE_FAILURE_THRESHOLD);
                 c.handle(update, new IllegalStateException("node is not available"));
                 continue;
             }

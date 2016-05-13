@@ -14,6 +14,7 @@
 package com.vmware.xenon.common.http.netty;
 
 import java.lang.reflect.Field;
+import java.util.EnumSet;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
@@ -28,6 +29,8 @@ import io.netty.handler.codec.http2.HttpToHttp2ConnectionHandler;
 
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.ReflectionUtils;
+import com.vmware.xenon.common.ServiceErrorResponse;
+import com.vmware.xenon.common.ServiceErrorResponse.ErrorDetail;
 import com.vmware.xenon.common.Utils;
 
 /**
@@ -79,12 +82,19 @@ public class NettyHttpToHttp2Handler extends HttpToHttp2ConnectionHandler {
         }
 
         Operation oldOperation = socketContext.getOperationForStream(currentStreamId);
-        if (oldOperation != null && oldOperation != operation) {
+        if (oldOperation != null && oldOperation.getId() != operation.getId()) {
             long oldOpId = oldOperation.getId();
             long opId = operation.getId();
             // Reusing stream should NOT happen. sign for serious error...
             Utils.logWarning("Reusing stream %d. opId=%d, oldOpId=%d",
                     currentStreamId, opId, oldOpId);
+            Throwable e = new IllegalStateException("HTTP/2 Stream ID collision for id "
+                    + currentStreamId);
+            ServiceErrorResponse rsp = ServiceErrorResponse.create(
+                    e,
+                    Operation.STATUS_CODE_FAILURE_THRESHOLD,
+                    EnumSet.of(ErrorDetail.SHOULD_RETRY));
+            oldOperation.setBodyNoCloning(rsp).fail(e, rsp.statusCode);
         }
 
         socketContext.setOperationForStream(currentStreamId, operation);
