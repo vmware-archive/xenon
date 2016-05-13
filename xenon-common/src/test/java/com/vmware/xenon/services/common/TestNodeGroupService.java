@@ -1340,6 +1340,11 @@ public class TestNodeGroupService {
             totalOperations += this.serviceCount;
 
             if (this.testDurationSeconds == 0) {
+                verifyInstantNotFoundFailureOnBadLinks();
+                return;
+            }
+
+            if (this.testDurationSeconds == 0) {
                 verifyReplicatedIdempotentPost(childStates);
             }
 
@@ -1355,9 +1360,6 @@ public class TestNodeGroupService {
                 this.host.setStressTest(true);
             }
 
-            if (this.testDurationSeconds == 0 && this.serviceCount < 100) {
-                doMissingServiceUpdatesNoQueuing();
-            }
 
             long opCount = this.serviceCount * this.updateCount;
             childStates = doStateUpdateReplicationTest(Action.PATCH, this.serviceCount,
@@ -1592,7 +1594,7 @@ public class TestNodeGroupService {
         return links;
     }
 
-    private void doMissingServiceUpdatesNoQueuing() throws Throwable {
+    private void verifyInstantNotFoundFailureOnBadLinks() throws Throwable {
         this.host.toggleNegativeTestMode(true);
         // do a negative test: send request to a example child we know does not exist, but disable queuing
         // so we get 404 right away
@@ -1600,9 +1602,24 @@ public class TestNodeGroupService {
         for (int i = 0; i < this.serviceCount; i++) {
             URI factoryURI = this.host.getNodeGroupToFactoryMap(ExampleService.FACTORY_LINK)
                     .values().iterator().next();
-            URI bogusChild = UriUtils.extendUri(factoryURI, UUID.randomUUID().toString());
+            URI bogusChild = UriUtils.extendUri(factoryURI,
+                    Utils.getNowMicrosUtc() + UUID.randomUUID().toString());
             Operation patch = Operation.createPatch(bogusChild)
-                    .setCompletion(this.host.getExpectedFailureCompletion())
+                    .setCompletion((o, e) -> {
+                        if (e != null) {
+                            this.host.completeIteration();
+                            return;
+                        }
+                        // strange, service exists, lets verify
+                        for (VerificationHost h : this.host.getInProcessHostMap().values()) {
+                            ProcessingStage stg = h.getServiceStage(o.getUri().getPath());
+                            if (stg != null) {
+                                this.host.log("Service exists %s on host %s, stage %s",
+                                        o.getUri().getPath(), h.toString(), stg);
+                            }
+                        }
+                        this.host.failIteration(new Throwable("Expected service to not exist"));
+                    })
                     .setBody(new ExampleServiceState());
 
             this.host.send(patch);
