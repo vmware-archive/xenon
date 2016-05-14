@@ -505,9 +505,7 @@ public class NettyHttpServiceClient implements ServiceClient {
                             Operation.MEDIA_TYPE_EVERYTHING_WILDCARDS);
                 }
 
-                request.headers().set(HttpHeaderNames.HOST, this.host != null
-                        ? this.host.getPublicUri().getHost()
-                        : ServiceHost.LOCAL_HOST);
+                request.headers().set(HttpHeaderNames.HOST, op.getUri().getHost());
             }
 
             op.nestCompletion((o, e) -> {
