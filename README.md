@@ -7,9 +7,9 @@ services. The programming model is language agnostic (does not rely on Java spec
 so implementations in other languages are encouraged. The services can run on a set of
 distributed nodes. Xenon provides replication, synchronization, ordering, and consistency for the state
 of the services. Because of the distributed nature of Xenon, the services scale
-well and highly available.
+well and are highly available.
 
-Xenon is a "batteries included" framework. Unlike some frameworks that provides
+Xenon is a "batteries included" framework. Unlike some frameworks that provide
 just consistent data replication or just a microservice framework, Xenon provides
 both. Xenon services have REST-based APIs and are backed by a consistent, replicated
 document store.
@@ -133,7 +133,7 @@ Task services are just like any other services, but they take advantage of two
 features of Xenon:
 
 1. Task services use the ability to communicate with services: they communicate
-to themselves. As a task proceeds, it records its state by using it’s own API to update itself.
+to themselves. As a task proceeds, it records its state by using its own API to update itself.
 For instance:
   - A client POSTs to a task factory and the task service is made
   - The task service does something (search for disks, to continue above example)
