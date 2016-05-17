@@ -210,6 +210,9 @@ public class TestNodeGroupService {
             // disable HTTP, forcing host.getPublicUri() to return a HTTPS schemed URI. This in
             // turn forces the node group to use HTTPS for join, replication, etc
             this.host.setPort(ServiceHost.PORT_VALUE_LISTENER_DISABLED);
+            // the default is disable (-1) so we must set port to 0, to enable SSL and make the
+            // runtime pick a random HTTPS port
+            this.host.setSecurePort(0);
         }
 
         if (this.testDurationSeconds > 0) {
@@ -1339,6 +1342,12 @@ public class TestNodeGroupService {
                         this.host.getPeerServiceUri(this.replicationTargetFactoryLink));
 
                 waitForReplicationFactoryConvergence();
+                if (this.replicationUriScheme == ServiceHost.HttpScheme.HTTPS_ONLY) {
+                    // confirm nodes are joined using HTTPS group references
+                    for (URI nodeGroup : this.host.getNodeGroupMap().values()) {
+                        assertTrue(UriUtils.HTTPS_SCHEME.equals(nodeGroup.getScheme()));
+                    }
+                }
 
             }
 

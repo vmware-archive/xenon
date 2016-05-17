@@ -83,6 +83,7 @@ public class NettyHttpClientRequestHandler extends SimpleChannelInboundHandler<O
         Operation request = null;
         Integer streamId = null;
         try {
+
             // Start of request processing, initialize in-bound operation
             FullHttpRequest nettyRequest = (FullHttpRequest) msg;
             long expMicros = Utils.getNowMicrosUtc() + this.host.getOperationTimeoutMicros();

@@ -1676,6 +1676,8 @@ public class VerificationHost extends ExampleServiceHost {
         if (this.getCurrentHttpScheme() == HttpScheme.HTTPS_ONLY) {
             // disable HTTP on new peer host
             h.setPort(ServiceHost.PORT_VALUE_LISTENER_DISABLED);
+            // request a random HTTPS port
+            h.setSecurePort(0);
         }
 
         if (this.isAuthorizationEnabled()) {

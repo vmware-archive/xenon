@@ -29,7 +29,6 @@ import com.vmware.xenon.services.common.NodeGroupService.NodeGroupState;
 import com.vmware.xenon.services.common.NodeState.NodeOption;
 
 public class NodeSelectorReplicationService extends StatelessService {
-
     public static final int BINARY_SERIALIZATION =
             Integer.getInteger(Utils.PROPERTY_NAME_PREFIX
                     + "NodeSelectorReplicationService.BINARY_SERIALIZATION", 1);
@@ -43,7 +42,6 @@ public class NodeSelectorReplicationService extends StatelessService {
                 ServiceHost.SERVICE_URI_SUFFIX_REPLICATION));
         super.setProcessingStage(ProcessingStage.AVAILABLE);
     }
-
 
     /**
      * Issues updates to peer nodes, after a local update has been accepted. If the service support
@@ -182,14 +180,6 @@ public class NodeSelectorReplicationService extends StatelessService {
         Utils.encodeAndTransferLinkedStateToBody(outboundOp, update, BINARY_SERIALIZATION == 1);
 
         update.setFromReplication(true);
-        update.setConnectionSharing(true);
-
-        // Only use replication tag on HTTP + HTTP/2. On HTTPS, we want to use the default HTTP1.1
-        // connection tag, which allows for a lot more concurrent connections. This will change
-        // once we have TLS/APLN support for HTTP/2
-        if (selfNode.groupReference.getScheme().equals(UriUtils.HTTP_SCHEME)) {
-            update.setConnectionTag(ServiceClient.CONNECTION_TAG_REPLICATION);
-        }
 
         if (update.getCookies() != null) {
             update.getCookies().clear();

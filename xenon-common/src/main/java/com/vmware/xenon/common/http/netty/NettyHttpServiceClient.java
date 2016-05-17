@@ -383,6 +383,8 @@ public class NettyHttpServiceClient implements ServiceClient {
                 port = UriUtils.HTTPS_DEFAULT_PORT;
             }
             pool = this.sslChannelPool;
+            // SSL does not use connection sharing, HTTP/2, so disable it
+            op.setConnectionSharing(false);
 
             if (this.getSSLContext() == null || pool == null) {
                 op.setRetryCount(0);
