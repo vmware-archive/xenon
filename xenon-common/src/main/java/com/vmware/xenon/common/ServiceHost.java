@@ -1522,8 +1522,14 @@ public class ServiceHost implements ServiceRequestSender {
                     continue;
                 }
             }
+
+            int selfPort = getPort();
+            if (UriUtils.HTTPS_SCHEME.equals(peerNodeBaseUri.getScheme())) {
+                selfPort = getSecurePort();
+            }
+
             if (checkAndSetPreferredAddress(peerNodeBaseUri.getHost())
-                    && peerNodeBaseUri.getPort() == getPort()) {
+                    && peerNodeBaseUri.getPort() == selfPort) {
                 // self, skip
                 log(Level.INFO, "Skipping peer %s, its us", peerNodeBaseUri);
                 continue;

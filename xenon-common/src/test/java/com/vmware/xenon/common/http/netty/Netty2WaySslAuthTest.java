@@ -125,6 +125,10 @@ public class Netty2WaySslAuthTest {
             return;
         }
 
+        // verify that the self URI supplied, even if its a HTTPS, was filtered out of the
+        // peer list
+        assertEquals(this.host.getInitialPeerHosts().size(), 0);
+
         // verify quorum is set to 1, since we supplied just self as peer
         this.host.waitFor("quorum not set", () -> {
             NodeGroupState ngs = this.host.getServiceState(null,

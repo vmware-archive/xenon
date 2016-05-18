@@ -524,17 +524,6 @@ public class NodeGroupService extends StatefulService {
             // Initialize default quorum based on service host peerHosts argument
             int total = getHost().getInitialPeerHosts().size() + 1;
             int quorum = (total / 2) + 1;
-
-            if (quorum == 2) {
-                // deal with the case where --peerNodes argument is supplied on host start, but it
-                // has a single URI, pointing to the host itself. In that case, the code above produces
-                // quorum of 2, which is incorrect.
-                for (URI remotePeer : getHost().getInitialPeerHosts()) {
-                    if (UriUtils.isHostEqual(getHost(), remotePeer)) {
-                        quorum--;
-                    }
-                }
-            }
             body.membershipQuorum = Math.max(1, quorum);
         }
         body.groupReference = UriUtils.buildPublicUri(getHost(), getSelfLink());
