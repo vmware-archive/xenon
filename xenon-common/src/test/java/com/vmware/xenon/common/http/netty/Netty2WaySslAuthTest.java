@@ -41,6 +41,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.vmware.xenon.common.CommandLineArgumentParser;
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.ServiceClient;
 import com.vmware.xenon.common.ServiceDocument;
@@ -50,7 +51,9 @@ import com.vmware.xenon.common.StatelessService;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.Utils;
 import com.vmware.xenon.common.test.VerificationHost;
-
+import com.vmware.xenon.services.common.NodeGroupService.NodeGroupState;
+import com.vmware.xenon.services.common.NodeState;
+import com.vmware.xenon.services.common.ServiceUriPaths;
 
 /**
  * DCP Host with 2-way SSL certificate authentication test.
@@ -64,6 +67,8 @@ import com.vmware.xenon.common.test.VerificationHost;
 public class Netty2WaySslAuthTest {
     public static final String JAVAX_NET_SSL_TRUST_STORE = "javax.net.ssl.trustStore";
     public static final String JAVAX_NET_SSL_TRUST_STORE_PASSWORD = "javax.net.ssl.trustStorePassword";
+
+    public int securePort = 0;
     private VerificationHost host;
     private TemporaryFolder temporaryFolder;
     private static String savedTrustStore;
@@ -95,19 +100,45 @@ public class Netty2WaySslAuthTest {
 
     @Before
     public void setUp() throws Throwable {
+        CommandLineArgumentParser.parseFromProperties(this);
         this.temporaryFolder = new TemporaryFolder();
         this.temporaryFolder.create();
         this.host = new VerificationHost();
         ServiceHost.Arguments args = new ServiceHost.Arguments();
-        args.securePort = 0;
+        args.securePort = this.securePort;
         args.port = 0;
         args.keyFile = getCanonicalFileForResource("/ssl/server.pem").toPath();
         args.certificateFile = getCanonicalFileForResource("/ssl/server.crt").toPath();
         args.sslClientAuthMode = SslClientAuthMode.WANT;
         args.sandbox = this.temporaryFolder.getRoot().toPath();
         args.bindAddress = ServiceHost.LOOPBACK_ADDRESS;
+
+        if (args.securePort != 0) {
+            args.port = 0;
+            args.peerNodes = new String[] { "https://127.0.0.1:" + args.securePort };
+        }
+
         this.host.initialize(args);
         this.host.start();
+
+        if (args.securePort == 0) {
+            return;
+        }
+
+        // verify quorum is set to 1, since we supplied just self as peer
+        this.host.waitFor("quorum not set", () -> {
+            NodeGroupState ngs = this.host.getServiceState(null,
+                    NodeGroupState.class,
+                    UriUtils.buildUri(this.host, ServiceUriPaths.DEFAULT_NODE_GROUP));
+            NodeState self = ngs.nodes.get(this.host.getId());
+            if (self == null) {
+                return false;
+            }
+            if (self.membershipQuorum != 1) {
+                return false;
+            }
+            return true;
+        });
     }
 
     @After

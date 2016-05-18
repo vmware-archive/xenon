@@ -263,7 +263,6 @@ public class VerificationHost extends ExampleServiceHost {
 
         try {
             h.initialize(args);
-            h.referer = UriUtils.buildUri(h, "test-client-send");
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -362,7 +361,7 @@ public class VerificationHost extends ExampleServiceHost {
     }
 
     public void send(Operation op) {
-        op.setReferer(this.referer);
+        op.setReferer(getReferer());
         super.sendRequest(op);
     }
 
@@ -851,7 +850,7 @@ public class VerificationHost extends ExampleServiceHost {
         }
 
         op.setExpiration(Utils.getNowMicrosUtc() + getOperationTimeoutMicros());
-        op.setReferer(this.referer);
+        op.setReferer(getReferer());
         ServiceClient c = client != null ? client : getClient();
         for (int i = 0; i < count; i++) {
             c.send(op);
@@ -931,7 +930,7 @@ public class VerificationHost extends ExampleServiceHost {
         for (URI u : uris) {
             Operation get = Operation
                     .createGet(u)
-                    .setReferer(this.referer)
+                    .setReferer(getReferer())
                     .setCompletion(
                             (o, e) -> {
                                 try {
@@ -1312,6 +1311,9 @@ public class VerificationHost extends ExampleServiceHost {
     }
 
     public URI getReferer() {
+        if (this.referer == null) {
+            this.referer = getUri();
+        }
         return this.referer;
     }
 
