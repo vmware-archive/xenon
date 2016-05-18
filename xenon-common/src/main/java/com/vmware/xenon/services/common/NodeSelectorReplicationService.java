@@ -29,8 +29,11 @@ import com.vmware.xenon.services.common.NodeGroupService.NodeGroupState;
 import com.vmware.xenon.services.common.NodeState.NodeOption;
 
 public class NodeSelectorReplicationService extends StatelessService {
-    public static final int BINARY_SERIALIZATION =
-            Integer.getInteger(Utils.PROPERTY_NAME_PREFIX
+    public static final int REPLICATION_TAG_CONNECTION_LIMIT = Integer.getInteger(
+            Utils.PROPERTY_NAME_PREFIX
+                    + "NodeSelectorReplicationService.REPLICATION_TAG_CONNECTION_LIMIT", 32);
+    public static final int BINARY_SERIALIZATION = Integer.getInteger(
+            Utils.PROPERTY_NAME_PREFIX
                     + "NodeSelectorReplicationService.BINARY_SERIALIZATION", 1);
 
     private Service parent;
@@ -41,15 +44,13 @@ public class NodeSelectorReplicationService extends StatelessService {
         super.setSelfLink(UriUtils.buildUriPath(parent.getSelfLink(),
                 ServiceHost.SERVICE_URI_SUFFIX_REPLICATION));
         super.setProcessingStage(ProcessingStage.AVAILABLE);
+        parent.getHost().getClient().setConnectionLimitPerTag(
+                ServiceClient.CONNECTION_TAG_REPLICATION,
+                REPLICATION_TAG_CONNECTION_LIMIT);
     }
 
     /**
-     * Issues updates to peer nodes, after a local update has been accepted. If the service support
-     * OWNER_SELECTION the replication message is the Propose message in the consensus work flow.
-     * @param localState
-     * @param outboundOp
-     * @param req
-     * @param rsp
+     * Issues updates to peer nodes, after a local update has been accepted
      */
     void replicateUpdate(NodeGroupState localState,
             Operation outboundOp, SelectAndForwardRequest req, SelectOwnerResponse rsp) {
@@ -180,6 +181,7 @@ public class NodeSelectorReplicationService extends StatelessService {
         Utils.encodeAndTransferLinkedStateToBody(outboundOp, update, BINARY_SERIALIZATION == 1);
 
         update.setFromReplication(true);
+        update.setConnectionTag(ServiceClient.CONNECTION_TAG_REPLICATION);
 
         if (update.getCookies() != null) {
             update.getCookies().clear();
