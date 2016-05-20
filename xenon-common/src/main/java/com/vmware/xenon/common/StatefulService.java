@@ -1406,7 +1406,7 @@ public class StatefulService implements Service {
         }
 
         if (stage == ProcessingStage.AVAILABLE) {
-            getHost().processPendingServiceAvailableOperations(this, null);
+            getHost().processPendingServiceAvailableOperations(this, null, false);
         }
     }
 

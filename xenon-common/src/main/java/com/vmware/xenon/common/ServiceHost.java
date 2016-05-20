@@ -1990,7 +1990,7 @@ public class ServiceHost implements ServiceRequestSender {
             stopService(service);
             post.fail(e);
 
-            processPendingServiceAvailableOperations(service, e);
+            processPendingServiceAvailableOperations(service, e, !post.isFailureLoggingDisabled());
         });
 
         this.operationTracker.trackStartOperation(post);
@@ -2042,8 +2042,8 @@ public class ServiceHost implements ServiceRequestSender {
                 () -> FactoryService.createIdempotent(serviceClass));
     }
 
-    void processPendingServiceAvailableOperations(Service s, Throwable e) {
-        if (!isStopping() && e != null) {
+    void processPendingServiceAvailableOperations(Service s, Throwable e, boolean logFailure) {
+        if (logFailure && !isStopping() && e != null) {
             log(Level.WARNING, "Service %s failed start: %s", s.getSelfLink(),
                     e.toString());
         }
@@ -2059,7 +2059,7 @@ public class ServiceHost implements ServiceRequestSender {
             }
         }
 
-        if (e != null) {
+        if (e != null && logFailure) {
             log(Level.INFO, "Retrying %d operations waiting on failed start for %s", ops.size(),
                     s.getSelfLink());
         }
@@ -3513,7 +3513,9 @@ public class ServiceHost implements ServiceRequestSender {
                 if (e == null) {
                     return;
                 }
-
+                if (op.isFailureLoggingDisabled()) {
+                    return;
+                }
                 log(Level.WARNING, "%s (ctx id:%s) to %s, from %s failed: %s", o.getAction(),
                         o.getContextId(),
                         o.getUri(),
@@ -4340,6 +4342,11 @@ public class ServiceHost implements ServiceRequestSender {
         } catch (Throwable e1) {
             inboundOp.fail(e1);
             return true;
+        }
+
+        if (inboundOp.getAction() == Action.DELETE) {
+            onDemandPost.disableFailureLogging(true);
+            inboundOp.disableFailureLogging(true);
         }
 
         // bypass the factory, directly start service on host. This avoids adding a new

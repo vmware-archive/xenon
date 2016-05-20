@@ -2,6 +2,10 @@
 
 ## 0.8.1-SNAPSHOT
 
+* Add Operation.disableFailureLogging to allow control on default
+  failure logging behavior. Disable logging of failures on on demand
+  load services, if the demand load action is a DELETE
+
 * Add OData query parameter $orderbytype used for specifying the type
   of property specified through $orderby parameter. This allows the
   OData query service in Xenon to support sorting for both numeric

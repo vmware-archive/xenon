@@ -229,7 +229,7 @@ class ServiceResourceTracker {
                             resumeService(path, s);
                             // this means service received a request and is active. Its OK, the index will have
                             // a stale entry that will get deleted next time we query for this self link.
-                            this.host.processPendingServiceAvailableOperations(s, null);
+                            this.host.processPendingServiceAvailableOperations(s, null, false);
                             return;
                         }
 

@@ -1646,6 +1646,7 @@ public class LuceneDocumentIndexService extends StatelessService {
         // remove service, if its running
         sendRequest(Operation.createDelete(this, state.documentSelfLink)
                 .setBodyNoCloning(state)
+                .disableFailureLogging(true)
                 .addPragmaDirective(Operation.PRAGMA_DIRECTIVE_NO_INDEX_UPDATE));
     }
 

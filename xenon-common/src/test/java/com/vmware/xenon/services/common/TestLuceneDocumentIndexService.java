@@ -723,17 +723,38 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
             assertEquals(s.stringValue, s.id);
         }
 
-        // Lets try stop now, then delete, on a service that should be on demand loaded
+        // mark a service for expiration, a few seconds in the future
         serviceToDelete = childUris.remove(0);
+        MinimalTestServiceState body = new MinimalTestServiceState();
+        body.id = UUID.randomUUID().toString();
+        body.documentExpirationTimeMicros = Utils.getNowMicrosUtc() + TimeUnit.SECONDS.toMicros(2);
+        patch = Operation.createPatch(serviceToDelete)
+                .setBody(body)
+                .setCompletion(this.host.getCompletion());
+        this.host.sendAndWait(patch);
+
+
+        // Lets try stop now, then delete, on a service that should be on demand loaded
+        this.host.log("Stopping service before expiration: %s", serviceToDelete.getPath());
         Operation stopDelete = Operation.createDelete(serviceToDelete)
                 .addPragmaDirective(Operation.PRAGMA_DIRECTIVE_NO_INDEX_UPDATE)
                 .setCompletion(this.host.getCompletion());
         this.host.sendAndWait(stopDelete);
 
-        // try again, with regular delete, emulating expiration
-        delete = Operation.createDelete(serviceToDelete)
-                .setCompletion(this.host.getCompletion());
-        this.host.sendAndWait(delete);
+        // also do a regular delete, it should make no difference.
+        Operation regularDelete = Operation.createDelete(serviceToDelete)
+                .setCompletion((o, e) -> {
+                    this.host.completeIteration();
+                });
+        this.host.sendAndWait(regularDelete);
+
+        String path = serviceToDelete.getPath();
+        this.host.waitFor("never stopped", () -> {
+            return this.host.getServiceStage(path) == null;
+        });
+
+
+
         this.host.log("******************************* finished *******************************");
     }
 

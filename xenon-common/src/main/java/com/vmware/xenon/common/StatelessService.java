@@ -463,7 +463,7 @@ public class StatelessService implements Service {
             return;
         }
 
-        getHost().processPendingServiceAvailableOperations(this, null);
+        getHost().processPendingServiceAvailableOperations(this, null, false);
     }
 
     @Override

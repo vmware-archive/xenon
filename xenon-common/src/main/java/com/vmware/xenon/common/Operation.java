@@ -269,14 +269,14 @@ public class Operation implements Cloneable {
 
     public static enum OperationOption {
         /**
-         * Set to request underlying support for overlapping operations on the same connection. For example,
-         * if set, and the service client is HTTP/2 aware, the operation will use the same connection as
-         * many others, pending, operations
+         * Set to request underlying support for overlapping operations on the same connection.
+         * For example, if set, and the service client is HTTP/2 aware, the operation will use the
+         * same connection as many others, pending, operations
          */
         CONNECTION_SHARING,
         /**
-         * Set by the client to both request a long lived connection on out-bound requests, or indicate the
-         * operation was received on a long lived connection, for in-bound requests
+         * Set by the client to both request a long lived connection on out-bound requests,
+         * or indicate the operation was received on a long lived connection, for in-bound requests
          */
         KEEP_ALIVE,
         /**
@@ -288,7 +288,8 @@ public class Operation implements Cloneable {
          */
         REPLICATION_DISABLED,
         /**
-         * Set by request listener to prevent cloning of the body during {@link Operation#setBody(Object)}
+         * Set by request listener to prevent cloning of the body during
+         * {@link Operation#setBody(Object)}
          */
         CLONING_DISABLED,
         /**
@@ -299,7 +300,11 @@ public class Operation implements Cloneable {
         /**
          * Set if the target service is replicated
          */
-        REPLICATED_TARGET
+        REPLICATED_TARGET,
+        /**
+         * Set by client to disable default logging of operation failures
+         */
+        FAILURE_LOGGING_DISABLED
     }
 
     public static class SerializedOperation extends ServiceDocument {
@@ -1356,6 +1361,25 @@ public class Operation implements Cloneable {
 
     InstrumentationContext getInstrumentationContext() {
         return this.instrumentationCtx;
+    }
+
+    /**
+     * Toggles logging of failures.
+     * The default is to log failures on all operations if no completion is supplied, or
+     * if the operation is a service start operation. To disable the default failure
+     * logs invoke this method passing true for the argument.
+     */
+    public Operation disableFailureLogging(boolean disable) {
+        if (disable) {
+            this.options.add(OperationOption.FAILURE_LOGGING_DISABLED);
+        } else {
+            this.options.remove(OperationOption.FAILURE_LOGGING_DISABLED);
+        }
+        return this;
+    }
+
+    public boolean isFailureLoggingDisabled() {
+        return this.options.contains(OperationOption.FAILURE_LOGGING_DISABLED);
     }
 
     public Operation setReplicationDisabled(boolean disable) {

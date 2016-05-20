@@ -227,6 +227,9 @@ public class MinimalTestService extends StatefulService {
             } else {
                 currentState.id = patchBody.id;
             }
+            if (patchBody.documentExpirationTimeMicros > 0) {
+                currentState.documentExpirationTimeMicros = patchBody.documentExpirationTimeMicros;
+            }
         } else {
             setState(patch, patchBody);
         }
