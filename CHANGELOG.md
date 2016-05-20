@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.8.1-SNAPSHOT
+## 0.8.1
 
 * Add support for expiration on stateful in-memory services. We now
   support expiration and auto-DELETE on services with
