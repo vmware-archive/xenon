@@ -774,6 +774,8 @@ public class TestQueryTaskService {
 
             doInQuery("id",
                     newState.id, services.size(), 1);
+            doNotInQuery("id",
+                    newState.id, services.size(), services.size() - 1);
             doInCollectionQuery("listOfStrings", newState.listOfStrings,
                     services.size(), services.size());
 
@@ -820,6 +822,35 @@ public class TestQueryTaskService {
                         UUID.randomUUID().toString()))
                 .build();
         this.host.createAndWaitSimpleDirectQuery(spec,
+                documentCount, expectedResultCount);
+    }
+
+    private void doNotInQuery(String fieldName, String fieldValue, long documentCount,
+                           long expectedResultCount) throws Throwable {
+        QuerySpecification spec = new QuerySpecification();
+        spec.query = Query.Builder.create().addInClause(
+                fieldName,
+                Arrays.asList(
+                        UUID.randomUUID().toString(),
+                        fieldValue,
+                        UUID.randomUUID().toString()),
+                Occurance.MUST_NOT_OCCUR)
+                .addFieldClause(ServiceDocument.FIELD_NAME_KIND,
+                        Utils.buildKind(QueryValidationServiceState.class))
+                .build();
+        this.host.createAndWaitSimpleDirectQuery(spec,
+                documentCount, expectedResultCount);
+
+        // Additional Test to verify that  InClause with Array[1] is treated as TERM Query
+        QuerySpecification spec1 = new QuerySpecification();
+        spec1.query = Query.Builder.create().addInClause(
+                fieldName,
+                Arrays.asList(fieldValue),
+                Occurance.MUST_NOT_OCCUR)
+                .addFieldClause(ServiceDocument.FIELD_NAME_KIND,
+                        Utils.buildKind(QueryValidationServiceState.class))
+                .build();
+        this.host.createAndWaitSimpleDirectQuery(spec1,
                 documentCount, expectedResultCount);
     }
 

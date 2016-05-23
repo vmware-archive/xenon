@@ -440,7 +440,7 @@ public class QueryTask extends ServiceDocument {
 
             /**
              * Add a clause with the given occurance which matches a property with at least one of several specified
-             * values (analogous to a SQL "IN" statement).
+             * values (analogous to a SQL "IN" or "NOT IN" statements).
              * @param fieldName the field name.
              * @param itemNames the item names in the collection to match.
              * @param occurance the occurance for this clause.
@@ -450,7 +450,8 @@ public class QueryTask extends ServiceDocument {
                 if (itemNames.size() == 1) {
                     return addFieldClause(
                             fieldName,
-                            itemNames.iterator().next());
+                            itemNames.iterator().next(),
+                            occurance);
                 }
 
                 Query.Builder inClause = Query.Builder.create(occurance);
@@ -463,7 +464,7 @@ public class QueryTask extends ServiceDocument {
 
             /**
              * Add a clause which matches a collection containing at least one of several specified
-             * values (analogous to a SQL "IN" statement).
+             * values (analogous to a SQL "IN" or "NOT IN" statements).
              * @param collectionFieldName the collection field name.
              * @param itemNames the item names in the collection to match.
              * @return a reference to this object.
@@ -477,7 +478,7 @@ public class QueryTask extends ServiceDocument {
 
             /**
              * Add a clause with the given occurance which matches a collection containing at least one of several
-             * specified values (analogous to a SQL "IN" statement).
+             * specified values (analogous to a SQL "IN" or "NOT IN" statements).
              * @param collectionFieldName the collection field name.
              * @param itemNames the item names in the collection to match.
              * @param occurance the occurance for this clause.
