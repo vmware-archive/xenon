@@ -794,7 +794,7 @@ public class Operation implements Cloneable {
 
     public Operation setBody(Object body) {
         if (body != null) {
-            if (isCloningDisabled()) {
+            if (hasOption(OperationOption.CLONING_DISABLED)) {
                 this.body = body;
             } else {
                 this.body = Utils.clone(body);
@@ -1299,16 +1299,12 @@ public class Operation implements Cloneable {
     }
 
     public boolean isKeepAlive() {
-        return this.remoteCtx == null ? false : this.options.contains(OperationOption.KEEP_ALIVE);
+        return this.remoteCtx == null ? false : hasOption(OperationOption.KEEP_ALIVE);
     }
 
     public Operation setKeepAlive(boolean isKeepAlive) {
         allocateRemoteContext();
-        if (isKeepAlive) {
-            this.options.add(OperationOption.KEEP_ALIVE);
-        } else {
-            this.options.remove(OperationOption.KEEP_ALIVE);
-        }
+        toggleOption(OperationOption.KEEP_ALIVE, isKeepAlive);
         return this;
     }
 
@@ -1325,6 +1321,19 @@ public class Operation implements Cloneable {
 
     public String getConnectionTag() {
         return this.remoteCtx == null ? null : this.remoteCtx.connectionTag;
+    }
+
+    public Operation toggleOption(OperationOption option, boolean enable) {
+        if (enable) {
+            this.options.add(option);
+        } else {
+            this.options.remove(option);
+        }
+        return this;
+    }
+
+    public boolean hasOption(OperationOption option) {
+        return this.options.contains(option);
     }
 
     void setHandlerInvokeTime(long nowMicrosUtc) {
@@ -1370,29 +1379,21 @@ public class Operation implements Cloneable {
      * logs invoke this method passing true for the argument.
      */
     public Operation disableFailureLogging(boolean disable) {
-        if (disable) {
-            this.options.add(OperationOption.FAILURE_LOGGING_DISABLED);
-        } else {
-            this.options.remove(OperationOption.FAILURE_LOGGING_DISABLED);
-        }
+        toggleOption(OperationOption.FAILURE_LOGGING_DISABLED, disable);
         return this;
     }
 
     public boolean isFailureLoggingDisabled() {
-        return this.options.contains(OperationOption.FAILURE_LOGGING_DISABLED);
+        return hasOption(OperationOption.FAILURE_LOGGING_DISABLED);
     }
 
     public Operation setReplicationDisabled(boolean disable) {
-        if (disable) {
-            this.options.add(OperationOption.REPLICATION_DISABLED);
-        } else {
-            this.options.remove(OperationOption.REPLICATION_DISABLED);
-        }
+        toggleOption(OperationOption.REPLICATION_DISABLED, disable);
         return this;
     }
 
     public boolean isReplicationDisabled() {
-        return this.options.contains(OperationOption.REPLICATION_DISABLED);
+        return hasOption(OperationOption.REPLICATION_DISABLED);
     }
 
     public Map<String, String> getRequestHeaders() {
@@ -1486,11 +1487,7 @@ public class Operation implements Cloneable {
      * @return
      */
     public Operation setTargetReplicated(boolean enable) {
-        if (enable) {
-            this.options.add(OperationOption.REPLICATED_TARGET);
-        } else {
-            this.options.remove(OperationOption.REPLICATED_TARGET);
-        }
+        toggleOption(OperationOption.REPLICATED_TARGET, enable);
         return this;
     }
 
@@ -1501,18 +1498,14 @@ public class Operation implements Cloneable {
      * @return
      */
     public boolean isTargetReplicated() {
-        return this.options.contains(OperationOption.REPLICATED_TARGET);
+        return hasOption(OperationOption.REPLICATED_TARGET);
     }
 
     /**
      * Infrastructure use only
      */
     public Operation setFromReplication(boolean isFromReplication) {
-        if (isFromReplication) {
-            this.options.add(OperationOption.REPLICATED);
-        } else {
-            this.options.remove(OperationOption.REPLICATED);
-        }
+        toggleOption(OperationOption.REPLICATED, isFromReplication);
         return this;
     }
 
@@ -1522,18 +1515,14 @@ public class Operation implements Cloneable {
      * Value indicating whether this operation was created to apply locally a remote update
      */
     public boolean isFromReplication() {
-        return this.options.contains(OperationOption.REPLICATED);
+        return hasOption(OperationOption.REPLICATED);
     }
 
     /**
      * Infrastructure use only
      */
     public Operation setConnectionSharing(boolean enable) {
-        if (enable) {
-            this.options.add(OperationOption.CONNECTION_SHARING);
-        } else {
-            this.options.remove(OperationOption.CONNECTION_SHARING);
-        }
+        toggleOption(OperationOption.CONNECTION_SHARING, enable);
         return this;
     }
 
@@ -1543,7 +1532,7 @@ public class Operation implements Cloneable {
      * Value indicating whether this operation is sharing a connection
      */
     public boolean isConnectionSharing() {
-        return this.options.contains(OperationOption.CONNECTION_SHARING);
+        return hasOption(OperationOption.CONNECTION_SHARING);
     }
 
     /**
@@ -1660,37 +1649,17 @@ public class Operation implements Cloneable {
         return this;
     }
 
-    /**
-     * Infrastructure use only.
-     *
-     * If cloning is disabled, setBody() will not
-     * clone the supplied argument. Requests received from external clients
-     * can avoid the overhead of cloning a response body by disabling cloning
-     */
-    public Operation setCloningDisabled(boolean disable) {
-        this.options.add(OperationOption.CLONING_DISABLED);
-        return this;
-    }
-
-    public boolean isCloningDisabled() {
-        return this.options.contains(OperationOption.CLONING_DISABLED);
-    }
-
     public boolean isNotification() {
         return hasPragmaDirective(PRAGMA_DIRECTIVE_NOTIFICATION);
     }
 
     public Operation setNotificationDisabled(boolean disable) {
-        if (disable) {
-            this.options.add(OperationOption.NOTIFICATION_DISABLED);
-        } else {
-            this.options.remove(OperationOption.NOTIFICATION_DISABLED);
-        }
+        toggleOption(OperationOption.NOTIFICATION_DISABLED, disable);
         return this;
     }
 
     public boolean isNotificationDisabled() {
-        return this.options.contains(OperationOption.NOTIFICATION_DISABLED);
+        return hasOption(OperationOption.NOTIFICATION_DISABLED);
     }
 
     boolean isForwardingDisabled() {
