@@ -205,10 +205,6 @@ class LuceneQueryConverter {
         switch (type) {
         case LONG:
         case DOUBLE:
-            // LuceneDocumentIndexService uses SortedNumericDocValuesField
-            // when adding indexes for Numeric fields. To maintain parity, we use
-            // SortedNumericSortField here when querying for data in sorted order
-            // for any numeric fields.
             sortField = new SortedNumericSortField(
                     querySpecification.sortTerm.propertyName, type, order);
             break;
