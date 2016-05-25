@@ -105,6 +105,7 @@ public class NettyHttpServiceClientTest {
 
         try {
             HOST.start();
+            CommandLineArgumentParser.parseFromProperties(HOST);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -827,6 +828,12 @@ public class NettyHttpServiceClientTest {
             doGetThroughputTest(EnumSet.of(TestProperty.FORCE_REMOTE), body, c, services);
         }
 
+        // using loop back, sockets, and callback pattern
+        for (int i = 0; i < 3; i++) {
+            doGetThroughputTest(EnumSet.of(TestProperty.FORCE_REMOTE, TestProperty.CALLBACK_SEND),
+                    body, c, services);
+        }
+
         // again but skip serialization, ask service to return string for response
         for (int i = 0; i < 3; i++) {
             doGetThroughputTest(EnumSet.of(TestProperty.FORCE_REMOTE, TestProperty.TEXT_RESPONSE),
@@ -854,7 +861,12 @@ public class NettyHttpServiceClientTest {
                         return;
                     }
 
+
                     if (!props.contains(TestProperty.TEXT_RESPONSE)) {
+                        if (!o.hasBody()) {
+                            this.host.failIteration(new IllegalStateException("no body"));
+                            return;
+                        }
                         MinimalTestServiceState st = o.getBody(MinimalTestServiceState.class);
                         try {
                             assertTrue(st.id != null);
@@ -874,9 +886,14 @@ public class NettyHttpServiceClientTest {
             get.addRequestHeader("Accept", Operation.MEDIA_TYPE_TEXT_PLAIN);
         }
 
+        if (props.contains(TestProperty.CALLBACK_SEND)) {
+            get.toggleOption(OperationOption.SEND_WITH_CALLBACK, true);
+        }
+
         for (int i = 0; i < c; i++) {
             inFlight.incrementAndGet();
-            this.host.send(get);
+            this.host.send(get.setExpiration(this.host.getOperationTimeoutMicros()
+                    + Utils.getNowMicrosUtc()));
             if (inFlight.get() < concurrencyFactor) {
                 continue;
             }

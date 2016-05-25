@@ -81,7 +81,7 @@ public class HttpRequestCallbackService extends StatelessService {
             }
 
             this.client.stopTracking(request);
-            request.setBodyNoCloning(o.getBodyRaw());
+
             String responseStatusValue = o.getRequestHeaders().remove(
                     Operation.RESPONSE_CALLBACK_STATUS_HEADER);
 
@@ -90,6 +90,8 @@ public class HttpRequestCallbackService extends StatelessService {
                         "Missing response callback status header :" + o.toString()));
                 return;
             }
+
+            request.setBodyNoCloning(o.getBodyRaw());
 
             request.transferRequestHeadersToResponseHeadersFrom(o);
             request.setStatusCode(Integer.parseInt(responseStatusValue));

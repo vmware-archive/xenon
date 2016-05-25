@@ -291,8 +291,6 @@ public class NettyHttpServiceClient implements ServiceClient {
                 op.setExpiration(0).fail(e);
                 return;
             }
-            // release reference to body, not needed
-            op.setBody(null);
         });
         sendRemote(remoteOp);
     }
