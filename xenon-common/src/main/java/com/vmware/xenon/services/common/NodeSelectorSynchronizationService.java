@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.Operation.CompletionHandler;
+import com.vmware.xenon.common.Operation.OperationOption;
 import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.ServiceDocument;
 import com.vmware.xenon.common.ServiceDocument.DocumentRelationship;
@@ -388,7 +389,6 @@ public class NodeSelectorSynchronizationService extends StatelessService {
     private void skipSynchOrStartServiceOnPeer(Operation peerOp, String link) {
         Operation checkGet = Operation.createGet(UriUtils.buildUri(peerOp.getUri(), link))
                 .addPragmaDirective(Operation.PRAGMA_DIRECTIVE_NO_FORWARDING)
-                .setConnectionSharing(true)
                 .setExpiration(Utils.getNowMicrosUtc() + TimeUnit.SECONDS.toMicros(2))
                 .setCompletion((o, e) -> {
                     if (e == null) {
@@ -412,7 +412,7 @@ public class NodeSelectorSynchronizationService extends StatelessService {
                 .transferRefererFrom(post).setExpiration(post.getExpirationMicrosUtc())
                 .setCompletion(c);
 
-        peerOp.setConnectionSharing(true);
+        peerOp.toggleOption(OperationOption.SEND_WITH_CALLBACK, true);
 
         // Mark it as replicated so the remote factories do not try to replicate it again
         peerOp.addPragmaDirective(Operation.PRAGMA_DIRECTIVE_REPLICATED);

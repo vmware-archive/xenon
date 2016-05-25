@@ -313,18 +313,11 @@ public class NettyHttpClientRequestHandler extends SimpleChannelInboundHandler<O
             Operation patchForCompletion = Operation.createPatch(callbackLocation)
                     .setReferer(o.getUri());
             int responseStatusCode = o.getStatusCode();
-            if (e != null) {
-                ServiceErrorResponse rsp = Utils.toServiceErrorResponse(e);
-                rsp.statusCode = responseStatusCode;
-                patchForCompletion.setBody(rsp);
+            if (!o.hasBody()) {
+                patchForCompletion.setBodyNoCloning(Operation.EMPTY_JSON_BODY);
             } else {
-                if (!o.hasBody()) {
-                    patchForCompletion.setBodyNoCloning(Operation.EMPTY_JSON_BODY);
-                } else {
-                    patchForCompletion.setBodyNoCloning(o.getBodyRaw());
-                }
+                patchForCompletion.setBodyNoCloning(o.getBodyRaw());
             }
-
             patchForCompletion.transferResponseHeadersToRequestHeadersFrom(o);
             patchForCompletion.addRequestHeader(
                     Operation.RESPONSE_CALLBACK_STATUS_HEADER,

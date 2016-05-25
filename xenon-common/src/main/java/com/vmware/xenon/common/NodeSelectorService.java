@@ -33,7 +33,7 @@ public interface NodeSelectorService extends Service {
     public static final String STAT_NAME_SYNCHRONIZATION_COUNT = "synchronizationCount";
 
     public static final OperationOption FORWARDING_OPERATION_OPTION = getOperationOption(
-            "NodeSelectorService.FORWARDING_OPERATION_OPTION", OperationOption.CONNECTION_SHARING);
+            "NodeSelectorService.FORWARDING_OPERATION_OPTION", OperationOption.SEND_WITH_CALLBACK);
 
     public static final OperationOption REPLICATION_OPERATION_OPTION = getOperationOption(
             "NodeSelectorService.REPLICATION_OPERATION_OPTION", null);
