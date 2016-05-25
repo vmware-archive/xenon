@@ -89,6 +89,7 @@ public class NettyHttp2Test {
 
     @After
     public void cleanUp() {
+        NettyChannelContext.setMaxStreamId(Integer.MAX_VALUE / 2);
     }
 
     /**
