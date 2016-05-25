@@ -14,7 +14,8 @@
 package com.vmware.xenon.common;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -30,6 +31,47 @@ import com.vmware.xenon.services.common.ServiceContextIndexService;
  * Monitors service resources, and takes action, during periodic maintenance
  */
 class ServiceResourceTracker {
+
+    /**
+     * This class is used for keeping cached transactional state of services under
+     * active optimistic transactions.
+     */
+    static class CachedServiceStateKey {
+        private String servicePath;
+        private String transactionId;
+
+        CachedServiceStateKey(String servicePath, String transactionId) {
+            this.servicePath = servicePath;
+            this.transactionId = transactionId;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(this.servicePath, this.transactionId);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            }
+
+            if (o instanceof CachedServiceStateKey) {
+                CachedServiceStateKey that = (CachedServiceStateKey) o;
+                return Objects.equals(this.servicePath, that.servicePath)
+                        && Objects.equals(this.transactionId, that.transactionId);
+            }
+
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("CachedServiceStateKey{servicePath: %s, transactionId: %s}",
+                    this.servicePath, this.transactionId);
+        }
+    }
+
     /**
      * For performance reasons, this map is owned and directly operated by the host
      */
@@ -48,7 +90,13 @@ class ServiceResourceTracker {
     /**
      * Tracks cached service state. Cleared periodically during maintenance
      */
-    private final ConcurrentSkipListMap<String, ServiceDocument> cachedServiceStates = new ConcurrentSkipListMap<>();
+    private final Map<String, ServiceDocument> cachedServiceStates = new ConcurrentHashMap<>();
+
+    /**
+     * Tracks cached service state. Cleared periodically during maintenance
+     */
+    private final Map<CachedServiceStateKey, ServiceDocument> cachedTransactionalServiceStates = new ConcurrentHashMap<>();
+
     private final ServiceHost host;
 
     public static ServiceResourceTracker create(ServiceHost host, Map<String, Service> services,
@@ -65,18 +113,43 @@ class ServiceResourceTracker {
         this.host = host;
     }
 
-    public void updateCachedServiceState(Service s, ServiceDocument st) {
-        synchronized (s.getSelfLink()) {
-            ServiceDocument cachedState = this.cachedServiceStates.put(s.getSelfLink(), st);
+    public void updateCachedServiceState(Service s, ServiceDocument st, Operation op) {
+        if (!isTransactional(op)) {
+            synchronized (s.getSelfLink()) {
+                ServiceDocument cachedState = this.cachedServiceStates.put(s.getSelfLink(), st);
+                if (cachedState != null && cachedState.documentVersion > st.documentVersion) {
+                    // restore cached state, discarding update, if the existing version is higher
+                    this.cachedServiceStates.put(s.getSelfLink(), cachedState);
+                }
+            }
+            return;
+        }
+
+        CachedServiceStateKey key = new CachedServiceStateKey(s.getSelfLink(),
+                op.getTransactionId());
+        synchronized (key.toString()) {
+            ServiceDocument cachedState = this.cachedTransactionalServiceStates.put(key, st);
             if (cachedState != null && cachedState.documentVersion > st.documentVersion) {
                 // restore cached state, discarding update, if the existing version is higher
-                this.cachedServiceStates.put(s.getSelfLink(), cachedState);
+                this.cachedTransactionalServiceStates.put(key, cachedState);
             }
         }
     }
 
-    public ServiceDocument getCachedServiceState(String servicePath) {
-        ServiceDocument state = this.cachedServiceStates.get(servicePath);
+    public ServiceDocument getCachedServiceState(String servicePath, Operation op) {
+        ServiceDocument state = null;
+        if (isTransactional(op)) {
+            CachedServiceStateKey key = new CachedServiceStateKey(servicePath,
+                    op.getTransactionId());
+            state = this.cachedTransactionalServiceStates.get(key);
+        }
+
+        if (state == null) {
+            // either the operational is not transactional or no transactional state found -
+            // look for the state in the non-transactional map
+            state = this.cachedServiceStates.get(servicePath);
+        }
+
         if (state == null) {
             return null;
         }
@@ -84,14 +157,14 @@ class ServiceResourceTracker {
         if (state.documentExpirationTimeMicros > 0
                 && state.documentExpirationTimeMicros < state.documentUpdateTimeMicros) {
             // state expired, clear from cache
-            stopService(servicePath, true);
+            stopService(servicePath, true, op);
             return null;
         }
 
         return state;
     }
 
-    private void stopService(String servicePath, boolean isExpired) {
+    private void stopService(String servicePath, boolean isExpired, Operation op) {
         Service s = this.host.findService(servicePath, true);
         if (s == null) {
             return;
@@ -110,11 +183,27 @@ class ServiceResourceTracker {
                 .setReferer(this.host.getUri());
         this.host.sendRequest(deleteExp);
 
-        clearCachedServiceState(servicePath);
+        clearCachedServiceState(servicePath, op);
     }
 
-    public void clearCachedServiceState(String servicePath) {
-        this.cachedServiceStates.remove(servicePath);
+    public void clearCachedServiceState(String servicePath, Operation op) {
+        if (!isTransactional(op)) {
+            this.cachedServiceStates.remove(servicePath);
+            Service s = this.host.findService(servicePath, true);
+            if (s == null) {
+                return;
+            }
+            s.adjustStat(Service.STAT_NAME_CACHE_CLEAR_COUNT, 1);
+            return;
+        }
+
+        clearTransactionalCachedServiceState(servicePath, op.getTransactionId());
+    }
+
+    public void clearTransactionalCachedServiceState(String servicePath, String transactionId) {
+        CachedServiceStateKey key = new CachedServiceStateKey(servicePath,
+                transactionId);
+        this.cachedTransactionalServiceStates.remove(key);
         Service s = this.host.findService(servicePath, true);
         if (s == null) {
             return;
@@ -150,14 +239,21 @@ class ServiceResourceTracker {
             if (s != null) {
                 if (!ServiceHost.isServiceIndexed(service)) {
                     // we do not clear cache or stop in memory services but we do check expiration
-                    if (s.documentExpirationTimeMicros > 0 && s.documentExpirationTimeMicros < now) {
-                        stopService(service.getSelfLink(), true);
+                    if (s.documentExpirationTimeMicros > 0
+                            && s.documentExpirationTimeMicros < now) {
+                        stopService(service.getSelfLink(), true, null);
                     }
                     continue;
                 }
 
+                if (service.hasOption(ServiceOption.TRANSACTION_PENDING)) {
+                    // don't clear cache for services under active transactions, for perf reasons.
+                    // transactional cached state will be cleared at the end of transaction
+                    continue;
+                }
+
                 if ((hostState.serviceCacheClearDelayMicros + s.documentUpdateTimeMicros) < now) {
-                    clearCachedServiceState(service.getSelfLink());
+                    clearCachedServiceState(service.getSelfLink(), null);
                     cacheCleared = true;
                 }
 
@@ -186,7 +282,7 @@ class ServiceResourceTracker {
 
             if (cacheCleared && service.hasOption(ServiceOption.ON_DEMAND_LOAD)) {
                 // instead of pausing on demand load services, simply stop them when they idle
-                stopService(service.getSelfLink(), false);
+                stopService(service.getSelfLink(), false, null);
                 continue;
             }
 
@@ -368,7 +464,7 @@ class ServiceResourceTracker {
                                 "Retrying index lookup for %s, pending pause: %d",
                                 path, pendingPauseCount);
                         checkAndResumePausedService(inboundOp);
-                    } , 1, TimeUnit.SECONDS);
+                    }, 1, TimeUnit.SECONDS);
             return true;
         }
 
@@ -403,6 +499,11 @@ class ServiceResourceTracker {
     public void close() {
         this.pendingPauseServices.clear();
         this.cachedServiceStates.clear();
+    }
+
+    private boolean isTransactional(Operation op) {
+        return op != null && op.getTransactionId() != null
+                && this.host.getTransactionServiceUri() != null;
     }
 
 }
