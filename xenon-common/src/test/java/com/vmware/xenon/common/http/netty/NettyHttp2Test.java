@@ -25,6 +25,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.vmware.xenon.common.CommandLineArgumentParser;
@@ -308,6 +309,7 @@ public class NettyHttp2Test {
      * them all, a new connection has to be reopened. This tests that we do that correctly.
      * @throws Throwable
      */
+    @Ignore("https://www.pivotaltracker.com/story/show/120392043")
     @Test
     public void validateStreamExhaustion() throws Throwable {
         this.host.log("Starting test: validateStreamExhaustion");
