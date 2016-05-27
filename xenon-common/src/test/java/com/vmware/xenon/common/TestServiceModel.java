@@ -834,14 +834,21 @@ public class TestServiceModel extends BasicReusableHostTestCase {
                 .setBody(body);
         Operation response = this.host.waitForResponse(post);
         assertNotNull(response);
-        ServiceStats testStats = host.getServiceState(null, ServiceStats.class, UriUtils
-                .buildStatsUri(factoryService.getUri()));
-        assertNotNull(testStats);
-        ServiceStat serviceStat = testStats.entries
-                .get(Action.POST + STAT_NAME_OPERATION_DURATION);
-        assertNotNull(serviceStat);
-        assertNotNull(serviceStat.latestValue);
-        host.log(Utils.toJsonHtml(testStats));
+        this.host.waitFor("stats not found", () -> {
+            ServiceStats testStats = host.getServiceState(null, ServiceStats.class, UriUtils
+                    .buildStatsUri(factoryService.getUri()));
+            if (testStats == null) {
+                return false;
+            }
+
+            ServiceStat serviceStat = testStats.entries
+                    .get(Action.POST + STAT_NAME_OPERATION_DURATION);
+            if (serviceStat == null || serviceStat.latestValue == 0) {
+                return false;
+            }
+            host.log(Utils.toJsonHtml(testStats));
+            return true;
+        });
     }
 
 }
