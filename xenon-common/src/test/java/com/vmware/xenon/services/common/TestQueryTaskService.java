@@ -19,6 +19,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.net.ProtocolException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,6 +60,7 @@ import com.vmware.xenon.common.ServiceDocumentDescription.TypeName;
 import com.vmware.xenon.common.ServiceDocumentQueryResult;
 import com.vmware.xenon.common.ServiceErrorResponse;
 import com.vmware.xenon.common.ServiceHost.ServiceNotFoundException;
+import com.vmware.xenon.common.ServiceRequestListener;
 import com.vmware.xenon.common.ServiceStats;
 import com.vmware.xenon.common.ServiceStats.ServiceStat;
 import com.vmware.xenon.common.ServiceSubscriptionState.ServiceSubscriber;
@@ -66,6 +68,7 @@ import com.vmware.xenon.common.TaskState;
 import com.vmware.xenon.common.TaskState.TaskStage;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.Utils;
+import com.vmware.xenon.common.http.netty.NettyHttpListener;
 import com.vmware.xenon.common.test.MinimalTestServiceState;
 import com.vmware.xenon.common.test.TestContext;
 import com.vmware.xenon.common.test.VerificationHost;
@@ -94,6 +97,12 @@ public class TestQueryTaskService {
         if (this.host != null) {
             return;
         }
+
+        // Setting Maximum allowed response payload size to 50KB.
+        // This helps us easily test negative cases i.e when a service
+        // returns a larger payload than the allowed limit.
+        NettyHttpListener.setResponsePayloadSizeLimit(1024 * 50);
+
         this.host = VerificationHost.create(0);
         CommandLineArgumentParser.parseFromProperties(this.host);
         CommandLineArgumentParser.parseFromProperties(this);
@@ -125,6 +134,9 @@ public class TestQueryTaskService {
         }
         this.host.tearDownInProcessPeers();
         this.host.tearDown();
+
+        NettyHttpListener.setResponsePayloadSizeLimit(
+                ServiceRequestListener.RESPONSE_PAYLOAD_SIZE_LIMIT);
     }
 
     @Test
@@ -950,7 +962,7 @@ public class TestQueryTaskService {
     }
 
     @Test
-    public void broadcastQueryTasksOnExampleStates () throws Throwable {
+    public void multiNodeQueryTaskTests() throws Throwable {
         final int nodeCount = 3;
         final int stressTestServiceCountThreshold = 1000;
 
@@ -983,6 +995,27 @@ public class TestQueryTaskService {
         }
         this.host.testWait();
 
+        verifyMultiNodeIndirectQueries(this.host);
+        verifyMultiNodeBroadcastQueries(targetHost);
+    }
+
+    private void verifyMultiNodeIndirectQueries(VerificationHost targetHost) throws Throwable {
+        Query query = Query.Builder.create()
+                .addKindFieldClause(ExampleServiceState.class)
+                .build();
+
+        QueryTask queryTask = QueryTask.Builder.create().setQuery(query).build();
+        queryTask.querySpec.options.add(QueryOption.EXPAND_CONTENT);
+        URI u = targetHost.createQueryTaskService(queryTask);
+
+        QueryTask finishedTaskState = targetHost.waitForQueryTaskCompletion(queryTask.querySpec,
+                this.serviceCount, 1, u, false, false);
+        this.host.log("%s %s", u, finishedTaskState.documentOwner);
+        assertTrue(!finishedTaskState.taskInfo.isDirect);
+    }
+
+    private void verifyMultiNodeBroadcastQueries(VerificationHost targetHost) throws Throwable {
+        verifyOnlySupportSortOnSelfLinkInBroadcast(targetHost);
         verifyDirectQueryAllowedInBroadcast(targetHost);
         nonpaginatedBroadcastQueryTasksOnExampleStates(targetHost,
                 EnumSet.of(QueryOption.EXPAND_CONTENT, QueryOption.BROADCAST));
@@ -1451,6 +1484,34 @@ public class TestQueryTaskService {
             }
         };
         t.start();
+    }
+
+    @Test
+    public void verifyResponsePayloadSizeLimitChecks() throws Throwable {
+        setUpHost();
+        int sc = this.serviceCount * 2;
+        int versionCount = 2;
+        List<URI> services = startQueryTargetServices(sc);
+        QueryValidationServiceState newState = putStateOnQueryTargetServices(
+                services, versionCount);
+
+        // now issue a query that will effectively return a result set greater
+        // than the allowed size limit.
+        QueryTask.QuerySpecification q = new QueryTask.QuerySpecification();
+        q.options = EnumSet.of(QueryOption.EXPAND_CONTENT);
+        q.query.setTermPropertyName("stringValue")
+                .setTermMatchValue(newState.stringValue)
+                .setTermMatchType(MatchType.PHRASE);
+
+        boolean limitChecked = false;
+        try {
+            createWaitAndValidateQueryTask(versionCount, services, q, true, true);
+        } catch (ProtocolException ex) {
+            assertTrue(ex.getMessage().contains("/core/query-tasks returned error 500 for POST"));
+            limitChecked = true;
+        }
+        assertTrue("Expected QueryTask failure with INTERNAL_SERVER_ERROR because" +
+                "response payload size was over limit.", limitChecked);
     }
 
     @Test
