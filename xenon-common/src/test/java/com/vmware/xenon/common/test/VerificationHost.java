@@ -1877,7 +1877,7 @@ public class VerificationHost extends ExampleServiceHost {
                     }
 
                     testStart(1);
-                    joinNodeGroup(nodeGroup, initialNodeGroupService);
+                    joinNodeGroup(nodeGroup, initialNodeGroupService, memberCount);
                     testWait();
                 }
             }
@@ -2269,6 +2269,7 @@ public class VerificationHost extends ExampleServiceHost {
         for (URI nodeGroup : getNodeGroupMap().values()) {
             log("Changing quorum to %d on group %s", quorum, nodeGroup);
             setNodeGroupQuorum(quorum, nodeGroup);
+            // nodes might not be joined, so we need to ask each node to set quorum
         }
 
         Date exp = getTestExpiration();
