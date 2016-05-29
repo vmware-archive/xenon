@@ -77,11 +77,6 @@ public class NettyFullHttpRequest extends DefaultFullHttpRequest {
     }
 
     @Override
-    public FullHttpRequest copy(ByteBuf newContent) {
-        return copy(false, newContent);
-    }
-
-    @Override
     public FullHttpRequest copy() {
         return copy(true, null);
     }

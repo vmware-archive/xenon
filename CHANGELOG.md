@@ -2,6 +2,8 @@
 
 ## 0.8.2-SNAPSHOT
 
+* Upgrade Netty from 4.1.0.CR7 to 4.1.0.Final
+
 * Add new JVM properties in ServiceClient and ServiceRequestListener interfaces
   for maximum request and response payload size limits.
 

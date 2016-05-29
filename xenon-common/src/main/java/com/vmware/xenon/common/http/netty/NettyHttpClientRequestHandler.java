@@ -442,7 +442,7 @@ public class NettyHttpClientRequestHandler extends SimpleChannelInboundHandler<O
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        Operation op = ctx.attr(NettyChannelContext.OPERATION_KEY).get();
+        Operation op = ctx.channel().attr(NettyChannelContext.OPERATION_KEY).get();
         if (op != null) {
             this.host.log(Level.SEVERE,
                     "HTTP/1.1 listener channel exception: %s, in progress op: %s",
