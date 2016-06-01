@@ -229,14 +229,6 @@ public class NettyHttpServiceClient implements ServiceClient {
         setExpiration(clone);
         setCookies(clone);
 
-        // if operation has a context id, set it on the local thread, otherwise, set the
-        // context id from thread, on the operation
-        if (op.getContextId() != null) {
-            OperationContext.setContextId(op.getContextId());
-        } else {
-            clone.setContextId(OperationContext.getContextId());
-        }
-
         OperationContext ctx = OperationContext.getOperationContext();
 
         try {
