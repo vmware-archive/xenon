@@ -2,6 +2,13 @@
 
 ## 0.8.2-SNAPSHOT
 
+* Rename LuceneQueryTaskFactoryService and LuceneQueryTaskService to
+  QueryTaskFactoryService and QueryTaskService. Similar change for
+  local query task service. Service code should use
+      ServiceUriPaths.CORE_QUERY_TASKS
+      ServiceUriPaths.CORE_LOCAL_QUERY_TASKS
+  instead of the service SELF_LINK fields.
+
 * Upgrade Netty from 4.1.0.CR7 to 4.1.0.Final
 
 * Add new JVM properties in ServiceClient and ServiceRequestListener interfaces
