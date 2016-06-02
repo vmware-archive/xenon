@@ -43,6 +43,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
+import javax.xml.bind.DatatypeConverter;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -69,6 +71,7 @@ import com.vmware.xenon.common.StatefulService;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.Utils;
 import com.vmware.xenon.common.test.MinimalTestServiceState;
+import com.vmware.xenon.common.test.TestContext;
 import com.vmware.xenon.common.test.TestProperty;
 import com.vmware.xenon.common.test.VerificationHost;
 import com.vmware.xenon.services.common.ExampleService.ExampleServiceState;
@@ -97,11 +100,37 @@ class FaultInjectionLuceneDocumentIndexService extends LuceneDocumentIndexServic
 
 public class TestLuceneDocumentIndexService extends BasicReportTestCase {
 
+    public static class OnDemandLoadService extends StatefulService {
+
+        public static final int MAX_STATE_SIZE = 1024 * 1024;
+
+        public OnDemandLoadService() {
+            super(ExampleServiceState.class);
+            super.toggleOption(ServiceOption.ON_DEMAND_LOAD, true);
+        }
+
+        @Override
+        public void handlePatch(Operation op) {
+            ExampleServiceState state = getState(op);
+            ExampleServiceState body = getBody(op);
+            Utils.mergeWithState(getStateDescription(), state, body);
+            state.keyValues = body.keyValues;
+            op.complete();
+        }
+
+        @Override
+        public ServiceDocument getDocumentTemplate() {
+            ServiceDocument template = super.getDocumentTemplate();
+            template.documentDescription.serializedStateSizeLimit = MAX_STATE_SIZE;
+            return template;
+        }
+    }
+
     public static class OnDemandLoadFactoryService extends FactoryService {
         public static final String SELF_LINK = "test/on-demand-load-services";
 
         public OnDemandLoadFactoryService() {
-            super(MinimalTestServiceState.class);
+            super(ExampleServiceState.class);
             super.toggleOption(ServiceOption.REPLICATION, true);
             super.toggleOption(ServiceOption.ON_DEMAND_LOAD, true);
         }
@@ -117,13 +146,13 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
 
         @Override
         public Service createServiceInstance() throws Throwable {
-            Service s = new MinimalTestService();
+            Service s = new OnDemandLoadService();
             if (this.childServiceCaps != null) {
                 for (ServiceOption c : this.childServiceCaps) {
                     s.toggleOption(c, true);
                 }
             }
-            s.toggleOption(ServiceOption.ON_DEMAND_LOAD, true);
+
             return s;
         }
     }
@@ -686,8 +715,8 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
         this.host.sendAndWait(delete);
 
         // attempt to use service we just deleted, we should get failure
-        MinimalTestServiceState st = new MinimalTestServiceState();
-        st.id = Utils.getNowMicrosUtc() + "";
+        ExampleServiceState st = new ExampleServiceState();
+        st.name = Utils.getNowMicrosUtc() + "";
         // do a PATCH, expect failure
         Operation patch = Operation.createPatch(serviceToDelete)
                 .setBody(st)
@@ -699,12 +728,13 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
         // but not yet loaded/started, fails, with ServiceAlreadyStarted exception
         int count = Math.min(100, childUris.size());
         this.host.testStart(count);
+        final String prefix = "prefix";
         for (int i = 0; i < count; i++) {
-            MinimalTestServiceState body = new MinimalTestServiceState();
+            ExampleServiceState body = new ExampleServiceState();
             // use a link hint for a previously created service, guaranteeing a collision
             URI u = childUris.get(i);
             body.documentSelfLink = u.getPath();
-            body.id = UUID.randomUUID().toString();
+            body.name = prefix + UUID.randomUUID().toString();
             Operation post = Operation.createPost(factoryUri)
                     .setCompletion(this.host.getExpectedFailureCompletion())
                     .setBody(body);
@@ -713,20 +743,19 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
         this.host.testWait();
 
         // issue a GET per child link, which should force the on-demand load to take place, implicitly
-        Map<URI, MinimalTestServiceState> childStates = this.host.getServiceState(null,
-                MinimalTestServiceState.class,
+        Map<URI, ExampleServiceState> childStates = this.host.getServiceState(null,
+                ExampleServiceState.class,
                 childUris);
 
-        for (MinimalTestServiceState s : childStates.values()) {
-            assertTrue(s.id != null);
-            assertTrue(s.stringValue != null);
-            assertEquals(s.stringValue, s.id);
+        for (ExampleServiceState s : childStates.values()) {
+            assertTrue(s.name != null);
+            assertTrue(s.name.startsWith(prefix));
         }
 
         // mark a service for expiration, a few seconds in the future
         serviceToDelete = childUris.remove(0);
-        MinimalTestServiceState body = new MinimalTestServiceState();
-        body.id = UUID.randomUUID().toString();
+        ExampleServiceState body = new ExampleServiceState();
+        body.name = UUID.randomUUID().toString();
         body.documentExpirationTimeMicros = Utils.getNowMicrosUtc() + TimeUnit.SECONDS.toMicros(2);
         patch = Operation.createPatch(serviceToDelete)
                 .setBody(body)
@@ -771,13 +800,12 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
         this.host.log("******************************* finished *******************************");
     }
 
-    private void createOnDemandLoadServices(ExampleServiceHost h, String factoryLink)
+    private void createOnDemandLoadServices(ServiceHost h, String factoryLink)
             throws Throwable {
         this.host.testStart(this.serviceCount);
         for (int i = 0; i < this.serviceCount; i++) {
-            MinimalTestServiceState body = new MinimalTestServiceState();
-            body.id = UUID.randomUUID().toString();
-            body.stringValue = body.id;
+            ExampleServiceState body = new ExampleServiceState();
+            body.name = "prefix" + UUID.randomUUID().toString();
             Operation post = Operation.createPost(UriUtils.buildUri(h, factoryLink))
                     .setCompletion(this.host.getCompletion())
                     .setBody(body);
@@ -787,7 +815,7 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
         this.host.testWait();
     }
 
-    private String createOnDemandLoadFactoryService(ExampleServiceHost h) throws Throwable {
+    private String createOnDemandLoadFactoryService(ServiceHost h) throws Throwable {
         // create an on demand load factory and services
         this.host.testStart(1);
         OnDemandLoadFactoryService s = new OnDemandLoadFactoryService();
@@ -800,6 +828,7 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
         h.startService(factoryPost, s);
         this.host.testWait();
         String factoryLink = s.getSelfLink();
+        this.host.scheduleNodeGroupChangeMaintenance(ServiceUriPaths.DEFAULT_NODE_SELECTOR);
         this.host.waitForReplicatedFactoryServiceAvailable(factoryPost.getUri());
         this.host.log("Started on demand load factory at %s", factoryLink);
         return factoryLink;
@@ -962,6 +991,38 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
     public void updateAndQueryByVersion() throws Throwable {
         this.host.doExampleServiceUpdateAndQueryByVersion(this.host.getUri(),
                 (int) this.serviceCount);
+    }
+
+    @Test
+    public void patchLargeServiceState() throws Throwable {
+        // create on demand load services
+        String factoryLink = createOnDemandLoadFactoryService(this.host);
+        createOnDemandLoadServices(this.host, factoryLink);
+        ServiceDocumentQueryResult res = this.host.getFactoryState(
+                UriUtils.buildUri(this.host, factoryLink));
+
+        ExampleServiceState patchBody = new ExampleServiceState();
+        patchBody.name = UUID.randomUUID().toString();
+        byte[] body = new byte[4096 * 5];
+        for (int i = 0; i < 30; i++) {
+            new Random().nextBytes(body);
+            String v = DatatypeConverter.printBase64Binary(body);
+            this.host.log("Adding key/value of length %d", v.length());
+            patchBody.keyValues.put(UUID.randomUUID().toString(), v);
+        }
+
+        byte[] bufferNeededForBinaryState = new byte[OnDemandLoadService.MAX_STATE_SIZE];
+        int byteCount = Utils.toBytes(patchBody, bufferNeededForBinaryState, 0);
+        this.host.log("Expected binary serialized state size %d", byteCount);
+
+        TestContext ctx = testCreate(res.documentLinks.size());
+        for (String link : res.documentLinks) {
+            Operation patch = Operation.createPatch(this.host, link)
+                    .setBody(patchBody)
+                    .setCompletion(ctx.getCompletion());
+            this.host.send(patch);
+        }
+        testWait(ctx);
     }
 
 
