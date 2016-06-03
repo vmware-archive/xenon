@@ -628,6 +628,8 @@ public abstract class FactoryService extends StatelessService {
                             Operation forwardOp = o.clone().setUri(remotePeerService)
                                     .setCompletion(fc);
 
+                            forwardOp.toggleOption(NodeSelectorService.FORWARDING_OPERATION_OPTION, true);
+
                             // fix up selfLink so it does not have factory prefix
                         initialState.documentSelfLink = initialState.documentSelfLink
                                 .replace(getSelfLink(), "");
