@@ -2,8 +2,11 @@
 
 ## 0.8.2-SNAPSHOT
 
+* Use SEND_WITH_CALLBACK in NettyHttpServiceClient if the request was
+  configured for connectionSharing and SSL
+
 * Add transaction flow support, across related operations, similar to
-authorization context and context id flow support
+  authorization context and context id flow support
 
 * Rename LuceneQueryTaskFactoryService and LuceneQueryTaskService to
   QueryTaskFactoryService and QueryTaskService. Similar change for
