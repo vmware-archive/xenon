@@ -479,7 +479,7 @@ public class TestAuthorization extends BasicTestCase {
 
     @Test
     public void testUserGroupChange() throws Throwable {
-        // create users and roles for a users 'foo@foo.com' and 'bar@foo.com'
+        // create users and roles for a users 'foo@foo.com' and 'bar@foo.com', 'foobar@bar.com'
         this.host.setSystemAuthorizationContext();
         AuthorizationHelper authHelperForFoo = new AuthorizationHelper(this.host);
         String email = "foo@foo.com";
@@ -489,6 +489,10 @@ public class TestAuthorization extends BasicTestCase {
         email = "bar@foo.com";
         String barUserLink = authHelperForBar.createUserService(this.host, email);
         authHelperForBar.createRoles(this.host, email);
+        AuthorizationHelper authHelperForFooBar = new AuthorizationHelper(this.host);
+        email = "foobar@foo.com";
+        authHelperForFooBar.createUserService(this.host, email);
+        authHelperForFooBar.createRoles(this.host, email);
         // spin up a privileged service to query for auth context
         MinimalTestService s = new MinimalTestService();
         this.host.addPrivilegedService(MinimalTestService.class);
@@ -525,9 +529,14 @@ public class TestAuthorization extends BasicTestCase {
         String newResourceGroupLink = authHelperForBar.createResourceGroup(this.host, "new-rg", q);
         this.host.testWait();
         Set<Service.Action> actions = new HashSet<Service.Action>(Arrays.asList(Action.GET, Action.POST));
-        this.host.testStart(1);
+        this.host.testStart(2);
         authHelperForBar.createRole(this.host, authHelperForBar.getUserGroupLink(), newResourceGroupLink, actions);
+        authHelperForBar.createRole(this.host, authHelperForFooBar.getUserGroupLink(), newResourceGroupLink, actions);
         this.host.testWait();
+        //delete the user group for foobar@foo.com.
+        //Updating the resource group should be able to handle the fact that the user group does not exist
+        this.host.sendAndWaitExpectSuccess(
+                Operation.createDelete(UriUtils.buildUri(this.host, authHelperForFooBar.getUserGroupLink())));
         this.host.resetSystemAuthorizationContext();
         // verify that the auth credentials have been cleared
         authContextFromCache = this.host.getAuthorizationContext(s, barAuthContext.getToken());
