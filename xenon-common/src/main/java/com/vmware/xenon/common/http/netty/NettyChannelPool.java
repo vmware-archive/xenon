@@ -448,12 +448,13 @@ public class NettyChannelPool {
                 badContext = context;
                 context = new NettyChannelContext(group.getKey(),
                         NettyChannelContext.Protocol.HTTP11);
+                context.setOpenInProgress(true);
             }
-            context.updateLastUseTime();
             group.inUseChannels.add(context);
         }
 
         closeBadChannelContext(badContext);
+        context.updateLastUseTime();
         return context;
     }
 
