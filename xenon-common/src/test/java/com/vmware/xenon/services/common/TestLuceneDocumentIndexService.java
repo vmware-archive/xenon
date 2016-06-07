@@ -717,12 +717,37 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
         // attempt to use service we just deleted, we should get failure
         ExampleServiceState st = new ExampleServiceState();
         st.name = Utils.getNowMicrosUtc() + "";
-        // do a PATCH, expect failure
+
+        // do a PATCH, expect 404
         Operation patch = Operation.createPatch(serviceToDelete)
                 .setBody(st)
                 .setCompletion(
-                        this.host.getExpectedFailureCompletion(Operation.STATUS_CODE_CONFLICT));
+                        this.host.getExpectedFailureCompletion(Operation.STATUS_CODE_NOT_FOUND));
         this.host.sendAndWait(patch);
+
+        // do a GET, expect 404
+        Operation get = Operation.createGet(serviceToDelete)
+                .setCompletion(
+                        this.host.getExpectedFailureCompletion(Operation.STATUS_CODE_NOT_FOUND));
+        this.host.sendAndWait(get);
+
+        // do a PUT, expect 404
+        Operation put = Operation.createGet(serviceToDelete)
+                .setBody(st)
+                .setCompletion(
+                        this.host.getExpectedFailureCompletion(Operation.STATUS_CODE_NOT_FOUND));
+        this.host.sendAndWait(get);
+
+        // do a POST, expect 409
+        Operation post = Operation.createPost(serviceToDelete)
+                .setCompletion(
+                        this.host.getExpectedFailureCompletion(Operation.STATUS_CODE_CONFLICT));
+        this.host.sendAndWait(post);
+
+        // do a DELETE again, expect no failure
+        delete = Operation.createDelete(serviceToDelete)
+                .setCompletion(this.host.getCompletion());
+        this.host.sendAndWait(delete);
 
         // verify that attempting to start a service, through factory POST, that was previously created,
         // but not yet loaded/started, fails, with ServiceAlreadyStarted exception
@@ -735,7 +760,7 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
             URI u = childUris.get(i);
             body.documentSelfLink = u.getPath();
             body.name = prefix + UUID.randomUUID().toString();
-            Operation post = Operation.createPost(factoryUri)
+            post = Operation.createPost(factoryUri)
                     .setCompletion(this.host.getExpectedFailureCompletion())
                     .setBody(body);
             this.host.send(post);
