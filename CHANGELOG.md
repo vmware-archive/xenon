@@ -2,6 +2,10 @@
 
 ## 0.8.2-SNAPSHOT
 
+* Add PropertyUsageOption.SENSITIVE to describe fields that contain sensitive
+  information. When marked, the field will be hidden when serializing to JSON
+  using toJson(boolean hideSensitiveFields, boolean useHtmlFormatting).
+
 * Add support for configurable auth expiration via JVM property or login request to
   BasicAuthenticationService.
 
