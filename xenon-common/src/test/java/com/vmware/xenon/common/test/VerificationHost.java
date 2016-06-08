@@ -679,6 +679,7 @@ public class VerificationHost extends ExampleServiceHost {
         TestContext ctx = testCreate(1);
         create.documentSelfLink = UUID.randomUUID().toString();
         create.documentSourceLink = sourceLink;
+        create.taskInfo.isDirect = isDirect;
         Operation startPost = Operation.createPost(factoryUri).setBody(create)
                 .setCompletion(ctx.getCompletion());
 
