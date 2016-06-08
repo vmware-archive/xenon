@@ -28,6 +28,7 @@ import org.junit.Test;
 import com.vmware.xenon.common.Operation.CompletionHandler;
 import com.vmware.xenon.common.Service.Action;
 import com.vmware.xenon.common.test.MinimalTestServiceState;
+import com.vmware.xenon.common.test.TestContext;
 import com.vmware.xenon.services.common.ExampleService;
 import com.vmware.xenon.services.common.MinimalTestService;
 
@@ -125,6 +126,60 @@ public class TestOperation extends BasicReusableHostTestCase {
         // we are just making no exceptions are thrown in the context of the sendRequest call
         this.host.sendRequest(getToNowhere);
 
+    }
+
+    @Test
+    public void nestCompletion() throws Throwable {
+        TestContext ctx = testCreate(1);
+        Operation op = Operation.createGet(this.host.getUri()).setCompletion(ctx.getCompletion());
+        op.nestCompletion((o) -> {
+            // complete original operation, triggering test completion
+            op.complete();
+        });
+        op.complete();
+        ctx.await();
+
+        ctx = testCreate(1);
+        Operation opWithFail = Operation.createGet(this.host.getUri()).setCompletion(
+                ctx.getExpectedFailureCompletion());
+        opWithFail.nestCompletion((o, e) -> {
+            if (e != null) {
+                // the fail() below is triggered due to the fail() right before ctx.await(),
+                // and it should result in the original completion being triggered
+                opWithFail.fail(e);
+                return;
+            }
+            // complete original operation, triggering test completion
+            opWithFail.complete();
+        });
+        opWithFail.fail(new IllegalStateException("induced failure"));
+        ctx.await();
+
+        ctx = testCreate(1);
+        Operation opWithFailImplicitNest = Operation.createGet(this.host.getUri()).setCompletion(
+                ctx.getExpectedFailureCompletion());
+        opWithFailImplicitNest.nestCompletion((o) -> {
+            // we should never execute the line below, since we fail the operation, in the code
+            // below, right before ctx.await()
+            opWithFailImplicitNest
+                    .fail(new IllegalStateException("nested completion should have been skipped"));
+        });
+        opWithFailImplicitNest.fail(new IllegalStateException("induced failure"));
+        ctx.await();
+
+        // clone the operation before failing so its the *cloned* instance that is passed to the
+        // nested completion
+        ctx = testCreate(1);
+        Operation opWithFailImplicitNestAndClone = Operation.createGet(this.host.getUri())
+                .setCompletion(
+                        ctx.getExpectedFailureCompletion());
+        opWithFailImplicitNestAndClone.nestCompletion((o) -> {
+            opWithFailImplicitNestAndClone
+                    .fail(new IllegalStateException("nested completion should have been skipped"));
+        });
+        Operation clone = opWithFailImplicitNestAndClone.clone();
+        clone.fail(new IllegalStateException("induced failure"));
+        ctx.await();
     }
 
     @Test
