@@ -1798,7 +1798,7 @@ public class LuceneDocumentIndexService extends StatelessService {
             return;
         }
 
-        if (hits.length < versionsToKeep) {
+        if (hits.length <= versionsToKeep) {
             return;
         }
 
@@ -1809,7 +1809,7 @@ public class LuceneDocumentIndexService extends StatelessService {
         // retention limit
         hitDoc = s.doc(hits[hits.length - 1].doc);
         long versionLowerBound = Long.parseLong(hitDoc.get(ServiceDocument.FIELD_NAME_VERSION));
-        hitDoc = s.doc(hits[(int) versionsToKeep - 1].doc);
+        hitDoc = s.doc(hits[(int) versionsToKeep].doc);
         long versionUpperBound = Long.parseLong(hitDoc.get(ServiceDocument.FIELD_NAME_VERSION));
 
         Query versionQuery = LongPoint.newRangeQuery(

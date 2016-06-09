@@ -1574,8 +1574,7 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
                     }, factoryUri);
 
             Collection<URI> serviceUrisWithCustomRetention = exampleStates.keySet();
-
-            long count = ServiceDocumentDescription.DEFAULT_VERSION_RETENTION_LIMIT * 2;
+            long count = ServiceDocumentDescription.DEFAULT_VERSION_RETENTION_LIMIT;
             this.host.testStart(this.serviceCount * count);
             for (int i = 0; i < count; i++) {
                 for (URI u : serviceUrisWithDefaultRetention) {
@@ -1585,8 +1584,7 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
                 }
             }
             this.host.testWait();
-
-            count = ExampleServiceState.VERSION_RETENTION_LIMIT + 100;
+            count = ExampleServiceState.VERSION_RETENTION_LIMIT;
             this.host.testStart(serviceUrisWithCustomRetention.size() * count);
             for (int i = 0; i < count; i++) {
                 for (URI u : serviceUrisWithCustomRetention) {
@@ -1600,13 +1598,10 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
             this.host.testWait();
 
             Collection<URI> serviceUris = serviceUrisWithDefaultRetention;
-            long limit = ServiceDocumentDescription.DEFAULT_VERSION_RETENTION_LIMIT
-                    * serviceUris.size();
-            verifyVersionRetention(count, serviceUris, limit);
+            verifyVersionRetention(serviceUris, ServiceDocumentDescription.DEFAULT_VERSION_RETENTION_LIMIT);
 
             serviceUris = serviceUrisWithCustomRetention;
-            limit = ExampleServiceState.VERSION_RETENTION_LIMIT * serviceUris.size();
-            verifyVersionRetention(count, serviceUris, limit);
+            verifyVersionRetention(serviceUris, ExampleServiceState.VERSION_RETENTION_LIMIT);
 
             this.host.testStart(this.serviceCount);
             for (URI u : serviceUrisWithDefaultRetention) {
@@ -1624,11 +1619,8 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
         } while (Utils.getNowMicrosUtc() < end);
     }
 
-    private void verifyVersionRetention(long count,
+    private void verifyVersionRetention(
             Collection<URI> serviceUris, long limit) throws InterruptedException, Throwable {
-        long slop = limit / 10;
-        long minCount = limit - slop;
-        long maxCount = limit + slop;
 
         long maintIntervalMillis = TimeUnit.MICROSECONDS
                 .toMillis(this.host.getMaintenanceIntervalMicros());
@@ -1650,27 +1642,25 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
             }
             URI u = this.host.createQueryTaskService(QueryTask.create(q), false);
             QueryTask finishedTaskState = this.host.waitForQueryTaskCompletion(q,
-                    serviceUris.size(), (int) count, u, false, true);
+                    serviceUris.size(), (int) limit, u, false, true);
             // also do a query that returns the actual links
             q.options = EnumSet.of(QueryOption.INCLUDE_ALL_VERSIONS);
             u = this.host.createQueryTaskService(QueryTask.create(q), false);
             QueryTask finishedTaskWithLinksState = this.host.waitForQueryTaskCompletion(q,
-                    serviceUris.size(), (int) count, u, false, true);
+                    serviceUris.size(), (int) limit, u, false, true);
 
-            this.host.log("Documents found through count:%d, links:%d minCount:%d maxCount:%d",
+            long expectedCount = serviceUris.size() * limit;
+            this.host.log("Documents found through count:%d, links:%d expectedCount:%d",
                     finishedTaskState.results.documentCount,
                     finishedTaskWithLinksState.results.documentLinks.size(),
-                    minCount,
-                    maxCount);
+                    expectedCount);
 
             if (finishedTaskState.results.documentCount != finishedTaskWithLinksState.results.documentLinks
                     .size()) {
                 Thread.sleep(maintIntervalMillis);
                 continue;
             }
-            if (finishedTaskState.results.documentCount < minCount
-                    ||
-                    finishedTaskState.results.documentCount > maxCount) {
+            if (finishedTaskState.results.documentCount != expectedCount) {
                 Thread.sleep(maintIntervalMillis);
                 continue;
             }
