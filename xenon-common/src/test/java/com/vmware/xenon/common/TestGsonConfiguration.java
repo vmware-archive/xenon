@@ -212,6 +212,18 @@ public class TestGsonConfiguration {
     }
 
     @Test
+    public void testNoHtmlEscping() throws Exception {
+        SomeComplexObject obj = new SomeComplexObject();
+        obj.a = "<script>alert('boom!');</script>";
+
+        String json = Utils.toJsonHtml(obj);
+        assertTrue(json.contains(obj.a));
+
+        json = Utils.toJson(obj);
+        assertTrue(json.contains(obj.a));
+    }
+
+    @Test
     public void testBinaryEncodedToBase64() throws Exception {
         BinaryHolder instance = new BinaryHolder();
         instance.picture = "ssdfgsdgsdg".getBytes();
