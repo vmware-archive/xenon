@@ -369,14 +369,18 @@ public class LuceneDocumentIndexService extends StatelessService {
         }
     }
 
+    /**
+     * Issues a query to verify index is healthy
+     */
     private void doSelfValidationQuery() throws Throwable {
         TermQuery tq = new TermQuery(new Term(ServiceDocument.FIELD_NAME_SELF_LINK, getSelfLink()));
         ServiceDocumentQueryResult rsp = new ServiceDocumentQueryResult();
-        queryIndexWithWriter(Operation.createGet(getUri()), EnumSet
-                .of(QueryOption.INCLUDE_ALL_VERSIONS), tq,
-                null, null, Integer.MAX_VALUE, 0, null, rsp,
-                new IndexSearcher(DirectoryReader.open(this.writer, true, true)),
-                null);
+
+        Operation op = Operation.createGet(getUri());
+        EnumSet<QueryOption> options = EnumSet.of(QueryOption.INCLUDE_ALL_VERSIONS);
+        IndexSearcher s = new IndexSearcher(DirectoryReader.open(this.writer, true, true));
+        queryIndex(op, options, s, tq, null, null, Integer.MAX_VALUE, 0,
+                null, rsp, null);
     }
 
     private void handleBackup(Operation op, BackupRequest req) throws Throwable {
@@ -725,12 +729,17 @@ public class LuceneDocumentIndexService extends StatelessService {
         }
 
         tq = updateQuery(op, tq);
-
         if (tq == null) {
             return false;
-        } else if (queryIndexWithWriter(op, options, tq, sort, page, count, expiration, indexLink,
-                rsp, s, qs)) {
-            // target index had results or request failed
+        }
+        ServiceDocumentQueryResult result = queryIndex(op, options, s, tq, sort, page,
+                count, expiration, indexLink, rsp, qs);
+        if (result != null) {
+            result.documentOwner = getHost().getId();
+            if (!options.contains(QueryOption.COUNT) && result.documentLinks.isEmpty()) {
+                return false;
+            }
+            op.setBodyNoCloning(result).complete();
             return true;
         }
 
@@ -818,41 +827,6 @@ public class LuceneDocumentIndexService extends StatelessService {
         getHost().queryServiceUris(selfLink, op);
     }
 
-    boolean queryIndexWithWriter(Operation op,
-            EnumSet<QueryOption> options,
-            Query tq,
-            Sort sort,
-            LuceneQueryPage page,
-            int count,
-            long expiration,
-            String indexLink,
-            ServiceDocumentQueryResult rsp,
-            IndexSearcher s,
-            QuerySpecification qs) throws Throwable {
-        Object resultBody;
-
-        resultBody = queryIndex(op, options, s, tq, sort, page, count, expiration,
-                indexLink, rsp, qs);
-        if (count == 1 && resultBody instanceof String) {
-            op.setBodyNoCloning(resultBody).complete();
-            return true;
-        }
-
-        ServiceDocumentQueryResult result = (ServiceDocumentQueryResult) resultBody;
-        if (result != null) {
-            result.documentOwner = getHost().getId();
-
-            if (!options.contains(QueryOption.COUNT) && result.documentLinks.isEmpty()) {
-                return false;
-            }
-
-            op.setBodyNoCloning(result).complete();
-            return true;
-        }
-
-        return false;
-    }
-
     /**
      * Augment the query argument with the resource group query specified
      * by the operation's authorization context.
@@ -898,7 +872,7 @@ public class LuceneDocumentIndexService extends StatelessService {
         return builder.build();
     }
 
-    private Object queryIndex(Operation op,
+    private ServiceDocumentQueryResult queryIndex(Operation op,
             EnumSet<QueryOption> options,
             IndexSearcher s,
             Query tq,
