@@ -242,6 +242,13 @@ public class TestServiceDocument {
 
         @UsageOption(option = ServiceDocumentDescription.PropertyUsageOption.OPTIONAL)
         public Enum<?> justEnum;
+
+        @UsageOption(option = ServiceDocumentDescription.PropertyUsageOption.UNIQUE_IDENTIFIER)
+        @UsageOption(option = ServiceDocumentDescription.PropertyUsageOption.REQUIRED)
+        public String requiredId;
+
+        @UsageOption(option = ServiceDocumentDescription.PropertyUsageOption.REQUIRED)
+        public String required;
     }
 
     @Test
@@ -251,15 +258,34 @@ public class TestServiceDocument {
         assertEquals(8, desc.serializedStateSizeLimit);
         assertEquals(44, desc.versionRetentionLimit);
 
-        ServiceDocumentDescription.PropertyDescription optDesc = desc.propertyDescriptions.get("opt");
-        assertEquals(optDesc.usageOptions, EnumSet.of(ServiceDocumentDescription.PropertyUsageOption.AUTO_MERGE_IF_NOT_NULL));
-        assertEquals(optDesc.indexingOptions, EnumSet.of(ServiceDocumentDescription.PropertyIndexingOption.STORE_ONLY));
+        ServiceDocumentDescription.PropertyDescription optDesc = desc.propertyDescriptions
+                .get("opt");
+        assertEquals(optDesc.usageOptions,
+                EnumSet.of(ServiceDocumentDescription.PropertyUsageOption.AUTO_MERGE_IF_NOT_NULL));
+        assertEquals(optDesc.indexingOptions,
+                EnumSet.of(ServiceDocumentDescription.PropertyIndexingOption.STORE_ONLY));
         assertEquals(optDesc.exampleValue, "example");
         assertEquals(optDesc.propertyDocumentation, "desc");
 
-        ServiceDocumentDescription.PropertyDescription optsDesc = desc.propertyDescriptions.get("opts");
-        assertEquals(optsDesc.usageOptions, EnumSet.of(ServiceDocumentDescription.PropertyUsageOption.ID, ServiceDocumentDescription.PropertyUsageOption.OPTIONAL));
-        assertEquals(optsDesc.indexingOptions, EnumSet.of(ServiceDocumentDescription.PropertyIndexingOption.SORT, ServiceDocumentDescription.PropertyIndexingOption.EXCLUDE_FROM_SIGNATURE));
+        ServiceDocumentDescription.PropertyDescription optsDesc = desc.propertyDescriptions
+                .get("opts");
+        assertEquals(optsDesc.usageOptions,
+                EnumSet.of(ServiceDocumentDescription.PropertyUsageOption.ID,
+                        ServiceDocumentDescription.PropertyUsageOption.OPTIONAL));
+        assertEquals(optsDesc.indexingOptions,
+                EnumSet.of(ServiceDocumentDescription.PropertyIndexingOption.SORT,
+                        ServiceDocumentDescription.PropertyIndexingOption.EXCLUDE_FROM_SIGNATURE));
+
+        ServiceDocumentDescription.PropertyDescription requiredIdDesc = desc.propertyDescriptions
+                .get("requiredId");
+        assertEquals(requiredIdDesc.usageOptions,
+                EnumSet.of(ServiceDocumentDescription.PropertyUsageOption.REQUIRED,
+                        ServiceDocumentDescription.PropertyUsageOption.UNIQUE_IDENTIFIER));
+
+        ServiceDocumentDescription.PropertyDescription requiredDesc = desc.propertyDescriptions
+                .get("required");
+        assertEquals(requiredDesc.usageOptions,
+                EnumSet.of(ServiceDocumentDescription.PropertyUsageOption.REQUIRED));
     }
 
     @Test

@@ -834,4 +834,23 @@ public class TestUtils {
 
         Assert.assertEquals(textPlain, textDecoded);
     }
+
+    @Test
+    public void testValidateStateForUniqueIdentifier() {
+        ExampleServiceState state = new ExampleServiceState();
+        state.id = null;
+        state.required = "testRequiredField";
+        ServiceDocumentDescription desc = buildStateDescription(ExampleServiceState.class, null);
+        Utils.validateState(desc, state);
+        Assert.assertNotNull("Unique Identifier was not provided a default UUID", state.id);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testValidateStateForRequiredField() {
+        ExampleServiceState state = new ExampleServiceState();
+        state.id = null;
+        state.required = null;
+        ServiceDocumentDescription desc = buildStateDescription(ExampleServiceState.class, null);
+        Utils.validateState(desc, state);
+    }
 }

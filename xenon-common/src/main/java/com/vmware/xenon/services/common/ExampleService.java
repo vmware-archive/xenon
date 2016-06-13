@@ -61,6 +61,11 @@ public class ExampleService extends StatefulService {
         public String name;
         @UsageOption(option = PropertyUsageOption.AUTO_MERGE_IF_NOT_NULL)
         public Set<String> tags = new HashSet<>();
+        @UsageOption(option = PropertyUsageOption.UNIQUE_IDENTIFIER)
+        @UsageOption(option = PropertyUsageOption.REQUIRED)
+        public String id;
+        @UsageOption(option = PropertyUsageOption.REQUIRED)
+        public String required;
     }
 
     public ExampleService() {

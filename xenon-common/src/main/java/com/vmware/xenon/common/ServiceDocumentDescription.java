@@ -117,6 +117,16 @@ public class ServiceDocumentDescription {
          * is hidden when serializing to JSON
          */
         SENSITIVE,
+
+        /**
+         * Property is required.
+         */
+        REQUIRED,
+
+        /**
+         * Property is a unique identifier.
+         */
+        UNIQUE_IDENTIFIER
     }
 
     public enum PropertyIndexingOption {
