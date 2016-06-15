@@ -60,6 +60,12 @@
   fields of document and their sub-fields nested up to 2 levels, excluding the
   build-in ServiceDocument fields.
 
+* Introduce PropertyIndexingOption.FIXED_ITEM_NAME. This option directs the
+  document indexing service to ensure the indexing property name will be a fixed
+  value, matching that of the field itself. Applicable for fields of type MAP,
+  it will allow to make queries based on the name of the field to search for
+  keys and values of a map.
+
 ## 0.8.1
 
 * Add support for expiration on stateful in-memory services. We now
