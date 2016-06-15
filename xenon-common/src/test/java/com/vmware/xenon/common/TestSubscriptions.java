@@ -246,6 +246,9 @@ public class TestSubscriptions extends BasicReportTestCase {
             h.getClient().setConnectionLimitPerHost(this.serviceCount * 4);
         }
 
+        this.host.waitForReplicatedFactoryServiceAvailable(
+                this.host.getPeerServiceUri(ExampleService.FACTORY_LINK));
+
         // Pick one host to post to
         VerificationHost serviceHost = this.host.getPeerHost();
 
