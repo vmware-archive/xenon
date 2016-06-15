@@ -243,7 +243,7 @@ public class TestServiceDocument {
         @UsageOption(option = ServiceDocumentDescription.PropertyUsageOption.OPTIONAL)
         public Enum<?> justEnum;
 
-        @UsageOption(option = ServiceDocumentDescription.PropertyUsageOption.UNIQUE_IDENTIFIER)
+        @UsageOption(option = ServiceDocumentDescription.PropertyUsageOption.ID)
         @UsageOption(option = ServiceDocumentDescription.PropertyUsageOption.REQUIRED)
         public String requiredId;
 
@@ -280,7 +280,7 @@ public class TestServiceDocument {
                 .get("requiredId");
         assertEquals(requiredIdDesc.usageOptions,
                 EnumSet.of(ServiceDocumentDescription.PropertyUsageOption.REQUIRED,
-                        ServiceDocumentDescription.PropertyUsageOption.UNIQUE_IDENTIFIER));
+                        ServiceDocumentDescription.PropertyUsageOption.ID));
 
         ServiceDocumentDescription.PropertyDescription requiredDesc = desc.propertyDescriptions
                 .get("required");

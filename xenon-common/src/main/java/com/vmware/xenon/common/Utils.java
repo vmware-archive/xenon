@@ -1160,7 +1160,7 @@ public class Utils {
                     prop.usageOptions.contains(PropertyUsageOption.REQUIRED)) {
                 Object o = ReflectionUtils.getPropertyValue(prop, state);
                 if (o == null) {
-                    if (prop.usageOptions.contains(PropertyUsageOption.UNIQUE_IDENTIFIER)) {
+                    if (prop.usageOptions.contains(PropertyUsageOption.ID)) {
                         ReflectionUtils.setPropertyValue(prop, state, UUID.randomUUID().toString());
                     } else {
                         throw new IllegalArgumentException(

@@ -3,12 +3,9 @@
 ## 0.8.2-SNAPSHOT
 * Add PropertyUsageOption.REQUIRED to describe fields that are required.
 
-* Add PropertyUsageOption.UNIQUE_IDENTIFIER to describe fields that are
-  unique identifiers.
-
 * Add validateState(description, state) to Utils to validate fields that
-  are required. If the field is null, REQUIRED and UNIQUE_IDENTIFIER, a UUID is
-  automatically generated. If the field is null and REQUIRED, an Exception is thrown.
+  are required. If the field is null, REQUIRED and ID, a UUID is automatically
+  generated. If the field is null and REQUIRED, an Exception is thrown.
 
 * Add QueryOption.EXPAND_LINKS for expanding selected link values with the
   target document state and including it in the query results. The serialized

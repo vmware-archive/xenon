@@ -122,11 +122,6 @@ public class ServiceDocumentDescription {
          * Property is required.
          */
         REQUIRED,
-
-        /**
-         * Property is a unique identifier.
-         */
-        UNIQUE_IDENTIFIER
     }
 
     public enum PropertyIndexingOption {
