@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.logging.Logger;
 
 import org.junit.After;
 import org.junit.Before;
@@ -367,6 +368,14 @@ public class TestNodeGroupService {
 
     @Test
     public void customNodeGroupWithObservers() throws Throwable {
+        for (int i = 0; i < this.iterationCount; i++) {
+            Logger.getAnonymousLogger().info("Iteration: " + i);
+            verifyCustomNodeGroupWithObservers();
+            tearDown();
+        }
+    }
+
+    private void verifyCustomNodeGroupWithObservers() throws Throwable {
         setUp(this.nodeCount);
         // on one of the hosts create the custom group but with self as an observer. That peer should
         // never receive replicated or broadcast requests
@@ -401,6 +410,10 @@ public class TestNodeGroupService {
 
         this.host.joinNodesAndVerifyConvergence(CUSTOM_NODE_GROUP, this.nodeCount,
                 this.nodeCount, expectedOptionsPerNode);
+        // one of the nodes is observer, so we must set quorum to 2 explicitly
+        this.host.setNodeGroupQuorum(2, customNodeGroupServiceOnObserver);
+        this.host.waitForNodeSelectorQuorumConvergence(CUSTOM_GROUP_NODE_SELECTOR, 2);
+        this.host.waitForNodeGroupIsAvailableConvergence(CUSTOM_NODE_GROUP);
 
         int restartCount = 0;
         // verify that the observer node shows up as OBSERVER on all peers, including self
@@ -430,10 +443,6 @@ public class TestNodeGroupService {
 
         // join all the nodes through the default group, making sure another group still works
         this.host.joinNodesAndVerifyConvergence(this.nodeCount, true);
-
-        // one of the nodes is observer, so we must set quorum to 2 explicitly
-        this.host.setNodeGroupQuorum(2, customNodeGroupServiceOnObserver);
-        this.host.waitForNodeSelectorQuorumConvergence(CUSTOM_GROUP_NODE_SELECTOR, 2);
 
         URI observerFactoryUri = UriUtils.buildUri(observerHostUri, customFactoryLink);
 
