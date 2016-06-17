@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.8.2-SNAPSHOT
+## 0.8.2
 
 * Add global stats for total service pauses, resumes, cache clears
   and ON_DEMAND_LOAD service stops on /core/management service.
