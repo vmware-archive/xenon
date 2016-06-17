@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 0.9.0-SNAPSHOT
+
 ## 0.8.2
 
 * Add global stats for total service pauses, resumes, cache clears
