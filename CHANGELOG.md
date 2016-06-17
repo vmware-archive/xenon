@@ -1,8 +1,13 @@
 # CHANGELOG
 
 ## 0.8.2-SNAPSHOT
+
 * Add global stats for total service pauses, resumes, cache clears
   and ON_DEMAND_LOAD service stops on /core/management service.
+
+* Move a few infrastructure query related helper methods from Utils class
+  to QueryTaskUtils. The mergeQueryResults family of methods are used by
+  core services, so this should have minimal impact
 
 * Add PropertyUsageOption.REQUIRED to describe fields that are required.
 
