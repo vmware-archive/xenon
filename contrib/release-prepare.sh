@@ -54,14 +54,14 @@ echo You are going to release ${RELEASE_VERSION} from ${COMMIT}
 git checkout -b prepare-release-${RELEASE_VERSION}
 
 # create release version
-sed -i "s/${CURRENT_VERSION}/${RELEASE_VERSION}/" ${CHANGE_LOG_FILE}
+sed -i '' "s/${CURRENT_VERSION}/${RELEASE_VERSION}/" ${CHANGE_LOG_FILE}
 ./mvnw versions:set -DgenerateBackupPoms=false -DnewVersion=${RELEASE_VERSION}
 git commit -a -m "Mark ${RELEASE_VERSION} for release"
 
 
 # create next developmenet version
-sed -i "1d" ${CHANGE_LOG_FILE}
-sed -i "1i\\
+sed -i '' "1d" ${CHANGE_LOG_FILE}
+sed -i '' "1i\\
 # CHANGELOG\\
 \\
 ## ${NEXT_DEV_VERSION}\\
