@@ -47,6 +47,8 @@ import com.vmware.xenon.services.common.authn.BasicAuthenticationService;
 public class AuthorizationHelper {
 
     private String userGroupLink;
+    private String resourceGroupLink;
+    private String roleLink;
 
     VerificationHost host;
 
@@ -195,8 +197,24 @@ public class AuthorizationHelper {
         this.userGroupLink = userGroupLink;
     }
 
+    public void setResourceGroupLink(String resourceGroupLink) {
+        this.resourceGroupLink = resourceGroupLink;
+    }
+
+    public void setRoleLink(String roleLink) {
+        this.roleLink = roleLink;
+    }
+
     public String getUserGroupLink() {
         return this.userGroupLink;
+    }
+
+    public String getResourceGroupLink() {
+        return this.resourceGroupLink;
+    }
+
+    public String getRoleLink() {
+        return this.roleLink;
     }
 
     public String createUserService(ServiceHost target, String email) throws Throwable {
@@ -247,7 +265,7 @@ public class AuthorizationHelper {
                                 ExampleServiceState.FIELD_NAME_NAME,
                                 emailPrefix)
                         .build());
-
+        setResourceGroupLink(exampleServiceResourceGroupLink);
         // Create resource group to allow access on ALL query tasks created by user
         String queryTaskResourceGroupLink =
                 createResourceGroup(target, "any-query-task-resource-group", Builder.create()
@@ -262,9 +280,10 @@ public class AuthorizationHelper {
         Collection<String> paths = new HashSet<>();
 
         // Create roles tying these together
-        paths.add(createRole(target, userGroupLink, exampleServiceResourceGroupLink,
-                new HashSet<>(Arrays.asList(Action.GET, Action.POST))));
-
+        String exampleRoleLink = createRole(target, userGroupLink, exampleServiceResourceGroupLink,
+                new HashSet<>(Arrays.asList(Action.GET, Action.POST)));
+        setRoleLink(exampleRoleLink);
+        paths.add(exampleRoleLink);
         // Create another role with PATCH permission to test if we calculate overall permissions correctly across roles.
         paths.add(createRole(target, userGroupLink, exampleServiceResourceGroupLink,
                 new HashSet<>(Collections.singletonList(Action.PATCH))));
