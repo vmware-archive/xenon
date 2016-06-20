@@ -1322,7 +1322,7 @@ public class VerificationHost extends ExampleServiceHost {
         int byteCount = Utils.toJson(body).getBytes(Utils.CHARSET).length;
         if (properties.contains(TestProperty.BINARY_SERIALIZATION)) {
             byte[] buffer = new byte[4096];
-            long c = Utils.toDocumentBytes((Object) body, buffer, 0);
+            long c = Utils.toDocumentBytes(body, buffer, 0);
             byteCount = (int) c;
         }
         log("Bytes per payload %s", byteCount);
@@ -1480,10 +1480,12 @@ public class VerificationHost extends ExampleServiceHost {
         return this.referer;
     }
 
-    public void waitForServiceAvailable(String s) throws Throwable {
-        TestContext ctx = testCreate(1);
-        this.registerForServiceAvailability(ctx.getCompletion(), s);
-        ctx.await();
+    public void waitForServiceAvailable(String... links) throws Throwable {
+        for (String link: links) {
+            TestContext ctx = testCreate(1);
+            this.registerForServiceAvailability(ctx.getCompletion(), link);
+            ctx.await();
+        }
     }
 
     public void waitForReplicatedFactoryServiceAvailable(URI u) throws Throwable {
