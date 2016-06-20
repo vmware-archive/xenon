@@ -188,6 +188,7 @@ public class TestQueryTaskUtils {
         expectedPropertyNames.add(ExampleServiceState.FIELD_NAME_NAME);
         expectedPropertyNames.add(ExampleServiceState.FIELD_NAME_ID);
         expectedPropertyNames.add(ExampleServiceState.FIELD_NAME_REQUIRED);
+        expectedPropertyNames.add(ExampleServiceState.FIELD_NAME_KEY_VALUES);
         expectedPropertyNames.add("tags.item");
 
         assertEquals(expectedPropertyNames, queryPropertyNames);

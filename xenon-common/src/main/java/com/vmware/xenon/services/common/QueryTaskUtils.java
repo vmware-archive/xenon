@@ -303,9 +303,6 @@ public class QueryTaskUtils {
             } else {
                 return Collections.emptySet();
             }
-        } else if (pd.typeName == TypeName.MAP) {
-            // Map is not supported at the moment
-            return Collections.emptySet();
         } else {
             return Collections.singleton(propertyName);
         }

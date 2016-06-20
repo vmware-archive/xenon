@@ -13,7 +13,9 @@
 
 package com.vmware.xenon.common;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import com.vmware.xenon.services.common.QueryTask;
@@ -44,6 +46,10 @@ public class ODataQueryVisitor {
     private static final String DEFAULT_COLLECTION_ITEM_SEPARATOR = ";";
     private static final IllegalArgumentException LeftRightTypeException = new IllegalArgumentException(
             "left and right side type mismatch");
+
+    private static final List<BinaryVerb> NON_NUMERIC_COMPARISON_OPERATORS = Arrays.asList(
+            BinaryVerb.EQ, BinaryVerb.NE,
+            BinaryVerb.ALL, BinaryVerb.ANY);
 
     private Set<String> wildcardUnfoldPropertyNames;
 
@@ -365,7 +371,7 @@ public class ODataQueryVisitor {
     private static boolean isUnfoldQuery(final Object leftSide, final BinaryVerb operator,
             final Object rightSide) {
         return ODataUtils.FILTER_VALUE_ALL_FIELDS.equals(leftSide)
-                && BinaryVerb.EQ.equals(operator)
+                && NON_NUMERIC_COMPARISON_OPERATORS.contains(operator)
                 && (rightSide instanceof String) && !isNumeric((String) rightSide);
     }
 }
