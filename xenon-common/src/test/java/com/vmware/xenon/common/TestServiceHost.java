@@ -43,6 +43,7 @@ import java.util.function.Consumer;
 
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -1485,6 +1486,7 @@ public class TestServiceHost {
         }
     }
 
+    @Ignore("https://www.pivotaltracker.com/story/show/121861443")
     @Test
     public void maintenanceForOnDemandLoadServices() throws Throwable {
         setUp(true);
