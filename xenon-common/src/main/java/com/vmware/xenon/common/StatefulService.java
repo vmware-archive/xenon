@@ -501,6 +501,11 @@ public class StatefulService implements Service {
             return false;
         }
 
+        if (request.getRequestHeader(Operation.TRANSACTION_HEADER) != null) {
+            // Skip update checking in case of a transaction control operation
+            return false;
+        }
+
         if (!hasOption(ServiceOption.STRICT_UPDATE_CHECKING)) {
             return false;
         }
@@ -907,7 +912,8 @@ public class StatefulService implements Service {
         }
 
         if (latestState.documentVersion < this.context.version
-                || (latestState.documentEpoch != null && latestState.documentEpoch < this.context.epoch)) {
+                || (latestState.documentEpoch != null
+                        && latestState.documentEpoch < this.context.epoch)) {
             return;
         }
 

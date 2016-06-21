@@ -594,6 +594,8 @@ public class SimpleTransactionService extends StatefulService {
             body.originalVersion = enrollmentInfo.originalVersion;
             Operation op = Operation.createPatch(UriUtils.buildUri(getHost(), serviceSelfLink))
                     .setTransactionId(transactionId).setBody(body);
+            // mark as a transaction protocol request to deal with ServiceOption.STRICT_UPDATE_CHECKING
+            op.addRequestHeader(Operation.TRANSACTION_HEADER, Operation.TX_TRY_COMMIT);
             requests.add(op);
         }
 
