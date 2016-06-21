@@ -568,20 +568,21 @@ public class Operation implements Cloneable {
         return op;
     }
 
-    static Operation createOperation(Action action, URI uri) {
-        Operation op = new Operation();
-        op.uri = uri;
-        op.action = action;
-
+    public Operation() {
         // Set operation context from thread local.
         // The thread local is populated by the service host when it handles an operation,
         // which means that derivative operations will automatically inherit this context.
         // It is set as early as possible since there is a possibility that it is
         // overridden by the service implementation (i.e. when it impersonates).
-        op.authorizationCtx = OperationContext.getAuthorizationContext();
-        op.transactionId = OperationContext.getTransactionId();
-        op.contextId = OperationContext.getContextId();
+        this.authorizationCtx = OperationContext.getAuthorizationContext();
+        this.transactionId = OperationContext.getTransactionId();
+        this.contextId = OperationContext.getContextId();
+    }
 
+    static Operation createOperation(Action action, URI uri) {
+        Operation op = new Operation();
+        op.uri = uri;
+        op.action = action;
         return op;
     }
 

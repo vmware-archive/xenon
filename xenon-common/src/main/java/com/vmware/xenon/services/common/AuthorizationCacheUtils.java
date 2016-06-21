@@ -34,7 +34,7 @@ public class AuthorizationCacheUtils {
      * Helper method that clears the service host authz cache for the specified user service
      * @param s service context to invoke the operation
      * @param op Operation to mark completion/failure
-     * @param userState UserService state
+     * @param userLink UserService state
      */
     public static void clearAuthzCacheForUser(StatefulService s, Operation op, String userLink) {
         s.getHost().clearAuthorizationContext(s, userLink);
