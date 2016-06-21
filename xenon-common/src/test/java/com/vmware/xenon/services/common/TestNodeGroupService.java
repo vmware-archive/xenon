@@ -182,7 +182,8 @@ public class TestNodeGroupService {
         if (current.name == null) {
             return false;
         }
-        if (!CUSTOM_EXAMPLE_SERVICE_KIND.equals(current.documentKind)) {
+        if (!this.host.isRemotePeerTest() &&
+                !CUSTOM_EXAMPLE_SERVICE_KIND.equals(current.documentKind)) {
             return false;
         }
         return current.name.equals(initial.name);
@@ -236,6 +237,13 @@ public class TestNodeGroupService {
 
         for (VerificationHost h1 : this.host.getInProcessHostMap().values()) {
             setUpPeerHostWithAdditionalServices(h1);
+        }
+
+        // If the peer hosts are remote, then we undo CUSTOM_EXAMPLE_SERVICE_KIND
+        // from the KINDS cache and use the real documentKind of ExampleService.
+        if (this.host.isRemotePeerTest()) {
+            Utils.registerKind(ExampleServiceState.class,
+                    Utils.toDocumentKind(ExampleServiceState.class));
         }
     }
 
