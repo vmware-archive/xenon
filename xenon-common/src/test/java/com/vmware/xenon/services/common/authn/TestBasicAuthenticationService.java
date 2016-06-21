@@ -44,7 +44,7 @@ public class TestBasicAuthenticationService extends BasicTestCase {
     private static final String PASSWORD = "password-for-jane";
     private static final String INVALID_PASSWORD = "invalid-password";
     private static final String BASIC_AUTH_PREFIX = "Basic ";
-    private static final String BASIC_AUTH_USER_SEPERATOR = ":";
+    private static final String BASIC_AUTH_USER_SEPARATOR = ":";
     private static final String SET_COOKIE_HEADER = "Set-Cookie";
 
     private String credentialsServiceStateSelfLink;
@@ -137,7 +137,7 @@ public class TestBasicAuthenticationService extends BasicTestCase {
 
         // send a request with an authentication header for an invalid user
         String userPassStr = new String(Base64.getEncoder().encode(
-                new StringBuffer(INVALID_USER).append(BASIC_AUTH_USER_SEPERATOR).append(PASSWORD)
+                new StringBuffer(INVALID_USER).append(BASIC_AUTH_USER_SEPARATOR).append(PASSWORD)
                         .toString().getBytes()));
         String headerVal = new StringBuffer("Basic ").append(userPassStr).toString();
         this.host.testStart(1);
@@ -188,7 +188,7 @@ public class TestBasicAuthenticationService extends BasicTestCase {
 
         // send a request with an invalid password
         userPassStr = new String(Base64.getEncoder().encode(
-                new StringBuffer(USER).append(BASIC_AUTH_USER_SEPERATOR).append(INVALID_PASSWORD)
+                new StringBuffer(USER).append(BASIC_AUTH_USER_SEPARATOR).append(INVALID_PASSWORD)
                         .toString().getBytes()));
         headerVal = new StringBuffer(BASIC_AUTH_PREFIX).append(userPassStr).toString();
         this.host.testStart(1);
@@ -214,7 +214,7 @@ public class TestBasicAuthenticationService extends BasicTestCase {
 
         // Next send a valid request
         userPassStr = new String(Base64.getEncoder().encode(
-                new StringBuffer(USER).append(BASIC_AUTH_USER_SEPERATOR).append(PASSWORD)
+                new StringBuffer(USER).append(BASIC_AUTH_USER_SEPARATOR).append(PASSWORD)
                         .toString().getBytes()));
         headerVal = new StringBuffer(BASIC_AUTH_PREFIX).append(userPassStr).toString();
         this.host.testStart(1);
@@ -308,7 +308,7 @@ public class TestBasicAuthenticationService extends BasicTestCase {
 
         // Next send a valid request
         String userPassStr = Base64.getEncoder().encodeToString(
-                (USER + BASIC_AUTH_USER_SEPERATOR + PASSWORD).getBytes());
+                (USER + BASIC_AUTH_USER_SEPARATOR + PASSWORD).getBytes());
         String headerVal = BASIC_AUTH_PREFIX + userPassStr;
 
         long oneHourFromNowBeforeAuth = Utils.getNowMicrosUtc() + TimeUnit.HOURS.toMicros(1);
@@ -487,6 +487,70 @@ public class TestBasicAuthenticationService extends BasicTestCase {
                 });
         this.host.testStart(1);
         this.host.send(updateProperies);
+        this.host.testWait();
+    }
+
+    @Test
+    public void testAuthWithUserInfo() throws Throwable {
+        this.host.resetAuthorizationContext();
+        String userPassStr = new StringBuilder(USER).append(BASIC_AUTH_USER_SEPARATOR).append(PASSWORD)
+                        .toString();
+        URI authServiceUri = UriUtils.buildUri(this.host, BasicAuthenticationService.SELF_LINK, null, userPassStr);
+
+        this.host.testStart(1);
+        this.host.send(Operation
+                .createPost(authServiceUri)
+                .setBody(new Object())
+                .setCompletion(
+                        (o, e) -> {
+                            if (e != null) {
+                                this.host.failIteration(e);
+                                return;
+                            }
+                            if (o.getStatusCode() != Operation.STATUS_CODE_OK) {
+                                this.host.failIteration(new IllegalStateException(
+                                        "Invalid status code returned"));
+                                return;
+                            }
+                            if (o.getAuthorizationContext() == null) {
+                                this.host.failIteration(new IllegalStateException(
+                                        "Authorization context not set"));
+                                return;
+                            }
+                            // now issue a logout
+                            AuthenticationRequest request = new AuthenticationRequest();
+                            request.requestType = AuthenticationRequestType.LOGOUT;
+                            Operation logoutOp = Operation
+                                    .createPost(authServiceUri)
+                                    .setBody(request)
+                                    .forceRemote()
+                                    .setCompletion(
+                                            (oo, ee) -> {
+                                                if (ee != null) {
+                                                    this.host.failIteration(ee);
+                                                    return;
+                                                }
+                                                if (oo.getStatusCode() != Operation.STATUS_CODE_OK) {
+                                                    this.host.failIteration(new IllegalStateException(
+                                                            "Invalid status code returned"));
+                                                    return;
+                                                }
+                                                String cookieHeader = oo.getResponseHeader(SET_COOKIE_HEADER);
+                                                if (cookieHeader == null) {
+                                                    this.host.failIteration(new IllegalStateException(
+                                                            "Cookie is null"));
+                                                }
+                                                Map<String, String> cookieElements = CookieJar.decodeCookies(cookieHeader);
+                                                if (!cookieElements.get("Max-Age").equals("0")) {
+                                                    this.host.failIteration(new IllegalStateException(
+                                                            "Max-Age for cookie is not zero"));
+                                                }
+                                                this.host.resetAuthorizationContext();
+                                                this.host.completeIteration();
+                                            });
+                            this.host.setAuthorizationContext(o.getAuthorizationContext());
+                            this.host.send(logoutOp);
+                        }));
         this.host.testWait();
     }
 
