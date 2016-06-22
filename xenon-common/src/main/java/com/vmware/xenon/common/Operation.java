@@ -1397,18 +1397,22 @@ public class Operation implements Cloneable {
         return hasOption(OperationOption.REPLICATION_DISABLED);
     }
 
+    /**
+     * Prefer using {@link #getRequestHeader(String)} for retrieving entries
+     * and {@link #addRequestHeader(String, String)} for adding entries.
+     */
     public Map<String, String> getRequestHeaders() {
-        if (this.remoteCtx == null) {
-            return new HashMap<>();
-        }
+        allocateRemoteContext();
         allocateRequestHeaders();
         return this.remoteCtx.requestHeaders;
     }
 
+    /**
+     * Prefer using {@link #getResponseHeader(String)} for retrieving entries
+     * and {@link #addResponseHeader(String, String)} for adding entries.
+     */
     public Map<String, String> getResponseHeaders() {
-        if (this.remoteCtx == null) {
-            return new HashMap<>();
-        }
+        allocateRemoteContext();
         allocateResponseHeaders();
         return this.remoteCtx.responseHeaders;
     }
