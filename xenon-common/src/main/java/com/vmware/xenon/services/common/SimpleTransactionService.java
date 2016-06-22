@@ -347,8 +347,14 @@ public class SimpleTransactionService extends StatefulService {
                 if (body.documentSelfLink == null) {
                     body.documentSelfLink = UUID.randomUUID().toString();
                     request.setBody(body);
+                } else {
+                    if (UriUtils.isChildPath(body.documentSelfLink, serviceSelfLink)) {
+                        serviceSelfLink = body.documentSelfLink;
+                    } else {
+                        serviceSelfLink = UriUtils.buildUriPath(serviceSelfLink,
+                                body.documentSelfLink);
+                    }
                 }
-                serviceSelfLink = UriUtils.buildUriPath(serviceSelfLink, body.documentSelfLink);
             }
 
             long servicePreviousVersion = this.service.getState(request) == null ? -1

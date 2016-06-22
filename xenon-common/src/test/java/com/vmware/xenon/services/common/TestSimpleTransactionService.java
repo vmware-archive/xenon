@@ -553,6 +553,30 @@ public class TestSimpleTransactionService extends BasicReusableHostTestCase {
         commit(txid);
     }
 
+    @Test
+    public void testAbsoluteSelfLink() throws Throwable {
+        String txid = newTransaction();
+        this.defaultHost.testStart(1);
+        BankAccountServiceState initialState = new BankAccountServiceState();
+        // set documentSelfLink - use full path
+        initialState.documentSelfLink = buildAccountUri(buildAccountId(0)).getPath();
+        initialState.balance = 100.0;
+        Operation post = Operation
+                .createPost(getAccountFactoryUri())
+                .setBody(initialState).setCompletion((o, e) -> {
+                    if (operationFailed(o, e)) {
+                        this.defaultHost.failIteration(e);
+                        return;
+                    }
+                    this.defaultHost.completeIteration();
+                });
+        post.setTransactionId(txid);
+        this.defaultHost.send(post);
+        this.defaultHost.testWait();
+        commit(txid);
+        countAccounts(null, 1);
+    }
+
     private void sendWithdrawDepositOperationPairs(String[] txids, int numOfTransfers,
             boolean independentTest) throws Throwable {
         Collection<Operation> requests = new ArrayList<Operation>(numOfTransfers);
