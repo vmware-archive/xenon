@@ -128,10 +128,13 @@ public class NodeSelectorReplicationService extends StatelessService {
             if (e != null && o != null) {
                 logWarning("Replication request to %s failed with %d, %s",
                         o.getUri(), o.getStatusCode(), e.getMessage());
+                // Preserve the status code from latest failure. We do not have a mechanism
+                // to report different failure codes, per operation.
+                outboundOp.setStatusCode(o.getStatusCode());
             }
 
             if (sCount == successThresholdFinal) {
-                outboundOp.complete();
+                outboundOp.setStatusCode(Operation.STATUS_CODE_OK).complete();
                 return;
             }
 

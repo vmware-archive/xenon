@@ -781,6 +781,10 @@ public class TestNodeGroupService {
             // include self in peers
             assertTrue(totalCount >= peerNodeCount + 1);
 
+            // Before factory synch is complete, make sure POSTs to existing services fail,
+            // since they are not marked idempotent.
+            verifyReplicatedInConflictPost(dupStates);
+
             // now verify all nodes synchronize and see the example service instances that existed on the single
             // host
             waitForReplicatedFactoryChildServiceConvergence(
@@ -804,6 +808,39 @@ public class TestNodeGroupService {
                 tmpFolder.delete();
             }
         }
+    }
+
+    private void verifyReplicatedInConflictPost(Map<URI, ExampleServiceState> dupStates)
+            throws Throwable {
+        // Its impossible to guarantee that this runs during factory synch. It might run before,
+        // it might run during, it might run after. Since we runs 1000s of tests per day, CI
+        // will let us know if the production code works. Here, we add a small sleep so we increase
+        // chance we overlap with factory synchronization.
+        Thread.sleep(TimeUnit.MICROSECONDS.toMillis(
+                this.host.getPeerHost().getMaintenanceIntervalMicros()));
+        // Issue a POST for a service we know exists and expect failure, since the example service
+        // is not marked IDEMPOTENT. We expect CONFLICT error code, but if synchronization is active
+        // we want to confirm we dont get 500, but the 409 is preserved
+        TestContext ctx = this.host.testCreate(dupStates.size());
+        for (ExampleServiceState st : dupStates.values()) {
+            URI factoryUri = this.host.getPeerServiceUri(ExampleService.FACTORY_LINK);
+            Operation post = Operation.createPost(factoryUri).setBody(st)
+                    .setCompletion((o, e) -> {
+                        if (e != null) {
+                            if (o.getStatusCode() != Operation.STATUS_CODE_CONFLICT) {
+                                ctx.failIteration(new IllegalStateException(
+                                        "Expected conflict status, got " + o.getStatusCode()));
+                                return;
+                            }
+                            ctx.completeIteration();
+                            return;
+                        }
+                        ctx.failIteration(new IllegalStateException(
+                                "Expected failure on duplicate POST"));
+                    });
+            this.host.send(post);
+        }
+        this.host.testWait(ctx);
     }
 
     /**
