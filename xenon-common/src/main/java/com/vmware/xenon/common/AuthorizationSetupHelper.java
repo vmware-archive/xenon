@@ -15,8 +15,7 @@ package com.vmware.xenon.common;
 
 import java.net.URI;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.EnumSet;
 import java.util.logging.Level;
 
 import com.vmware.xenon.common.Service.Action;
@@ -128,6 +127,7 @@ public class AuthorizationSetupHelper {
     private String roleSelfLink;
     private Query userGroupQuery;
     private Query resourceQuery;
+    private EnumSet<Action> verbs;
 
     private String failureMessage;
 
@@ -183,6 +183,11 @@ public class AuthorizationSetupHelper {
 
     public AuthorizationSetupHelper setResourceQuery(Query resourceQuery) {
         this.resourceQuery = resourceQuery;
+        return this;
+    }
+
+    public AuthorizationSetupHelper setVerbs(EnumSet<Action> verbs) {
+        this.verbs = verbs;
         return this;
     }
 
@@ -524,17 +529,19 @@ public class AuthorizationSetupHelper {
     }
 
     /**
-     * Make the role that ties together the user group and resource group. Our policy is to
-     * allow all verbose (PUT, POST, etc)
+     * Make the role that ties together the user group and resource group.
+     * If no verbs are specified, allow all verbs (PUT, POST, etc)
      */
     private void makeRole() {
-        Set<Action> verbs = new HashSet<>();
-        Collections.addAll(verbs, Action.values());
+        if (this.verbs == null) {
+            this.verbs = EnumSet.allOf(Action.class);
+            Collections.addAll(this.verbs, Action.values());
+        }
 
         RoleState role = new RoleState();
         role.userGroupLink = this.userGroupSelfLink;
         role.resourceGroupLink = this.resourceGroupSelfLink;
-        role.verbs = verbs;
+        role.verbs = this.verbs;
         role.policy = Policy.ALLOW;
         role.documentSelfLink = this.roleSelfLink;
 

@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import org.junit.Test;
 
+import com.vmware.xenon.common.Service.Action;
 import com.vmware.xenon.common.ServiceHost.ServiceHostState;
 import com.vmware.xenon.common.http.netty.NettyHttpServiceClient;
 import com.vmware.xenon.common.test.AuthorizationHelper;
@@ -115,6 +116,8 @@ public class TestAuthSetupHelper extends BasicTestCase {
             }
         };
 
+        EnumSet<Action> verbs = EnumSet.of(Action.GET);
+
         this.host.testStart(1);
         AuthorizationSetupHelper.create()
                 .setHost(this.host)
@@ -123,6 +126,7 @@ public class TestAuthSetupHelper extends BasicTestCase {
                 .setUserGroupName(GUEST_USER_GROUP)
                 .setResourceGroupName(GUEST_RESOURCE_GROUP)
                 .setRoleName(GUEST_ROLE)
+                .setVerbs(verbs)
                 .setCompletion(authCompletion)
                 .setupRole();
 
@@ -145,6 +149,7 @@ public class TestAuthSetupHelper extends BasicTestCase {
         RoleState roleState = Utils
                 .fromJson(result.documents.values().iterator().next(), RoleState.class);
         assertEquals(GUEST_ROLE, UriUtils.getLastPathSegment(roleState.documentSelfLink));
+        assertEquals(roleState.verbs, verbs);
     }
 
     @Test
