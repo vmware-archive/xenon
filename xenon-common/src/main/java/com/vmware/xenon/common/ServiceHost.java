@@ -2214,7 +2214,7 @@ public class ServiceHost implements ServiceRequestSender {
             return true;
         }
 
-        log(Level.INFO, "Converting (%d) POST to PUT for idempotent %s in stage %s",
+        log(Level.FINE, "Converting (%d) POST to PUT for idempotent %s in stage %s",
                 post.getId(),
                 servicePath, existing.getProcessingStage());
 
