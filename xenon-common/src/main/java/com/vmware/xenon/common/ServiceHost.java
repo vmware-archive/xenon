@@ -2703,7 +2703,7 @@ public class ServiceHost implements ServiceRequestSender {
         } else if (stateFromStore != null
                 && stateFromStore.documentSelfLink != null) {
             // set the initial state from what the index returned
-            serviceStartPost.setBodyNoCloning(stateFromStore);
+            serviceStartPost.setBody(stateFromStore);
         }
 
         processServiceStart(next, s,
