@@ -679,7 +679,10 @@ public class MigrationTaskService extends StatefulService {
     }
 
     private Collection<Operation> createDeleteOperations(Collection<URI> uris) {
-        return uris.stream().map(u -> Operation.createDelete(u)).collect(Collectors.toList());
+        return uris.stream().map(u -> Operation.createDelete(u)
+                .addRequestHeader(Operation.REPLICATION_QUORUM_HEADER,
+                        Operation.REPLICATION_QUORUM_HEADER_VALUE_ALL))
+                .collect(Collectors.toList());
     }
 
     private Collection<Operation> createPostOperations(Map<URI, Operation> failedOps, Map<Operation, Object> posts) {
