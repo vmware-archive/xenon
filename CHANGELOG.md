@@ -5,6 +5,9 @@
 * Add sample code for Bootstrap Service Tutorial.
   https://github.com/vmware/xenon/wiki/Bootstrap-Service-Tutorial
 
+* Move VerificationHost#findUnixProcessInfoByXxx,killUnixProcess to SystemUtils class.
+  Referenced class(ProcessInfo) has moved to SystemUtils class as well.
+
 * Clear the authz cache maintained in ServiceHost on all nodes in a multi-node
   deployment.
 
