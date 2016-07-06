@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.9.0-SNAPSHOT
+## 0.9.0
 
 * Add sample code for Bootstrap Service Tutorial.
   https://github.com/vmware/xenon/wiki/Bootstrap-Service-Tutorial
