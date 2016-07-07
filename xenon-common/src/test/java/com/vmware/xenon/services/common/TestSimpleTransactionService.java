@@ -554,6 +554,29 @@ public class TestSimpleTransactionService extends BasicReusableHostTestCase {
     }
 
     @Test
+    public void testNullSelfLink() throws Throwable {
+        String txid = newTransaction();
+        this.defaultHost.testStart(1);
+        BankAccountServiceState initialState = new BankAccountServiceState();
+        // set documentSelfLink to null, to test coordinator-generated self-link
+        initialState.documentSelfLink = null;
+        initialState.balance = 100.0;
+        Operation post = Operation
+                .createPost(getAccountFactoryUri())
+                .setBody(initialState).setCompletion((o, e) -> {
+                    if (operationFailed(o, e)) {
+                        this.defaultHost.failIteration(e);
+                        return;
+                    }
+                    this.defaultHost.completeIteration();
+                });
+        post.setTransactionId(txid);
+        this.defaultHost.send(post);
+        this.defaultHost.testWait();
+        commit(txid);
+    }
+
+    @Test
     public void testAbsoluteSelfLink() throws Throwable {
         String txid = newTransaction();
         this.defaultHost.testStart(1);

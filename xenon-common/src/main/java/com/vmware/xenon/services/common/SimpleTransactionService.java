@@ -347,6 +347,8 @@ public class SimpleTransactionService extends StatefulService {
                 if (body.documentSelfLink == null) {
                     body.documentSelfLink = UUID.randomUUID().toString();
                     request.setBody(body);
+                    serviceSelfLink = UriUtils.buildUriPath(serviceSelfLink,
+                            body.documentSelfLink);
                 } else {
                     if (UriUtils.isChildPath(body.documentSelfLink, serviceSelfLink)) {
                         serviceSelfLink = body.documentSelfLink;
