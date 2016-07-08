@@ -16,6 +16,8 @@ package com.vmware.xenon.services.common.authn;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import static com.vmware.xenon.services.common.authn.BasicAuthenticationUtils.constructBasicAuth;
+
 import java.net.URI;
 import java.util.Base64;
 import java.util.HashMap;
@@ -136,10 +138,7 @@ public class TestBasicAuthenticationService extends BasicTestCase {
         this.host.testWait();
 
         // send a request with an authentication header for an invalid user
-        String userPassStr = new String(Base64.getEncoder().encode(
-                new StringBuffer(INVALID_USER).append(BASIC_AUTH_USER_SEPARATOR).append(PASSWORD)
-                        .toString().getBytes()));
-        String headerVal = new StringBuffer("Basic ").append(userPassStr).toString();
+        String headerVal = constructBasicAuth(INVALID_USER, PASSWORD);
         this.host.testStart(1);
         this.host.send(Operation
                 .createPost(authServiceUri)
@@ -162,7 +161,7 @@ public class TestBasicAuthenticationService extends BasicTestCase {
         this.host.testWait();
 
         // send a request with a malformed authentication header
-        userPassStr = new String(Base64.getEncoder().encode(
+        String userPassStr = new String(Base64.getEncoder().encode(
                 new StringBuffer(USER).toString().getBytes()));
         headerVal = new StringBuffer(BASIC_AUTH_PREFIX).append(userPassStr).toString();
         this.host.testStart(1);
@@ -187,10 +186,7 @@ public class TestBasicAuthenticationService extends BasicTestCase {
         this.host.testWait();
 
         // send a request with an invalid password
-        userPassStr = new String(Base64.getEncoder().encode(
-                new StringBuffer(USER).append(BASIC_AUTH_USER_SEPARATOR).append(INVALID_PASSWORD)
-                        .toString().getBytes()));
-        headerVal = new StringBuffer(BASIC_AUTH_PREFIX).append(userPassStr).toString();
+        headerVal = constructBasicAuth(USER, INVALID_PASSWORD);
         this.host.testStart(1);
         this.host.send(Operation
                 .createPost(authServiceUri)
@@ -213,10 +209,7 @@ public class TestBasicAuthenticationService extends BasicTestCase {
         this.host.testWait();
 
         // Next send a valid request
-        userPassStr = new String(Base64.getEncoder().encode(
-                new StringBuffer(USER).append(BASIC_AUTH_USER_SEPARATOR).append(PASSWORD)
-                        .toString().getBytes()));
-        headerVal = new StringBuffer(BASIC_AUTH_PREFIX).append(userPassStr).toString();
+        headerVal = constructBasicAuth(USER, PASSWORD);
         this.host.testStart(1);
         this.host.send(Operation
                 .createPost(authServiceUri)
@@ -307,9 +300,7 @@ public class TestBasicAuthenticationService extends BasicTestCase {
         URI authServiceUri = UriUtils.buildUri(this.host, BasicAuthenticationService.SELF_LINK);
 
         // Next send a valid request
-        String userPassStr = Base64.getEncoder().encodeToString(
-                (USER + BASIC_AUTH_USER_SEPARATOR + PASSWORD).getBytes());
-        String headerVal = BASIC_AUTH_PREFIX + userPassStr;
+        String headerVal = constructBasicAuth(USER, PASSWORD);
 
         long oneHourFromNowBeforeAuth = Utils.getNowMicrosUtc() + TimeUnit.HOURS.toMicros(1);
 

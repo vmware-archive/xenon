@@ -14,6 +14,7 @@
 package com.vmware.xenon.services.common.authn;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
@@ -121,6 +122,20 @@ public class BasicAuthenticationUtils {
             return null;
         }
         return userNameAndPassword;
+    }
+
+    /**
+     * Utility method for constructing a Basic authorization header from the provided credentials
+     * @param name the username (or email)
+     * @param password the password
+     * @return the Base64 encoded auth request header to pass to request an auth token.
+     */
+    public static String constructBasicAuth(String name, String password) {
+        String userPass = String.format("%s:%s", name, password);
+        byte[] bytes = Base64.getEncoder().encode(userPass.getBytes(StandardCharsets.UTF_8));
+        String encodedUserPass = new String(bytes, StandardCharsets.UTF_8);
+        String basicAuth = "Basic " + encodedUserPass;
+        return basicAuth;
     }
 
     /**

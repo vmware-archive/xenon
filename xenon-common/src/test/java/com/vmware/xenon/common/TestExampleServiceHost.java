@@ -16,8 +16,9 @@ package com.vmware.xenon.common;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import static com.vmware.xenon.services.common.authn.BasicAuthenticationUtils.constructBasicAuth;
+
 import java.net.URI;
-import java.util.Base64;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -170,14 +171,4 @@ public class TestExampleServiceHost extends BasicReusableHostTestCase {
         assertTrue(numberUsers[0] == 2);
     }
 
-    /**
-     * Supports loginUser() by creating a Basic Auth header
-     */
-    private String constructBasicAuth(String name, String password) {
-        String userPass = String.format("%s:%s", name, password);
-        String encodedUserPass = new String(Base64.getEncoder().encode(userPass.getBytes()));
-        String basicAuth = "Basic " + encodedUserPass;
-        return basicAuth;
-
-    }
 }

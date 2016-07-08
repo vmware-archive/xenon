@@ -15,9 +15,10 @@ package com.vmware.xenon.common.test;
 
 import static org.junit.Assert.assertTrue;
 
+import static com.vmware.xenon.services.common.authn.BasicAuthenticationUtils.constructBasicAuth;
+
 import java.net.URI;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -182,15 +183,6 @@ public class AuthorizationHelper {
 
         return authToken[0];
 
-    }
-
-    /**
-     * Supports testAuthSetupHelper() by creating a Basic Auth header
-     */
-    private String constructBasicAuth(String name, String password) {
-        String userPass = String.format("%s:%s", name, password);
-        String encodedUserPass = new String(Base64.getEncoder().encode(userPass.getBytes()));
-        return "Basic " + encodedUserPass;
     }
 
     public void setUserGroupLink(String userGroupLink) {
