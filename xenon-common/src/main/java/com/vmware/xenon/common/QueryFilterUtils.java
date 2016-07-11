@@ -33,6 +33,9 @@ public class QueryFilterUtils {
      */
     public static ServiceDocument getServiceState(Operation op, ServiceHost host) {
         Service s = host.findService(op.getUri().getPath());
+        if (s == null) {
+            return null;
+        }
         Class<? extends ServiceDocument> type = s.getStateType();
         if (type == null) {
             return null;
