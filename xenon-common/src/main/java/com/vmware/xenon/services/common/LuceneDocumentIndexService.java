@@ -1871,6 +1871,12 @@ public class LuceneDocumentIndexService extends StatelessService {
         hitDoc = s.doc(hits[0].doc);
         long versionUpperBound = Long.parseLong(hitDoc.get(ServiceDocument.FIELD_NAME_VERSION));
 
+        // If the number of versions found are already less than the limit
+        // then there is nothing to delete. Just exit.
+        if (versionCount <= versionsToKeep) {
+            return;
+        }
+
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
 
         // grab the document at the tail of the results, and use it to form a new query
