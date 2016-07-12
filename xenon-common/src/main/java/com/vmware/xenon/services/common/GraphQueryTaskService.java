@@ -81,6 +81,12 @@ public class GraphQueryTaskService extends TaskService<GraphQueryTask> {
             return null;
         }
 
+        if (task.stages.size() != task.depthLimit) {
+            taskOperation.fail(new IllegalArgumentException(
+                    "Number of stages must match depthLimit"));
+            return null;
+        }
+
         for (QueryTask stage : task.stages) {
             // basic validation of query specifications, per stage. The query task created
             // during the state machine operation will do deeper validation and the graph query
@@ -88,6 +94,12 @@ public class GraphQueryTaskService extends TaskService<GraphQueryTask> {
             if (stage.querySpec == null || stage.querySpec.query == null) {
                 taskOperation.fail(new IllegalArgumentException(
                         "Stage query specification is invalid: " + Utils.toJson(stage)));
+                return null;
+            }
+            if (stage.querySpec.resultLimit != null) {
+                taskOperation.fail(new IllegalArgumentException(
+                        "Stage query specification resultLimit must be null: "
+                                + Utils.toJson(stage)));
                 return null;
             }
             stage.results = null;
@@ -150,24 +162,14 @@ public class GraphQueryTaskService extends TaskService<GraphQueryTask> {
             patch.fail(new IllegalArgumentException("Did not expect to receive CREATED stage"));
             return false;
         }
-
-        // a graph query can be reset to a previous stage, to process the next page worth of results
-        if (patchBody.currentDepth < currentState.currentDepth) {
-            if (patchBody.currentDepth >= currentState.stages.size() - 1) {
+        if (patchBody.taskInfo.stage == TaskStage.STARTED) {
+            if (patchBody.currentDepth > currentState.stages.size() - 1) {
                 patch.fail(new IllegalStateException(
-                        "new currentDepth is must be a valid stage index, other than final stage"
+                        "new currentDepth is must be a valid stage index: "
                                 + currentState.currentDepth));
                 return false;
             }
-            QueryTask stage = currentState.stages.get(patchBody.currentDepth);
-            if (stage.results == null || stage.results.nextPageLink == null) {
-                patch.fail(new IllegalStateException(
-                        "currentDepth points to stage with no results, or results with no pages: "
-                                + Utils.toJsonHtml(stage)));
-                return false;
-            }
         }
-
         if (patchBody.currentDepth < currentState.currentDepth) {
             patch.fail(new IllegalStateException(
                     "new currentDepth is less or equal to existing depth:"
@@ -204,33 +206,6 @@ public class GraphQueryTaskService extends TaskService<GraphQueryTask> {
         int previousStageIndex = Math.max(currentState.currentDepth - 1, 0);
         ServiceDocumentQueryResult lastResults = currentState.stages.get(previousStageIndex).results;
 
-        if (lastResults != null) {
-            // Determine if query is complete. It has two termination conditions:
-            // 1) we have reached depth limit
-            // 2) there are no results for the current depth
-            // 3) there are no selected links for the current depth
-
-            if (currentState.currentDepth > currentState.depthLimit - 1) {
-                sendSelfPatch(currentState, TaskStage.FINISHED, null);
-                return;
-            }
-
-            if (lastResults.documentCount == 0) {
-                sendSelfPatch(currentState, TaskStage.FINISHED, null);
-                return;
-            }
-
-            if (lastResults.selectedLinks == null || lastResults.selectedLinks.isEmpty()) {
-                if (currentState.currentDepth < currentState.depthLimit - 1) {
-                    // this is either a client error, the query specified the wrong field for the link terms, or
-                    // the documents had null link values. We can not proceed, since there are no edges to
-                    // traverse.
-                    sendSelfPatch(currentState, TaskStage.FINISHED, null);
-                    return;
-                }
-            }
-        }
-
         // Use a query task for our current query depth. If we have less query specifications
         // than the depth limit, we re-use the query specification at the end of the traversal list
         int traversalSpecIndex = Math.min(currentState.stages.size() - 1,
@@ -254,30 +229,57 @@ public class GraphQueryTaskService extends TaskService<GraphQueryTask> {
         sendRequest(createQueryOp);
     }
 
+    private boolean checkAndPatchToFinished(GraphQueryTask currentState,
+            ServiceDocumentQueryResult lastResults) {
+        if (lastResults == null) {
+            return false;
+        }
+        // Determine if query is complete. It has two termination conditions:
+        // 1) we have reached depth limit
+        // 2) there are no results for the current depth
+        // 3) there are no selected links for the current depth
+
+        if (currentState.currentDepth > currentState.depthLimit - 1) {
+            sendSelfPatch(currentState, TaskStage.FINISHED, null);
+            return true;
+        }
+
+        if (lastResults.documentCount == 0) {
+            sendSelfPatch(currentState, TaskStage.FINISHED, null);
+            return true;
+        }
+
+        if (lastResults.selectedLinks == null || lastResults.selectedLinks.isEmpty()) {
+            if (currentState.currentDepth < currentState.depthLimit - 1) {
+                // this is either a client error, the query specified the wrong field for the link terms, or
+                // the documents had null link values. We can not proceed, since there are no edges to
+                // traverse.
+                sendSelfPatch(currentState, TaskStage.FINISHED, null);
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void handleQueryStageCompletion(GraphQueryTask currentState, Operation o, Throwable e) {
         if (e != null) {
             sendSelfFailurePatch(currentState, e.toString());
             return;
         }
         QueryTask response = o.getBody(QueryTask.class);
-        // associate the query result for the current depth. If the query is paginated, we store
-        // the result for the next page we need to fetch
-        if (response.querySpec.resultLimit != null
-                && response.results.nextPageLink != null) {
-            currentState.resultLinks.set(currentState.resultLinks.size() - 1,
-                    response.results.nextPageLink);
-        } else {
-            currentState.resultLinks.add(response.documentSelfLink);
-        }
+        // associate the query result for the current depth
+        currentState.resultLinks.add(response.documentSelfLink);
 
         int traversalSpecIndex = Math.min(currentState.stages.size() - 1,
                 currentState.currentDepth);
         currentState.stages.get(traversalSpecIndex).results = response.results;
-        if (response.results.nextPageLink == null) {
-            // We increase the depth, moving to the next stage only when we run out of pages to
-            // process in the current stage. For non paginated queries, we move forward on every
-            // query completion
-            currentState.currentDepth++;
+
+        // We increment the depth, moving to the next stage
+        currentState.currentDepth++;
+
+        // check termination conditions and patch to FINISHED if appropriate
+        if (checkAndPatchToFinished(currentState, response.results)) {
+            return;
         }
 
         // Self PATCH, staying in STARTED stage. Termination conditions are checked

@@ -73,13 +73,45 @@ public class TestGraphQueryTaskService extends BasicTestCase {
         initialBrokenState = GraphQueryTask.Builder.create(2).build();
         post.setBody(initialBrokenState);
         this.host.sendAndWaitExpectFailure(post, Operation.STATUS_CODE_BAD_REQUEST);
-        // valid depth, 1 stage, currentDepth > 0
+        // valid depth, depth != stage count
         QueryTask q = QueryTask.Builder.create().setQuery(
                 Query.Builder.create().addKindFieldClause(ExampleServiceState.class)
                         .build())
                 .build();
         initialBrokenState = GraphQueryTask.Builder.create(2).addQueryStage(q).build();
+        post.setBody(initialBrokenState);
+        this.host.sendAndWaitExpectFailure(post, Operation.STATUS_CODE_BAD_REQUEST);
+        // valid depth, 1 stage, currentDepth > 0
+        q = QueryTask.Builder.create().setQuery(
+                Query.Builder.create().addKindFieldClause(ExampleServiceState.class)
+                        .build())
+                .build();
+        initialBrokenState = GraphQueryTask.Builder.create(1).addQueryStage(q).build();
         initialBrokenState.currentDepth = 12000;
+        post.setBody(initialBrokenState);
+        this.host.sendAndWaitExpectFailure(post, Operation.STATUS_CODE_BAD_REQUEST);
+        // resultLimit set in first stage
+        q = QueryTask.Builder.create().setQuery(
+                Query.Builder.create().addKindFieldClause(ExampleServiceState.class)
+                        .build())
+                .build();
+        q.querySpec.resultLimit = 2;
+        QueryTask secondStage = QueryTask.Builder.create().setQuery(
+                Query.Builder.create().addKindFieldClause(ExampleServiceState.class)
+                        .build())
+                .build();
+        initialBrokenState = GraphQueryTask.Builder.create(2)
+                .addQueryStage(q)
+                .addQueryStage(secondStage).build();
+
+        post.setBody(initialBrokenState);
+        this.host.sendAndWaitExpectFailure(post, Operation.STATUS_CODE_BAD_REQUEST);
+        // resultLimit set in second stage
+        secondStage.querySpec.resultLimit = 2;
+        initialBrokenState = GraphQueryTask.Builder.create(2)
+                .addQueryStage(q)
+                .addQueryStage(secondStage).build();
+
         post.setBody(initialBrokenState);
         this.host.sendAndWaitExpectFailure(post, Operation.STATUS_CODE_BAD_REQUEST);
     }
@@ -158,6 +190,7 @@ public class TestGraphQueryTaskService extends BasicTestCase {
         };
         verifyNStageResult(finalState, true, resultCounts);
 
+        // test direct task, same parameters
         finalState = createMultiStageRecursiveTask(stageCount, true);
         logGraphQueryThroughput(finalState);
         verifyNStageResult(finalState, true, resultCounts);
@@ -251,8 +284,19 @@ public class TestGraphQueryTaskService extends BasicTestCase {
 
     private GraphQueryTask createMultiStageRecursiveTask(int stageCount,
             boolean isDirect) throws Throwable {
+        return createMultiStageRecursiveTask(stageCount, null, isDirect);
+    }
+
+    private GraphQueryTask createMultiStageRecursiveTask(int stageCount,
+            QueryTask initialStage,
+            boolean isDirect) throws Throwable {
         GraphQueryTask.Builder builder = GraphQueryTask.Builder.create(stageCount);
         for (int i = 0; i < stageCount; i++) {
+            if (i == 0 && initialStage != null) {
+                builder.addQueryStage(initialStage);
+                continue;
+            }
+
             // each stage selects the services with the specific kind and the "serviceLinks" field
             // that points to more instances of the same service type. It logically forms a
             // directed graph, a tree, with the first layer pointing to serviceCount * linkCount
@@ -283,6 +327,7 @@ public class TestGraphQueryTaskService extends BasicTestCase {
             initialState.taskInfo = TaskState.createDirect();
         }
 
+        this.host.log("Creating task (isDirect:%s)", isDirect);
         TestContext ctx = testCreate(1);
         post.setBody(initialState).setCompletion((o, e) -> {
             if (e != null) {
@@ -298,7 +343,7 @@ public class TestGraphQueryTaskService extends BasicTestCase {
         });
         this.host.send(post);
         testWait(ctx);
-
+        this.host.log("Task created (isDirect:%s) (stage: %s)", isDirect, rsp[0].taskInfo.stage);
         assertEquals(isDirect, rsp[0].taskInfo.isDirect);
         return rsp[0];
     }
