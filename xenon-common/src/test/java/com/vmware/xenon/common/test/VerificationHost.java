@@ -956,6 +956,12 @@ public class VerificationHost extends ExampleServiceHost {
         return this.getServiceState(null, ServiceDocumentQueryResult.class, factoryUri);
     }
 
+    public Map<String, ServiceStat> getServiceStats(URI serviceUri) throws Throwable {
+        ServiceStats stats = this.getServiceState(
+                null, ServiceStats.class, UriUtils.buildStatsUri(serviceUri));
+        return stats.entries;
+    }
+
     public void doExampleServiceUpdateAndQueryByVersion(URI hostUri, int serviceCount)
             throws Throwable {
         Consumer<Operation> bodySetter = (o) -> {
