@@ -3243,7 +3243,6 @@ public class VerificationHost extends ExampleServiceHost {
             long millis = getMaintenanceIntervalMicros() / 1000;
             // sleep for a tenth of the maintenance interval
             millis /= 10;
-            log("not ready, sleeping for %d", millis);
             Thread.sleep(millis);
         }
         throw new TimeoutException(timeoutMsg);

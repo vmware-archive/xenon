@@ -3981,33 +3981,42 @@ public class ServiceHost implements ServiceRequestSender {
                     if (s.getProcessingStage() == Service.ProcessingStage.AVAILABLE) {
                         continue;
                     }
-                } else {
 
+                    // track operation
+                    this.operationTracker.trackServiceAvailableCompletion(link, opTemplate,
+                            doOpClone);
+                } else {
+                    final Operation opTemplateClone = getOperationForServiceAvailability(opTemplate,
+                            link,
+                            doOpClone);
                     if (checkReplica) {
                         // when local service is not yet started and required to check replicated
                         // service, delay the node-group-service-availability-check until local
                         // service becomes available by nesting the logic to the opTemplate.
-                        opTemplate.nestCompletion(op -> {
+                        opTemplateClone.nestCompletion(op -> {
                             Service service = findService(op.getUri().getPath());
                             if (service != null
                                     && service.hasOption(ServiceOption.FACTORY)
                                     && service.hasOption(ServiceOption.REPLICATION)) {
-                                Operation o = getOperationForServiceAvailability(opTemplate, link,
-                                        doOpClone);
                                 run(() -> {
                                     NodeGroupUtils
-                                            .registerForReplicatedServiceAvailability(this, o,
+                                            .registerForReplicatedServiceAvailability(this,
+                                                    opTemplateClone,
                                                     link, nodeSelectorPath);
                                 });
                             } else {
-                                opTemplate.complete();
+                                opTemplateClone.complete();
                             }
                         });
+
                     }
+
+                    // Track operation but do not clone again.
+                    // Add the operation with the specific nested completion
+                    this.operationTracker.trackServiceAvailableCompletion(link, opTemplateClone,
+                            false);
                 }
 
-                this.operationTracker
-                        .trackServiceAvailableCompletion(link, opTemplate, doOpClone);
                 // null the link so we do not attempt to invoke the completion below
                 clonedLinks[i] = null;
             }
@@ -4018,8 +4027,9 @@ public class ServiceHost implements ServiceRequestSender {
                 continue;
             }
 
+            final Operation opFinal = opTemplate;
             run(() -> {
-                Operation o = getOperationForServiceAvailability(opTemplate, link, doOpClone);
+                Operation o = getOperationForServiceAvailability(opFinal, link, doOpClone);
                 o.complete();
             });
         }

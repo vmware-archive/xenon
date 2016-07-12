@@ -1175,6 +1175,54 @@ public class TestServiceHost {
         this.host.testWait();
     }
 
+    @Test
+    public void registerForServiceAvailabilityWithReplicaBeforeAndAfterMultiple()
+            throws Throwable {
+        setUp(true);
+        this.host.setMaintenanceIntervalMicros(TimeUnit.MILLISECONDS.toMicros(100));
+
+        String[] links = new String[] {
+                ExampleService.FACTORY_LINK,
+                ServiceUriPaths.CORE_AUTHZ_RESOURCE_GROUPS,
+                ServiceUriPaths.CORE_AUTHZ_USERS,
+                ServiceUriPaths.CORE_AUTHZ_ROLES,
+                ServiceUriPaths.CORE_AUTHZ_USER_GROUPS };
+
+        // register multiple factories, before host start
+        TestContext ctx = this.host.testCreate(links.length * 10);
+        for (int i = 0; i < 10; i++) {
+            this.host.registerForServiceAvailability(ctx.getCompletion(), true, links);
+        }
+        this.host.start();
+        this.host.testWait(ctx);
+
+        // register multiple factories, after host start
+        for (int i = 0; i < 10; i++) {
+            ctx = this.host.testCreate(links.length);
+            this.host.registerForServiceAvailability(ctx.getCompletion(), true, links);
+            this.host.testWait(ctx);
+        }
+
+        // verify that the new replica aware service available works with child services
+        int serviceCount = 10;
+        ctx = this.host.testCreate(serviceCount * 3);
+        links = new String[serviceCount];
+        for (int i = 0; i < serviceCount; i++) {
+            URI u = UriUtils.buildUri(this.host, UUID.randomUUID().toString());
+            links[i] = u.getPath();
+            this.host.registerForServiceAvailability(ctx.getCompletion(),
+                    u.getPath());
+            this.host.startService(Operation.createPost(u),
+                    ExampleService.createFactory());
+            this.host.registerForServiceAvailability(ctx.getCompletion(), true,
+                    u.getPath());
+        }
+        this.host.registerForServiceAvailability(ctx.getCompletion(),
+                links);
+
+        this.host.testWait(ctx);
+    }
+
     public static class ParentService extends StatefulService {
 
         public static final String FACTORY_LINK = "/test/parent";
