@@ -621,7 +621,8 @@ public class SimpleTransactionService extends StatefulService {
 
         Collection<Operation> requests = new ArrayList<>(servicesToBDeleted.size());
         for (String serviceSelfLink : servicesToBDeleted) {
-            Operation op = Operation.createDelete(UriUtils.buildUri(getHost(), serviceSelfLink));
+            Operation op = Operation.createDelete(UriUtils.buildUri(getHost(), serviceSelfLink))
+                    .setTransactionId(null);
             op.addPragmaDirective(PRAGMA_DIRECTIVE_DELETE_ON_TRANSACTION_END);
             requests.add(op);
             currentState.enrolledServices.remove(serviceSelfLink);
