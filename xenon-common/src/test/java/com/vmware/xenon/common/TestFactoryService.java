@@ -35,7 +35,6 @@ import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
@@ -276,7 +275,6 @@ public class TestFactoryService extends BasicReusableHostTestCase {
         this.host.testWait();
     }
 
-    @Ignore("https://www.pivotaltracker.com/story/show/116217439")
     @Test
     public void factoryDurableServicePostWithDeleteRestart() throws Throwable {
         // first create the factory service
@@ -300,8 +298,10 @@ public class TestFactoryService extends BasicReusableHostTestCase {
         EnumSet<ServiceOption> caps = EnumSet.of(ServiceOption.PERSISTENCE,
                 ServiceOption.REPLICATION);
         f.setChildServiceCaps(caps);
+        f.toggleOption(ServiceOption.REPLICATION, true);
         factoryService = (MinimalFactoryTestService) this.host
                 .startServiceAndWait(f, UUID.randomUUID().toString(), null);
+        this.host.waitForReplicatedFactoryServiceAvailable(factoryService.getUri());
 
         doFactoryServiceChildCreation(caps,
                 EnumSet.of(TestProperty.DELETE_DURABLE_SERVICE), count,
@@ -313,7 +313,6 @@ public class TestFactoryService extends BasicReusableHostTestCase {
                 factoryService.getUri());
     }
 
-    @Ignore("https://www.pivotaltracker.com/story/show/116217439")
     @Test
     public void factoryDurableServicePostNoCaching()
             throws Throwable {
@@ -324,9 +323,11 @@ public class TestFactoryService extends BasicReusableHostTestCase {
 
         long count = this.host.isStressTest() ? 1000 : 10;
         MinimalFactoryTestService f = new MinimalFactoryTestService();
-        // set a custom load query limit
+        // Not directly related to this test: set a custom self query limit to verify
+        // the setter/getter works
         f.setSelfQueryResultLimit(FactoryService.SELF_QUERY_RESULT_LIMIT / 10);
         assertEquals(FactoryService.SELF_QUERY_RESULT_LIMIT / 10, f.getSelfQueryResultLimit());
+        // enable persistence
         f.toggleOption(ServiceOption.PERSISTENCE, true);
 
         MinimalFactoryTestService factoryService = (MinimalFactoryTestService) this.host

@@ -974,6 +974,7 @@ public abstract class FactoryService extends StatelessService {
     @Override
     public void handleNodeGroupMaintenance(Operation maintOp) {
         if (!hasOption(ServiceOption.REPLICATION)) {
+            setAvailable(true);
             maintOp.complete();
             return;
         }
