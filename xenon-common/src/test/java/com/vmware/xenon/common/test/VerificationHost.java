@@ -3213,7 +3213,11 @@ public class VerificationHost extends ExampleServiceHost {
     @SuppressWarnings("unchecked")
     public <T extends TaskService.TaskServiceState> T waitForTask(Class<T> type, String taskUri,
             TaskState.TaskStage expectedStage) throws Throwable {
-        URI uri = UriUtils.buildUri(this, taskUri);
+        URI uri = UriUtils.buildUri(taskUri);
+
+        if (!uri.isAbsolute()) {
+            uri = UriUtils.buildUri(this, taskUri);
+        }
 
         // If the task's state ever reaches one of these "final" stages, we can stop waiting...
         List<TaskState.TaskStage> finalTaskStages = Arrays
@@ -3222,8 +3226,9 @@ public class VerificationHost extends ExampleServiceHost {
 
         String error = String.format("Task did not reach expected state %s", expectedStage);
         Object[] r = new Object[1];
+        final URI finalUri = uri;
         waitFor(error, () -> {
-            T state = this.getServiceState(null, type, uri);
+            T state = this.getServiceState(null, type, finalUri);
             r[0] = state;
             if (state.taskInfo != null) {
                 if (finalTaskStages.contains(state.taskInfo.stage)) {
