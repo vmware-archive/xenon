@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.vmware.xenon.common.ServiceDocumentDescription.PropertyUsageOption;
+import com.vmware.xenon.common.TaskState;
 
 /**
  * Service document describing a multi-stage query task used for traversing a
@@ -55,6 +56,7 @@ public class GraphQueryTask extends TaskService.TaskServiceState {
 
         private Builder(int depthLimit) {
             this.task = new GraphQueryTask();
+            this.task.taskInfo = new TaskState();
             this.task.stages = new ArrayList<>();
             this.task.depthLimit = depthLimit;
         }
@@ -66,6 +68,11 @@ public class GraphQueryTask extends TaskService.TaskServiceState {
          */
         public static Builder create(int depthLimit) {
             return new Builder(depthLimit);
+        }
+
+        public Builder setDirect(boolean isDirect) {
+            this.task.taskInfo.isDirect = isDirect;
+            return this;
         }
 
         /**

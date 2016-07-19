@@ -335,11 +335,12 @@ public class TestGraphQueryTaskService extends BasicTestCase {
                 .build();
 
         GraphQueryTask initialState = GraphQueryTask.Builder.create(2)
+                .setDirect(true)
                 .addQueryStage(stageOneSelectQueryValidationInstances)
                 .addQueryStage(stageTwoSelectExampleInstances)
                 .build();
 
-        initialState = createTask(initialState, isDirect);
+        initialState = createTask(initialState);
         return initialState;
     }
 
@@ -352,7 +353,9 @@ public class TestGraphQueryTaskService extends BasicTestCase {
             QueryTask initialStage,
             boolean isDirect) throws Throwable {
         GraphQueryTask initialState = createGraphTaskState(stageCount, initialStage);
-        initialState = createTask(initialState, isDirect);
+        initialState.taskInfo = new TaskState();
+        initialState.taskInfo.isDirect = isDirect;
+        initialState = createTask(initialState);
         return initialState;
     }
 
@@ -391,16 +394,13 @@ public class TestGraphQueryTaskService extends BasicTestCase {
         return stage;
     }
 
-    private GraphQueryTask createTask(GraphQueryTask initialState, boolean isDirect)
+    private GraphQueryTask createTask(GraphQueryTask initialState)
             throws Throwable {
         Operation post = Operation.createPost(this.factoryUri);
         GraphQueryTask[] rsp = new GraphQueryTask[1];
 
-        if (isDirect) {
-            initialState.taskInfo = TaskState.createDirect();
-        }
 
-        this.host.log("Creating task (isDirect:%s)", isDirect);
+        this.host.log("Creating task (isDirect:%s)", initialState.taskInfo.isDirect);
         TestContext ctx = testCreate(1);
         post.setBody(initialState).setCompletion((o, e) -> {
             if (e != null) {
@@ -413,7 +413,7 @@ public class TestGraphQueryTaskService extends BasicTestCase {
             }
             GraphQueryTask r = o.getBody(GraphQueryTask.class);
             rsp[0] = r;
-            if (isDirect) {
+            if (initialState.taskInfo.isDirect) {
                 this.taskCompletionTimeMicros = Utils.getNowMicrosUtc();
             }
             ctx.completeIteration();
@@ -423,8 +423,9 @@ public class TestGraphQueryTaskService extends BasicTestCase {
         if (this.isFailureExpected) {
             return null;
         }
-        this.host.log("Task created (isDirect:%s) (stage: %s)", isDirect, rsp[0].taskInfo.stage);
-        assertEquals(isDirect, rsp[0].taskInfo.isDirect);
+        this.host.log("Task created (isDirect:%s) (stage: %s)",
+                initialState.taskInfo.isDirect, rsp[0].taskInfo.stage);
+        assertEquals(initialState.taskInfo.isDirect, rsp[0].taskInfo.isDirect);
         return rsp[0];
     }
 
