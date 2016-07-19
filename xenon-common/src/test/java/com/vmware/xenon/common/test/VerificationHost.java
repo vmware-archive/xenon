@@ -17,6 +17,7 @@ import static javax.xml.bind.DatatypeConverter.printBase64Binary;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -3277,10 +3278,8 @@ public class VerificationHost extends ExampleServiceHost {
             uri = UriUtils.buildUri(this, taskUri);
         }
 
-        // If the task's state ever reaches one of these "final" stages, we can stop waiting...
         List<TaskState.TaskStage> finalTaskStages = Arrays
-                .asList(TaskState.TaskStage.CANCELLED, TaskState.TaskStage.FAILED,
-                        TaskState.TaskStage.FINISHED, expectedStage);
+                .asList(TaskState.TaskStage.CANCELLED, TaskState.TaskStage.FAILED, TaskState.TaskStage.FINISHED);
 
         String error = String.format("Task did not reach expected state %s", expectedStage);
         Object[] r = new Object[1];
@@ -3289,8 +3288,13 @@ public class VerificationHost extends ExampleServiceHost {
             T state = this.getServiceState(null, type, finalUri);
             r[0] = state;
             if (state.taskInfo != null) {
-                if (finalTaskStages.contains(state.taskInfo.stage)) {
+                if (expectedStage == state.taskInfo.stage) {
                     return true;
+                }
+                if (finalTaskStages.contains(state.taskInfo.stage)) {
+                    fail(String.format(
+                            "Task was expected to reach stage %s but reached a final stage %s",
+                            expectedStage, state.taskInfo.stage));
                 }
             }
             return false;
