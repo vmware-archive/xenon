@@ -80,7 +80,10 @@ public class QueryPageService extends StatelessService {
 
     @Override
     public void handleGet(Operation get) {
-        QueryTask task = QueryTask.create(this.spec);
+        QuerySpecification clonedSpec = new QuerySpecification();
+        // shallow copy specification
+        this.spec.copyTo(clonedSpec);
+        QueryTask task = QueryTask.create(clonedSpec);
         task.documentKind = KIND;
         task.documentSelfLink = this.documentSelfLink;
         task.documentExpirationTimeMicros =
@@ -144,6 +147,8 @@ public class QueryPageService extends StatelessService {
             return;
         }
 
+        // null the native query context in the cloned spec, so it does not serialize on the wire
+        task.querySpec.context = null;
         task.taskInfo.stage = TaskStage.FINISHED;
         QueryTaskUtils.expandLinks(getHost(), task, get);
     }

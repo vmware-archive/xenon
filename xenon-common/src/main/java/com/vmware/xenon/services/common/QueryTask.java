@@ -257,6 +257,20 @@ public class QueryTask extends ServiceDocument {
                     .of(QueryTask.QuerySpecification.QueryOption.EXPAND_CONTENT);
             return queryTask;
         }
+
+        /**
+         * Performs shallow copy of this instance to the supplied instance
+         */
+        public void copyTo(QuerySpecification clonedSpec) {
+            clonedSpec.context = this.context;
+            clonedSpec.expectedResultCount = this.expectedResultCount;
+            clonedSpec.linkTerms = this.linkTerms;
+            clonedSpec.options = this.options;
+            clonedSpec.query = this.query;
+            clonedSpec.resultLimit = this.resultLimit;
+            clonedSpec.sortOrder = this.sortOrder;
+            clonedSpec.sortTerm = this.sortTerm;
+        }
     }
 
     public static class NumericRange<T extends Number & Comparable<? super T>> {

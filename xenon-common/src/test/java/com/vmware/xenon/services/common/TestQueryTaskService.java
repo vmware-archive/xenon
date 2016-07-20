@@ -1079,6 +1079,11 @@ public class TestQueryTaskService {
 
         QueryTask finishedTaskState = targetHost.waitForQueryTaskCompletion(queryTask.querySpec,
                 this.serviceCount, 1, u, false, false);
+
+        if (!validateNativeContextIsNull(targetHost, finishedTaskState)) {
+            return;
+        }
+
         this.host.log("%s %s", u, finishedTaskState.documentOwner);
         assertTrue(!finishedTaskState.taskInfo.isDirect);
     }
@@ -1475,6 +1480,7 @@ public class TestQueryTaskService {
                                     }
 
                                     QueryTask rsp = o.getBody(QueryTask.class);
+
                                     if (rsp.taskInfo.stage == TaskStage.FINISHED
                                             || rsp.taskInfo.stage == TaskStage.FAILED
                                             || rsp.taskInfo.stage == TaskStage.CANCELLED) {
@@ -1553,6 +1559,18 @@ public class TestQueryTaskService {
             }
         };
         t.start();
+    }
+
+    private boolean validateNativeContextIsNull(VerificationHost targetHost, QueryTask rsp) {
+        if (rsp.querySpec.context.nativePage != null
+                || rsp.querySpec.context.nativeQuery != null
+                || rsp.querySpec.context.nativeSearcher != null
+                || rsp.querySpec.context.nativeSort != null) {
+            targetHost.failIteration(new IllegalStateException(
+                            "native context fields are not null"));
+            return false;
+        }
+        return true;
     }
 
     @Test
@@ -2682,6 +2700,7 @@ public class TestQueryTaskService {
                 int nlinks = page.results.documentLinks.size();
                 this.host.log("page: %s", Utils.toJsonHtml(page));
                 assertTrue(nlinks <= resultLimit);
+                assertTrue(page.querySpec.context == null);
                 verifyLinks(nextPageLink, serviceURIs, page);
 
                 numberOfDocumentLinks[0] += nlinks;
