@@ -18,7 +18,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -49,6 +48,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.vmware.xenon.common.AuthorizationSetupHelper;
 import com.vmware.xenon.common.CommandLineArgumentParser;
 import com.vmware.xenon.common.FactoryService;
 import com.vmware.xenon.common.NodeSelectorService.SelectAndForwardRequest;
@@ -1776,169 +1776,223 @@ public class TestNodeGroupService {
 
     @Test
     public void replicationWithAuthzCacheClear() throws Throwable {
-        // create users and roles for a users 'foo@foo.com' and 'bar@foo.com', 'foobar@bar.com'
         this.isAuthorizationEnabled = true;
         setUp(this.nodeCount);
         this.host.joinNodesAndVerifyConvergence(this.nodeCount);
         this.host.setNodeGroupQuorum(this.nodeCount);
 
         VerificationHost groupHost = this.host.getPeerHost();
-        groupHost.setSystemAuthorizationContext();
-        AuthorizationHelper authHelperForFoo = new AuthorizationHelper(groupHost);
-        String email = "foo@foo.com";
-        String fooUserLink = authHelperForFoo.createUserService(groupHost, email);
-        UserState patchState = new UserState();
-        patchState.userGroupLinks = new HashSet<String>();
-        patchState.userGroupLinks.add(UriUtils.buildUriPath(
-                UserGroupService.FACTORY_LINK, authHelperForFoo.getUserGroupName(email)));
-        authHelperForFoo.patchUserService(groupHost, fooUserLink, patchState);
-        // create a user group based on a query for userGroupLink
-        authHelperForFoo.createRoles(groupHost, email, false);
-        AuthorizationHelper authHelperForBar = new AuthorizationHelper(groupHost);
-        email = "bar@foo.com";
-        String barUserLink = authHelperForBar.createUserService(groupHost, email);
-        // create a user group based on the UserService email field
-        authHelperForBar.createRoles(groupHost, email);
-        AuthorizationHelper authHelperForFooBar = new AuthorizationHelper(groupHost);
-        email = "foobar@foo.com";
-        authHelperForFooBar.createUserService(groupHost, email);
-        authHelperForFooBar.createRoles(groupHost, email);
-        groupHost.resetSystemAuthorizationContext();
-        // delete the role associated with user foo; this should clear out the authz cache entry
-        Collection<VerificationHost> peerHosts = this.host.getInProcessHostMap().values();
-        invokeOperation(peerHosts, fooUserLink,
-                (opHost) -> {
-                    try {
-                    opHost.sendAndWaitExpectSuccess(
-                            Operation.createDelete(UriUtils.buildUri(opHost, authHelperForFoo.getRoleLink())));
-                    } catch (Throwable t) {
-                        return t;
-                    }
-                    return null;
-                });
-        // delete the user group associated with the user
-        invokeOperation(peerHosts, fooUserLink,
-                (opHost) -> {
-                    try {
-                    opHost.sendAndWaitExpectSuccess(
-                            Operation.createDelete(UriUtils.buildUri(opHost, authHelperForFoo.getUserGroupLink())));
-                    } catch (Throwable t) {
-                        return t;
-                    }
-                    return null;
-                });
 
-        // next, assume identity as bar@foo.com, create a new role and associate it with the user bar
-        invokeOperation(peerHosts, barUserLink,
-                (opHost) -> {
-                    try {
-                        Query q = Builder.create()
-                                .addFieldClause(
-                                        ExampleServiceState.FIELD_NAME_KIND,
-                                        Utils.buildKind(ExampleServiceState.class))
-                                .build();
-                        String newResourceGroupLink = authHelperForBar.createResourceGroup(opHost, "new-rg", q);
-                        Set<Service.Action> actions = new HashSet<Service.Action>(Arrays.asList(Action.GET, Action.POST));
-                        authHelperForBar.createRole(opHost, authHelperForBar.getUserGroupLink(), newResourceGroupLink, actions);
-                        authHelperForBar.createRole(opHost, authHelperForFooBar.getUserGroupLink(), newResourceGroupLink, actions);
-                    } catch (Throwable t) {
-                        return t;
+        // wait for auth related services to be stabilized
+        groupHost.waitForReplicatedFactoryServiceAvailable(
+                UriUtils.buildUri(groupHost, UserService.FACTORY_LINK));
+        groupHost.waitForReplicatedFactoryServiceAvailable(
+                UriUtils.buildUri(groupHost, UserGroupService.FACTORY_LINK));
+        groupHost.waitForReplicatedFactoryServiceAvailable(
+                UriUtils.buildUri(groupHost, ResourceGroupService.FACTORY_LINK));
+        groupHost.waitForReplicatedFactoryServiceAvailable(
+                UriUtils.buildUri(groupHost, RoleService.FACTORY_LINK));
+
+        String fooUserLink = "/core/authz/users/foo@foo.com";
+        String barUserLink = "/core/authz/users/bar@foo.com";
+
+        groupHost.setSystemAuthorizationContext();
+
+        // create user, user-group, resource-group, role for foo@foo.com
+        //   user: /core/authz/users/foo@foo.com
+        //   user-group: /core/authz/user-groups/foo-user-group
+        //   resource-group:  (not important)
+        //   role: /core/authz/role/foo-role-1
+        TestContext testContext = this.host.testCreate(1);
+        AuthorizationSetupHelper.create()
+                .setHost(groupHost)
+                .setUserSelfLink("foo@foo.com")
+                .setUserEmail("foo@foo.com")
+                .setUserPassword("password")
+                .setDocumentKind(Utils.buildKind(ExampleServiceState.class))
+                .setUserGroupName("foo-user-group")
+                .setRoleName("foo-role-1")
+                .setCompletion(ex -> {
+                    if (ex == null) {
+                        testContext.completeIteration();
+                    } else {
+                        testContext.failIteration(ex);
                     }
-                    return null;
-                });
-        // delete the user group for foobar@foo.com.
+                })
+                .start();
+        testContext.await();
+
+        // create another user-group, resource-group, and role for foo@foo.com
+        //   user-group: (not important)
+        //   resource-group:  (not important)
+        //   role: /core/authz/role/foo-role-2
+        TestContext ctxToCreateAnotherRole = this.host.testCreate(1);
+        AuthorizationSetupHelper.create()
+                .setHost(groupHost)
+                .setUserSelfLink(fooUserLink)
+                .setDocumentKind(Utils.buildKind(ExampleServiceState.class))
+                .setRoleName("foo-role-2")
+                .setCompletion(ex -> {
+                    if (ex == null) {
+                        ctxToCreateAnotherRole.completeIteration();
+                    } else {
+                        ctxToCreateAnotherRole.failIteration(ex);
+                    }
+                })
+                .setupRole();
+        ctxToCreateAnotherRole.await();
+
+        // create user, user-group, resource-group, role for bar@foo.com
+        //   user: /core/authz/users/bar@foo.com
+        //   user-group: (not important)
+        //   resource-group:  (not important)
+        //   role: (not important)
+        TestContext ctxToCreateBar = this.host.testCreate(1);
+        AuthorizationSetupHelper.create()
+                .setHost(groupHost)
+                .setUserSelfLink("bar@foo.com")
+                .setUserEmail("bar@foo.com")
+                .setUserPassword("password")
+                .setDocumentKind(Utils.buildKind(ExampleServiceState.class))
+                .setCompletion(ex -> {
+                    if (ex == null) {
+                        ctxToCreateBar.completeIteration();
+                    } else {
+                        ctxToCreateBar.failIteration(ex);
+                    }
+                })
+                .start();
+        ctxToCreateBar.await();
+
+        groupHost.resetSystemAuthorizationContext();
+
+        // verify deleting role should clear the auth cache
+        populateAuthCacheInPeers(fooUserLink);
+        groupHost.setSystemAuthorizationContext();
+        this.host.sendAndWaitExpectSuccess(
+                Operation.createDelete(
+                        UriUtils.buildUri(groupHost, "/core/authz/roles/foo-role-1")));
+        groupHost.resetSystemAuthorizationContext();
+        verifyAuthCacheHasClearedInPeers(fooUserLink);
+
+        // verify deleting user-group should clear the auth cache
+        populateAuthCacheInPeers(fooUserLink);
+        // delete the user group associated with the user
+        groupHost.setSystemAuthorizationContext();
+        this.host.sendAndWaitExpectSuccess(
+                Operation.createDelete(
+                        UriUtils.buildUri(groupHost, "/core/authz/user-groups/foo-user-group")));
+        groupHost.resetSystemAuthorizationContext();
+        verifyAuthCacheHasClearedInPeers(fooUserLink);
+
+        // verify creating new role should clear the auth cache (using bar@foo.com)
+        populateAuthCacheInPeers(barUserLink);
+        groupHost.setSystemAuthorizationContext();
+        Query q = Builder.create()
+                .addFieldClause(
+                        ExampleServiceState.FIELD_NAME_KIND,
+                        Utils.buildKind(ExampleServiceState.class))
+                .build();
+        TestContext ctxToCreateAnotherRoleForBar = this.host.testCreate(1);
+        AuthorizationSetupHelper.create()
+                .setHost(groupHost)
+                .setUserSelfLink(barUserLink)
+                .setResourceGroupName("/core/authz/resource-groups/new-rg")
+                .setResourceQuery(q)
+                .setRoleName("bar-role-2")
+                .setCompletion(ex -> {
+                    if (ex == null) {
+                        ctxToCreateAnotherRoleForBar.completeIteration();
+                    } else {
+                        ctxToCreateAnotherRoleForBar.failIteration(ex);
+                    }
+                })
+                .setupRole();
+        ctxToCreateAnotherRoleForBar.await();
+        groupHost.resetSystemAuthorizationContext();
+
+        verifyAuthCacheHasClearedInPeers(barUserLink);
+
+        //
+        populateAuthCacheInPeers(barUserLink);
+        groupHost.setSystemAuthorizationContext();
+
         // Updating the resource group should be able to handle the fact that the user group does not exist
-        invokeOperation(peerHosts, barUserLink,
-                (opHost) -> {
-                    try {
-                        String newResourceGroupLink = UriUtils.buildUriPath(ResourceGroupService.FACTORY_LINK, "new-rg");
-                        Query updateResourceGroupQuery = Builder.create()
-                                .addFieldClause(
-                                        ExampleServiceState.FIELD_NAME_NAME,
-                                        "bar")
-                                .build();
-                        opHost.sendAndWaitExpectSuccess(
-                                Operation.createDelete(UriUtils.buildUri(opHost, authHelperForFooBar.getUserGroupLink())));
-                        ResourceGroupState resourceGroupState = new ResourceGroupState();
-                        resourceGroupState.query = updateResourceGroupQuery;
-                        opHost.sendAndWaitExpectSuccess(
-                                Operation.createPut(UriUtils.buildUri(opHost, newResourceGroupLink))
-                                .setBody(resourceGroupState));
-                        opHost.sendAndWaitExpectSuccess(
-                                Operation.createDelete(UriUtils.buildUri(opHost, newResourceGroupLink)));
-                    } catch (Throwable t) {
-                        return t;
-                    }
-                    return null;
-                });
-        // patch the userservice
-        invokeOperation(peerHosts, fooUserLink,
-                (opHost) -> {
-                    try {
-                        UserState userState = new UserState();
-                        userState.userGroupLinks = new HashSet<String>();
-                        userState.userGroupLinks.add("foo");
-                        opHost.sendAndWaitExpectSuccess(
-                                Operation.createPatch(UriUtils.buildUri(groupHost, fooUserLink))
-                                .setBody(userState));
-                    } catch (Throwable t) {
-                        return t;
-                    }
-                    return null;
-                });
-        // finally, delete the user service; the authz cache should be cleared
-        invokeOperation(peerHosts, fooUserLink,
-                (opHost) -> {
-                    try {
-                        opHost.sendAndWaitExpectSuccess(
-                                Operation.createDelete(UriUtils.buildUri(groupHost, fooUserLink)));
-                    } catch (Throwable t) {
-                        return t;
-                    }
-                    return null;
-                });
+        String newResourceGroupLink = "/core/authz/resource-groups/new-rg";
+        Query updateResourceGroupQuery = Builder.create()
+                .addFieldClause(ExampleServiceState.FIELD_NAME_NAME, "bar")
+                .build();
+        ResourceGroupState resourceGroupState = new ResourceGroupState();
+        resourceGroupState.query = updateResourceGroupQuery;
+        this.host.sendAndWaitExpectSuccess(
+                Operation.createPut(UriUtils.buildUri(groupHost, newResourceGroupLink))
+                        .setBody(resourceGroupState));
+        this.host.sendAndWaitExpectSuccess(
+                Operation.createDelete(UriUtils.buildUri(groupHost, newResourceGroupLink)));
+        groupHost.resetSystemAuthorizationContext();
+        verifyAuthCacheHasClearedInPeers(barUserLink);
+
+        // verify patching user should clear the auth cache
+        populateAuthCacheInPeers(fooUserLink);
+        groupHost.setSystemAuthorizationContext();
+        UserState userState = new UserState();
+        userState.userGroupLinks = new HashSet<>();
+        userState.userGroupLinks.add("foo");
+        this.host.sendAndWaitExpectSuccess(
+                Operation.createPatch(UriUtils.buildUri(groupHost, fooUserLink))
+                        .setBody(userState));
+        groupHost.resetSystemAuthorizationContext();
+        verifyAuthCacheHasClearedInPeers(fooUserLink);
+
+        // verify deleting user should clear the auth cache
+        populateAuthCacheInPeers(fooUserLink);
+        groupHost.setSystemAuthorizationContext();
+        this.host.sendAndWaitExpectSuccess(
+                Operation.createDelete(UriUtils.buildUri(groupHost, fooUserLink)));
+        groupHost.resetSystemAuthorizationContext();
+        verifyAuthCacheHasClearedInPeers(fooUserLink);
+
     }
 
-    // helper method to invoke the specified Function object as the system user and
-    // validate if the authz caches have been invalidated after
-    private void invokeOperation(Collection<VerificationHost> peerHosts, String userLink,
-            Function<VerificationHost, Throwable> func) throws Throwable {
-        VerificationHost groupHost = peerHosts.iterator().next();
+    private void populateAuthCacheInPeers(String userLink) throws Throwable {
+        VerificationHost groupHost = this.host.getPeerHost();
         AuthorizationContext authContext = groupHost.assumeIdentity(userLink);
+
+        // issue GET to populate authContext in one of the peer
         groupHost.sendAndWaitExpectSuccess(
                 Operation.createGet(UriUtils.buildUri(groupHost, ExampleService.FACTORY_LINK)));
+
         this.host.waitFor("Timeout waiting for correct auth cache state",
-                () -> checkCache(peerHosts, authContext.getToken(), true));
-        groupHost.setSystemAuthorizationContext();
-        Throwable result = func.apply(groupHost);
-        if (result != null) {
-            throw result;
-        }
-        groupHost.resetSystemAuthorizationContext();
-        this.host.waitFor("Timeout waiting for correct auth cache state",
-                () -> checkCache(peerHosts, authContext.getToken(), false));
+                () -> checkCache(authContext.getToken(), true));
     }
 
-    // helper method to check if the authz cache is in the expected state
-    private boolean checkCache(Collection<VerificationHost> peerHosts, String token, boolean expectEntries) throws Throwable {
+    private void verifyAuthCacheHasClearedInPeers(String userLink) throws Throwable {
+        VerificationHost groupHost = this.host.getPeerHost();
+        AuthorizationContext authContext = groupHost.assumeIdentity(userLink);
+
+        this.host.waitFor("Timeout waiting for correct auth cache state",
+                () -> checkCache(authContext.getToken(), false));
+    }
+
+    private boolean checkCache(String token, boolean expectEntries) throws Throwable {
         boolean contextFound = false;
-        for (VerificationHost host : peerHosts) {
-            host.setSystemAuthorizationContext();
+        for (VerificationHost peer : this.host.getInProcessHostMap().values()) {
+            peer.setSystemAuthorizationContext();
             MinimalTestService s = new MinimalTestService();
-            host.addPrivilegedService(MinimalTestService.class);
-            host.startServiceAndWait(s, UUID.randomUUID().toString(), null);
-            host.resetSystemAuthorizationContext();
-            if (host.getAuthorizationContext(s, token) != null) {
+            peer.addPrivilegedService(MinimalTestService.class);
+            peer.startServiceAndWait(s, UUID.randomUUID().toString(), null);
+            peer.resetSystemAuthorizationContext();
+            if (peer.getAuthorizationContext(s, token) != null) {
                 contextFound = true;
+                break;
             }
         }
-        if (expectEntries && contextFound) {
-            return true;
-        } else if (!expectEntries && !contextFound) {
+        if ((expectEntries && contextFound) || (!expectEntries && !contextFound)) {
             return true;
         }
         return false;
     }
+
 
     private void factoryDuplicatePost() throws Throwable, InterruptedException, TimeoutException {
         // pick one host to post to

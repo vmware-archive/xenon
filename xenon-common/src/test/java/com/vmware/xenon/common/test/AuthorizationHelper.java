@@ -45,6 +45,9 @@ import com.vmware.xenon.services.common.UserService.UserState;
 import com.vmware.xenon.services.common.authn.AuthenticationRequest;
 import com.vmware.xenon.services.common.authn.BasicAuthenticationService;
 
+/**
+ * Consider using {@link com.vmware.xenon.common.AuthorizationSetupHelper}
+ */
 public class AuthorizationHelper {
 
     private String userGroupLink;
