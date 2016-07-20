@@ -13,6 +13,8 @@
 
 package com.vmware.xenon.services.common;
 
+import java.util.ArrayList;
+
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.ServiceDocumentQueryResult;
 import com.vmware.xenon.common.ServiceHost;
@@ -149,6 +151,10 @@ public class GraphQueryTaskService extends TaskService<GraphQueryTask> {
                 // stages other than the last one, must set select links, since we need to guide
                 // the query along the edges of the document graph.
                 stageQueryTask.querySpec.options.add(QueryOption.SELECT_LINKS);
+            }
+
+            if (task.tenantLinks != null && stageQueryTask.tenantLinks == null) {
+                stageQueryTask.tenantLinks = new ArrayList<>(task.tenantLinks);
             }
 
             if (i == 0) {

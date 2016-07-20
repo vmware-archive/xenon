@@ -3285,7 +3285,6 @@ public class VerificationHost extends ExampleServiceHost {
      * @param <T>           the type that represents the task's state
      * @return the state of the task once it's {@link TaskState.TaskStage} == {@code expectedStage}
      */
-    @SuppressWarnings("unchecked")
     public <T extends TaskService.TaskServiceState> T waitForTask(Class<T> type, String taskUri,
             TaskState.TaskStage expectedStage) throws Throwable {
         return waitForTask(type, taskUri, expectedStage, false);

@@ -15,6 +15,7 @@ package com.vmware.xenon.services.common;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import com.vmware.xenon.common.ServiceDocumentDescription.PropertyUsageOption;
 import com.vmware.xenon.common.TaskState;
@@ -31,6 +32,11 @@ public class GraphQueryTask extends TaskService.TaskServiceState {
      * next stage of the graph traversal.
      */
     public List<QueryTask> stages;
+
+    /**
+     * A list of authorization context links which can access this service.
+     */
+    public Set<String> tenantLinks;
 
     /**
      * Links to the query task service instances with results for each query stage. The

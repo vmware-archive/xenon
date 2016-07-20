@@ -340,7 +340,18 @@ public class TestGraphQueryTaskService extends BasicTestCase {
                 .addQueryStage(stageTwoSelectExampleInstances)
                 .build();
 
+        // set tenant links and verify each stage query task has the top level tenant links
+        // transferred
+        initialState.tenantLinks = new HashSet<>();
+        initialState.tenantLinks.add("/some/link");
+        initialState.tenantLinks.add("/some/other-link");
         initialState = createTask(initialState);
+        for (QueryTask stage : initialState.stages) {
+            assertTrue(stage.tenantLinks.size() == initialState.tenantLinks.size());
+            for (String s : initialState.tenantLinks) {
+                assertTrue(stage.tenantLinks.contains(s));
+            }
+        }
         return initialState;
     }
 
