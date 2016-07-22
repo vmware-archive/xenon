@@ -232,6 +232,7 @@ class ServiceResourceTracker {
     public void clearCachedServiceState(String servicePath, Operation op) {
 
         if (!isTransactional(op)) {
+            this.persistedServiceLastAccessTime.remove(servicePath);
             ServiceDocument doc = this.cachedServiceStates.remove(servicePath);
             Service s = this.host.findService(servicePath, true);
             if (s == null) {
@@ -240,10 +241,6 @@ class ServiceResourceTracker {
             if (doc != null) {
                 updateCacheClearStats(s);
             }
-
-            // Also, clear the last access time for the servicePath.
-            this.persistedServiceLastAccessTime.remove(servicePath);
-
             return;
         }
 
@@ -316,17 +313,22 @@ class ServiceResourceTracker {
             }
 
             Long lastAccessTime = this.persistedServiceLastAccessTime.get(service.getSelfLink());
-            if (lastAccessTime != null) {
-                if ((hostState.serviceCacheClearDelayMicros + lastAccessTime) < now) {
-                    clearCachedServiceState(service.getSelfLink(), null);
-                    cacheCleared = true;
-                }
+            if (lastAccessTime == null) {
+                // There is a possibility that the service just got started and that's why
+                // it didn't show up in the persistedServiceLastAccessTime map. We will skip
+                // the service for now and let it be handled in the next performMaintenance run.
+                continue;
+            }
 
-                if (hostState.lastMaintenanceTimeUtcMicros - lastAccessTime < service
-                                .getMaintenanceIntervalMicros() * 2) {
-                    // Skip pause for services that have been active within a maintenance interval
-                    continue;
-                }
+            if ((hostState.serviceCacheClearDelayMicros + lastAccessTime) < now) {
+                clearCachedServiceState(service.getSelfLink(), null);
+                cacheCleared = true;
+            }
+
+            if (hostState.lastMaintenanceTimeUtcMicros - lastAccessTime < service
+                            .getMaintenanceIntervalMicros() * 2) {
+                // Skip pause for services that have been active within a maintenance interval
+                continue;
             }
 
             // we still want to clear a cache for periodic services, so check here, after the cache clear
