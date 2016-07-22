@@ -94,9 +94,16 @@ class ServiceResourceTracker {
     private final ConcurrentMap<String, ServiceDocument> cachedServiceStates = new ConcurrentHashMap<>();
 
     /**
-     * Tracks last access time for non active transactional stateful services
+     * Tracks last access time for PERSISTENT services. The access time is used for a few things:
+     * 1. Deciding if the cache state of the service needs to be cleared based
+     *    on {@link ServiceHost#getServiceCacheClearDelayMicros()}.
+     * 2. Deciding if the service needs to be stopped or paused when memory pressure is high.
+     *
+     * We don't bother tracking access time for StatefulServices that are non-persistent.
+     * This is because the cached state for non-persistent stateful services is never cleared and
+     * they do not get paused.
      */
-    private final ConcurrentMap<String, Long> statefulServiceLastAccessTimes = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Long> persistedServiceLastAccessTime = new ConcurrentHashMap<>();
 
     /**
      * Tracks cached service state. Cleared periodically during maintenance
@@ -119,7 +126,19 @@ class ServiceResourceTracker {
         this.host = host;
     }
 
-    public void updateCachedServiceState(Service s, ServiceDocument st, Operation op) {
+    public void updateCachedServiceState(Service s,
+             ServiceDocument st, Operation op, boolean isServiceStateCaching) {
+
+        if (ServiceHost.isServiceIndexed(s) && !isTransactional(op)) {
+            this.persistedServiceLastAccessTime.put(s.getSelfLink(), Utils.getNowMicrosUtc());
+        }
+
+        // if caching is disabled on the serviceHost, then we don't bother updating the cache
+        // for persisted services. If it's a non-persisted service, then we DO update the cache.
+        if (ServiceHost.isServiceIndexed(s) && !isServiceStateCaching) {
+            return;
+        }
+
         if (!isTransactional(op)) {
             synchronized (s.getSelfLink()) {
                 ServiceDocument cachedState = this.cachedServiceStates.put(s.getSelfLink(), st);
@@ -152,12 +171,6 @@ class ServiceResourceTracker {
             CachedServiceStateKey key = new CachedServiceStateKey(servicePath,
                     op.getTransactionId());
             state = this.cachedTransactionalServiceStates.get(key);
-        } else {
-            // update lastAccessTime for get/put/patch/... except POST.
-            // If service has only had POST called, the entry will not be populated in this map, but
-            // eviction logic fallbacks to check service.documentUpdateTimeMicros as lastAccessTime.
-            // This cache is only for nonactive transactions.
-            this.statefulServiceLastAccessTimes.put(servicePath, Utils.getNowMicrosUtc());
         }
 
         if (state == null) {
@@ -175,6 +188,14 @@ class ServiceResourceTracker {
             // state expired, clear from cache
             stopService(servicePath, true, op);
             return null;
+        }
+
+        // Since we did find the cached service state, the stateful service should be in
+        // the attachedServices map. Let's find out if it's persisted. If so, we will update
+        // it's last access time.
+        Service s = this.attachedServices.get(servicePath);
+        if (ServiceHost.isServiceIndexed(s) && !isTransactional(op)) {
+            this.persistedServiceLastAccessTime.put(servicePath, Utils.getNowMicrosUtc());
         }
 
         return state;
@@ -211,9 +232,6 @@ class ServiceResourceTracker {
     public void clearCachedServiceState(String servicePath, Operation op) {
 
         if (!isTransactional(op)) {
-            // lastAccessTime cache is only used for non active transactions
-            this.statefulServiceLastAccessTimes.remove(servicePath);
-
             ServiceDocument doc = this.cachedServiceStates.remove(servicePath);
             Service s = this.host.findService(servicePath, true);
             if (s == null) {
@@ -222,6 +240,10 @@ class ServiceResourceTracker {
             if (doc != null) {
                 updateCacheClearStats(s);
             }
+
+            // Also, clear the last access time for the servicePath.
+            this.persistedServiceLastAccessTime.remove(servicePath);
+
             return;
         }
 
@@ -291,12 +313,10 @@ class ServiceResourceTracker {
                     // transactional cached state will be cleared at the end of transaction
                     continue;
                 }
+            }
 
-                Long lastAccessTime = this.statefulServiceLastAccessTimes.get(s.documentSelfLink);
-                if (lastAccessTime == null) {
-                    lastAccessTime = s.documentUpdateTimeMicros;
-                }
-
+            Long lastAccessTime = this.persistedServiceLastAccessTime.get(service.getSelfLink());
+            if (lastAccessTime != null) {
                 if ((hostState.serviceCacheClearDelayMicros + lastAccessTime) < now) {
                     clearCachedServiceState(service.getSelfLink(), null);
                     cacheCleared = true;
