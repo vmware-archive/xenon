@@ -42,6 +42,7 @@ public class OperationJoin {
     private Iterator<Operation> operationIterator;
     private ServiceRequestSender sender;
     private final Object failuresLock = new Object();
+    private String transactionId;
 
     private OperationJoin() {
         this.operations = new ConcurrentHashMap<>(APPROXIMATE_EXPECTED_CAPACITY);
@@ -151,6 +152,11 @@ public class OperationJoin {
 
     private void prepareOperation(Operation op) {
         this.operations.put(op.getId(), op);
+
+        if (this.transactionId != null) {
+            op.setTransactionId(this.transactionId);
+        }
+
         op.nestCompletion(this::parentCompletion);
         this.pendingCount.incrementAndGet();
     }
@@ -308,6 +314,15 @@ public class OperationJoin {
 
     public Operation getOperation(long id) {
         return this.operations.get(id);
+    }
+
+    public String getTransactionId() {
+        return this.transactionId;
+    }
+
+    public OperationJoin setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
+        return this;
     }
 
     @FunctionalInterface
