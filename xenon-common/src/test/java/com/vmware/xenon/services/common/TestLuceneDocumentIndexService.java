@@ -731,6 +731,26 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
         // verify that no attempts to start service occurred
         assertTrue(startCount == MinimalTestService.HANDLE_START_COUNT.get());
 
+        ExampleServiceState st = new ExampleServiceState();
+        st.name = Utils.getNowMicrosUtc() + "";
+
+        // subscribe to some services
+        URI serviceToSubscribe = childUris.remove(0);
+        Operation subscribe = Operation.createPost(serviceToSubscribe)
+                .setReferer(this.host.getReferer());
+        TestContext ctx = testCreate(1);
+        this.host.startReliableSubscriptionService(subscribe, (notifyOp) -> {
+            notifyOp.complete();
+            ctx.completeIteration();
+        });
+        // do a PATCH, to trigger a notification
+        Operation patch = Operation.createPatch(serviceToSubscribe)
+
+                .setBody(st);
+        this.host.send(patch);
+        // wait for completion triggered by notification
+        testWait(ctx);
+
         // delete some of the services, not using a body, emulation DELETE through expiration
         URI serviceToDelete = childUris.remove(0);
         Operation delete = Operation.createDelete(serviceToDelete)
@@ -738,11 +758,9 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
         this.host.sendAndWait(delete);
 
         // attempt to use service we just deleted, we should get failure
-        ExampleServiceState st = new ExampleServiceState();
-        st.name = Utils.getNowMicrosUtc() + "";
 
         // do a PATCH, expect 404
-        Operation patch = Operation.createPatch(serviceToDelete)
+        patch = Operation.createPatch(serviceToDelete)
                 .setBody(st)
                 .setCompletion(
                         this.host.getExpectedFailureCompletion(Operation.STATUS_CODE_NOT_FOUND));

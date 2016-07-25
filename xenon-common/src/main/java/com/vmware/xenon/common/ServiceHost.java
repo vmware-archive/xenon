@@ -4493,7 +4493,12 @@ public class ServiceHost implements ServiceRequestSender {
 
         FactoryService factoryService = (FactoryService) parentService;
 
-        Operation onDemandPost = Operation.createPost(inboundOp.getUri());
+        String servicePath = inboundOp.getUri().getPath();
+        if (ServiceHost.isHelperServicePath(servicePath)) {
+            servicePath = UriUtils.getParentPath(servicePath);
+
+        }
+        Operation onDemandPost = Operation.createPost(this, servicePath);
 
         CompletionHandler c = (o, e) -> {
             if (e != null) {
