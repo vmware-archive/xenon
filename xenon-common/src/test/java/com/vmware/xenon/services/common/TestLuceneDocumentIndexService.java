@@ -736,20 +736,23 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
 
         // subscribe to some services
         URI serviceToSubscribe = childUris.remove(0);
-        Operation subscribe = Operation.createPost(serviceToSubscribe)
-                .setReferer(this.host.getReferer());
         TestContext ctx = testCreate(1);
+        Operation subscribe = Operation.createPost(serviceToSubscribe)
+                .setCompletion(ctx.getCompletion())
+                .setReferer(this.host.getReferer());
+
+        TestContext notifyCtx = testCreate(1);
         this.host.startReliableSubscriptionService(subscribe, (notifyOp) -> {
             notifyOp.complete();
-            ctx.completeIteration();
+            notifyCtx.completeIteration();
         });
+        testWait(ctx);
         // do a PATCH, to trigger a notification
         Operation patch = Operation.createPatch(serviceToSubscribe)
-
                 .setBody(st);
         this.host.send(patch);
         // wait for completion triggered by notification
-        testWait(ctx);
+        testWait(notifyCtx);
 
         // delete some of the services, not using a body, emulation DELETE through expiration
         URI serviceToDelete = childUris.remove(0);
