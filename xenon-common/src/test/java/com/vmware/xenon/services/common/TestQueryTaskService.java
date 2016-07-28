@@ -2511,6 +2511,26 @@ public class TestQueryTaskService {
 
         assertEquals(sc, numberOfDocumentLinks[0]);
 
+        if (sc != resultLimit) {
+            return taskURI;
+        }
+
+        // get page results with a modified limit, for the specific GET on this page. Expect a different
+        // nextPageLink and a different number of results
+        URI firstPageURI = UriUtils.buildUri(this.host, nextPageLink);
+        QueryTask defaultResultsFromPage = this.host.getServiceState(null, QueryTask.class,
+                firstPageURI);
+        int newLimit = resultLimit / 2;
+        String modifiedLink = UriUtils.extendQueryPageLinkWithQuery(nextPageLink,
+                UriUtils.URI_PARAM_ODATA_LIMIT + "=" + newLimit);
+        URI firstPageWithLimitURI = UriUtils.buildUri(this.host, modifiedLink);
+        QueryTask modifiedLimitResultsFromPage = this.host.getServiceState(null, QueryTask.class,
+                firstPageWithLimitURI);
+        assertEquals((long) newLimit, (long) modifiedLimitResultsFromPage.results.documentCount);
+        assertEquals(newLimit, modifiedLimitResultsFromPage.results.documentLinks.size());
+        assertTrue(
+                modifiedLimitResultsFromPage.results.nextPageLink != defaultResultsFromPage.results.nextPageLink);
+
         return taskURI;
     }
 

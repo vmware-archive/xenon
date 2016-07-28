@@ -19,9 +19,13 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.EnumSet;
 import java.util.UUID;
 
 import org.junit.Test;
+
+import com.vmware.xenon.common.Service.ServiceOption;
+import com.vmware.xenon.services.common.ServiceUriPaths;
 
 public class TestUriUtils {
 
@@ -49,6 +53,24 @@ public class TestUriUtils {
         assertEquals(original.getScheme(), newUri.getScheme());
         assertEquals(original.getPath(), newUri.getPath());
         assertEquals(original.getQuery(), newUri.getQuery());
+    }
+
+    @Test
+    public void extendQueryPageLinkWithQuery() throws Throwable {
+        final String basicPageLink = "/core/query-page/1469733619696001";
+        URI u = new URI("http://localhost:8000" + basicPageLink);
+        URI forwarderUri = UriUtils.buildForwardToPeerUri(u, UUID.randomUUID().toString(),
+                ServiceUriPaths.DEFAULT_NODE_SELECTOR, EnumSet.noneOf(ServiceOption.class));
+        String pageLink = forwarderUri.getPath() + UriUtils.URI_QUERY_CHAR
+                + forwarderUri.getQuery();
+        String query = UriUtils.buildUriQuery(UriUtils.URI_PARAM_ODATA_LIMIT, "5");
+
+        String basicLinkWithQuery = UriUtils.extendQueryPageLinkWithQuery(basicPageLink, query);
+        assertEquals(basicPageLink + "?" + query, basicLinkWithQuery);
+
+        String pageLinkWithQuery = UriUtils.extendQueryPageLinkWithQuery(pageLink, query);
+        assertTrue(
+                pageLinkWithQuery.contains(UriUtils.FORWARDING_URI_PARAM_NAME_QUERY + "=" + query));
     }
 
     @Test

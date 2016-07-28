@@ -685,6 +685,34 @@ public class UriUtils {
         return getODataParamValue(uri, URI_PARAM_ODATA_LIMIT);
     }
 
+    public static String extendQueryPageLinkWithQuery(String pageLink, String queryKeyValues) {
+        final String querySegmentPrefix = UriUtils.URI_QUERY_PARAM_LINK_CHAR
+                + UriUtils.FORWARDING_URI_PARAM_NAME_QUERY
+                + UriUtils.URI_QUERY_PARAM_KV_CHAR;
+        int querySegmentIndex = pageLink.indexOf(querySegmentPrefix);
+        if (queryKeyValues == null || queryKeyValues.isEmpty()) {
+            throw new IllegalArgumentException("query is required");
+        }
+
+        if (!pageLink.contains(ServiceUriPaths.SERVICE_URI_SUFFIX_FORWARDING)
+                || !pageLink.contains(UriUtils.FORWARDING_URI_PARAM_NAME_TARGET)) {
+            // this is not a multiple node capable page link
+            return pageLink + UriUtils.URI_QUERY_CHAR + queryKeyValues;
+        }
+
+        // assume the link looks like so:
+        // /core/node-selectors/default/forwarding?peer=host-1&path=/core/query-page/1469733619696001&query=&target=PEER_ID
+        // Notice that the &query= segment might, or might not have a query specified. We splice
+        // the string and insert the supplied query right after the "="
+        int charCountToEqualsSign = UriUtils.FORWARDING_URI_PARAM_NAME_QUERY.length() + 2;
+        querySegmentIndex += charCountToEqualsSign;
+        StringBuilder sb = new StringBuilder(pageLink.length());
+        sb.append(pageLink.substring(0, querySegmentIndex));
+        sb.append(queryKeyValues);
+        sb.append(pageLink.substring(querySegmentIndex));
+        return sb.toString();
+    }
+
     public static String getODataSkipToParamValue(URI uri) {
         return getODataParamValueAsString(uri, URI_PARAM_ODATA_SKIP_TO);
     }

@@ -92,6 +92,15 @@ public class QueryPageService extends StatelessService {
         task.taskInfo.isDirect = true;
         task.indexLink = this.indexLink;
 
+        // the client can supply a URI parameter to modify the result limit. This
+        // only affects the current GET operation and not the page service itself and any
+        // future GETs from other clients. The generated nextPageLink, for this GET, will
+        // of course be different than other operations with the original limit
+        Integer limit = UriUtils.getODataLimitParamValue(get.getUri());
+        if (limit != null) {
+            task.querySpec.resultLimit = limit;
+        }
+
         forwardToLucene(task, get);
     }
 
