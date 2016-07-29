@@ -242,7 +242,7 @@ public abstract class FactoryService extends StatelessService {
 
                     ServiceDocumentQueryResult rsp = o.getBody(QueryTask.class).results;
 
-                    if (rsp.nextPageLink == null) {
+                    if (rsp == null || rsp.nextPageLink == null) {
                         ctx.maintOp.complete();
                         return;
                     }
