@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.9.2-SNAPSHOT
+## 0.9.2
 
 * Using sourceTimeMicrosUtc field, if set, for time series aggregation.
 
