@@ -9,6 +9,12 @@
   map contains links to the per group results, returning a QueryTask,
   similar to existing query pages, scoped to results for that group
 
+* Improve MigrationTaskService's transformation contract to use a
+  TransformRequest for the transform's input and a TransformResponse as the
+  ouput (instead of serializing a Collection directly). Existing transform's
+  work as before, but new contract should be preferred moving forward by
+  specifying MigrationOption.USE_TRANSFORM_REQUEST.
+
 ## 0.9.2
 
 * Using sourceTimeMicrosUtc field, if set, for time series aggregation.
