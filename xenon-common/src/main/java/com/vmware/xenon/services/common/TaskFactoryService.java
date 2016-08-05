@@ -22,6 +22,7 @@ import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.ServiceSubscriptionState.ServiceSubscriber;
 import com.vmware.xenon.common.TaskState;
+import com.vmware.xenon.common.TaskState.TaskStage;
 import com.vmware.xenon.common.Utils;
 import com.vmware.xenon.services.common.TaskService.TaskServiceState;
 
@@ -96,6 +97,9 @@ public class TaskFactoryService extends FactoryService {
         // Direct task handling. We want to keep the task service simple and unaware of the
         // pending POST from the client. This keeps the child task a true finite state machine that
         // can PATCH itself, etc
+        if (initState.taskInfo.stage == null) {
+            initState.taskInfo.stage = TaskStage.CREATED;
+        }
         Operation clonedPost = post.clone();
         clonedPost.setCompletion((o, e) -> {
             if (e != null) {
