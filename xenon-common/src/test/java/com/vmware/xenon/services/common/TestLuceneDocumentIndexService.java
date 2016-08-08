@@ -43,6 +43,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+
 import javax.xml.bind.DatatypeConverter;
 
 import org.junit.After;
@@ -68,6 +69,7 @@ import com.vmware.xenon.common.ServiceHost.ServiceHostState;
 import com.vmware.xenon.common.ServiceStats;
 import com.vmware.xenon.common.ServiceStats.ServiceStat;
 import com.vmware.xenon.common.StatefulService;
+import com.vmware.xenon.common.TestUtilityService;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.Utils;
 import com.vmware.xenon.common.test.MinimalTestServiceState;
@@ -1497,7 +1499,32 @@ public class TestLuceneDocumentIndexService extends BasicReportTestCase {
                     Utils.toJsonHtml(s));
 
             assertEquals(0, r.documentLinks.size());
+
+            validateTimeSeriesStats();
         }
+    }
+
+    private void validateTimeSeriesStats() throws Throwable {
+        Map<String, ServiceStat> indexServiceStats = this.host.getServiceStats(this.host.getDocumentIndexServiceUri());
+        assertTrue(indexServiceStats.size() > LuceneDocumentIndexService.TIME_SERIES_ENABLED_STATS.length);
+        for (String name : LuceneDocumentIndexService.TIME_SERIES_ENABLED_STATS) {
+            validateTimeSeriesStat(indexServiceStats, name);
+        }
+    }
+
+    private void validateTimeSeriesStat(Map<String, ServiceStat> indexServiceStats, String name) {
+        ServiceStat pointStat = indexServiceStats.get(name);
+
+        if (pointStat.latestValue == 0.0) {
+            // ignore entries not updated as part of current test
+            return;
+        }
+        String nameForDayStat = name + ServiceStats.STAT_NAME_SUFFIX_PER_DAY;
+        String nameForHourStat = name + ServiceStats.STAT_NAME_SUFFIX_PER_HOUR;
+        ServiceStat st = indexServiceStats.get(nameForHourStat);
+        TestUtilityService.validateTimeSeriesStat(st, TimeUnit.MINUTES.toMillis(1));
+        st = indexServiceStats.get(nameForDayStat);
+        TestUtilityService.validateTimeSeriesStat(st, TimeUnit.HOURS.toMillis(1));
     }
 
     private void patchOrDeleteWithExpiration(URI factoryUri, Map<URI, ExampleServiceState> services,

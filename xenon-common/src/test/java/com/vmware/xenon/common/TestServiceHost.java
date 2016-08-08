@@ -53,7 +53,6 @@ import com.vmware.xenon.common.ServiceHost.ServiceAlreadyStartedException;
 import com.vmware.xenon.common.ServiceHost.ServiceHostState;
 import com.vmware.xenon.common.ServiceHost.ServiceHostState.MemoryLimitType;
 import com.vmware.xenon.common.ServiceStats.ServiceStat;
-import com.vmware.xenon.common.ServiceStats.TimeSeriesStats.TimeBin;
 import com.vmware.xenon.common.jwt.Rfc7519Claims;
 import com.vmware.xenon.common.jwt.Signer;
 import com.vmware.xenon.common.jwt.Verifier;
@@ -1046,31 +1045,14 @@ public class TestServiceHost {
                 .get(ServiceHostManagementService.STAT_NAME_THREAD_COUNT_PER_DAY);
         ServiceStat threadCountHourly = hostMgmtStats
                 .get(ServiceHostManagementService.STAT_NAME_THREAD_COUNT_PER_HOUR);
-        validateTimeSeriesStat(freeMemDaily, TimeUnit.HOURS.toMillis(1));
-        validateTimeSeriesStat(freeMemHourly, TimeUnit.MINUTES.toMillis(1));
-        validateTimeSeriesStat(freeDiskDaily, TimeUnit.HOURS.toMillis(1));
-        validateTimeSeriesStat(freeDiskHourly, TimeUnit.MINUTES.toMillis(1));
-        validateTimeSeriesStat(cpuUsageDaily, TimeUnit.HOURS.toMillis(1));
-        validateTimeSeriesStat(cpuUsageHourly, TimeUnit.MINUTES.toMillis(1));
-        validateTimeSeriesStat(threadCountDaily, TimeUnit.HOURS.toMillis(1));
-        validateTimeSeriesStat(threadCountHourly, TimeUnit.MINUTES.toMillis(1));
-    }
-
-    private void validateTimeSeriesStat(ServiceStat stat, long expectedBinDurationMillis) {
-        assertTrue(stat != null);
-        assertTrue(stat.timeSeriesStats != null);
-        assertTrue(stat.version > 1);
-        assertEquals(expectedBinDurationMillis, stat.timeSeriesStats.binDurationMillis);
-        double maxAvg = 0;
-        double countPerMaxAvgBin = 0;
-        for (TimeBin bin : stat.timeSeriesStats.bins.values()) {
-            if (bin.avg != null && bin.avg > maxAvg) {
-                maxAvg = bin.avg;
-                countPerMaxAvgBin = bin.count;
-            }
-        }
-        assertTrue(maxAvg > 0);
-        assertTrue(countPerMaxAvgBin >= 1);
+        TestUtilityService.validateTimeSeriesStat(freeMemDaily, TimeUnit.HOURS.toMillis(1));
+        TestUtilityService.validateTimeSeriesStat(freeMemHourly, TimeUnit.MINUTES.toMillis(1));
+        TestUtilityService.validateTimeSeriesStat(freeDiskDaily, TimeUnit.HOURS.toMillis(1));
+        TestUtilityService.validateTimeSeriesStat(freeDiskHourly, TimeUnit.MINUTES.toMillis(1));
+        TestUtilityService.validateTimeSeriesStat(cpuUsageDaily, TimeUnit.HOURS.toMillis(1));
+        TestUtilityService.validateTimeSeriesStat(cpuUsageHourly, TimeUnit.MINUTES.toMillis(1));
+        TestUtilityService.validateTimeSeriesStat(threadCountDaily, TimeUnit.HOURS.toMillis(1));
+        TestUtilityService.validateTimeSeriesStat(threadCountHourly, TimeUnit.MINUTES.toMillis(1));
     }
 
     private void verifyMaintenanceDelayStat(long intervalMicros) throws Throwable {

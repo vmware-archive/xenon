@@ -13,6 +13,7 @@
 
 package com.vmware.xenon.common;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
@@ -94,9 +95,9 @@ public class TestUtilityService extends BasicReusableHostTestCase {
         List<Service> services = createServices(count);
         // verify no stats exist before we enable that capability
         for (Service s : services) {
-            ServiceStats stats = getStats(s.getUri());
+            Map<String, ServiceStat> stats = this.host.getServiceStats(s.getUri());
             assertTrue(stats != null);
-            assertTrue(stats.entries.isEmpty());
+            assertTrue(stats.isEmpty());
         }
 
         updateBody = ServiceConfigUpdateRequest.create();
@@ -140,10 +141,9 @@ public class TestUtilityService extends BasicReusableHostTestCase {
         testWait(ctx);
 
         for (Service s : services) {
-            ServiceStats stats = getStats(s.getUri());
+            Map<String, ServiceStat> stats = this.host.getServiceStats(s.getUri());
             assertTrue(stats != null);
-            assertTrue(stats.entries != null);
-            assertTrue(!stats.entries.isEmpty());
+            assertTrue(!stats.isEmpty());
         }
     }
 
@@ -569,9 +569,20 @@ public class TestUtilityService extends BasicReusableHostTestCase {
                 "/core/ui/default/#"));
     }
 
-    public ServiceStats getStats(URI uri) throws Throwable {
-        URI statsURI = UriUtils.buildStatsUri(uri);
-        ServiceStats stats = this.host.getServiceState(null, ServiceStats.class, statsURI);
-        return stats;
+    public static void validateTimeSeriesStat(ServiceStat stat, long expectedBinDurationMillis) {
+        assertTrue(stat != null);
+        assertTrue(stat.timeSeriesStats != null);
+        assertTrue(stat.version > 1);
+        assertEquals(expectedBinDurationMillis, stat.timeSeriesStats.binDurationMillis);
+        double maxAvg = 0;
+        double countPerMaxAvgBin = 0;
+        for (TimeBin bin : stat.timeSeriesStats.bins.values()) {
+            if (bin.avg != null && bin.avg > maxAvg) {
+                maxAvg = bin.avg;
+                countPerMaxAvgBin = bin.count;
+            }
+        }
+        assertTrue(maxAvg > 0);
+        assertTrue(countPerMaxAvgBin >= 1);
     }
 }
