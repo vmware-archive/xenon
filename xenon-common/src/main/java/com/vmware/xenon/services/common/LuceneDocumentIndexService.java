@@ -336,11 +336,15 @@ public class LuceneDocumentIndexService extends StatelessService {
         iwc.setIndexDeletionPolicy(new SnapshotDeletionPolicy(
                 new KeepOnlyLastCommitDeletionPolicy()));
 
-        this.writer = new IndexWriter(dir, iwc);
-        this.writer.commit();
-        this.linkAccessTimes.clear();
-        this.indexUpdateTimeMicros = Utils.getNowMicrosUtc();
-        this.indexWriterCreationTimeMicros = this.indexUpdateTimeMicros;
+        IndexWriter w = new IndexWriter(dir, iwc);
+        w.commit();
+
+        synchronized (this.searchSync) {
+            this.writer = w;
+            this.linkAccessTimes.clear();
+            this.indexUpdateTimeMicros = Utils.getNowMicrosUtc();
+            this.indexWriterCreationTimeMicros = this.indexUpdateTimeMicros;
+        }
         return this.writer;
     }
 
