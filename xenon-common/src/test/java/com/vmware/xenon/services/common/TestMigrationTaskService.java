@@ -177,7 +177,7 @@ public class TestMigrationTaskService extends BasicReusableHostTestCase {
         state.sourceFactoryLink = factory;
         state.sourceNodeGroupReference
             = UriUtils.buildUri(getSourceHost().getPublicUri(), ServiceUriPaths.DEFAULT_NODE_GROUP);
-        state.maintenanceIntervalMicros = TimeUnit.MILLISECONDS.toMicros(10);
+        state.maintenanceIntervalMicros = TimeUnit.MILLISECONDS.toMicros(100);
         return state;
     }
 
@@ -694,6 +694,9 @@ public class TestMigrationTaskService extends BasicReusableHostTestCase {
         migrationState.taskInfo = TaskState.createAsCancelled();
         migrationState.continuousMigration = Boolean.TRUE;
 
+        getDestinationHost().setMaintenanceIntervalMicros(
+                migrationState.maintenanceIntervalMicros / 10);
+
         TestContext ctx = testCreate(1);
         String[] out = new String[1];
         Operation op = Operation.createPost(this.destinationFactoryUri)
@@ -709,8 +712,6 @@ public class TestMigrationTaskService extends BasicReusableHostTestCase {
                 });
         getDestinationHost().send(op);
         testWait(ctx);
-
-        getDestinationHost().setMaintenanceIntervalMicros(migrationState.maintenanceIntervalMicros / 10);
 
         Set<TaskStage> finalStages = new HashSet<>(Arrays.asList(TaskStage.FAILED, TaskStage.FINISHED));
         State finalServiceState = waitForServiceCompletion(out[0], getDestinationHost(), finalStages);

@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 
 import com.vmware.xenon.common.FactoryService;
 import com.vmware.xenon.common.Operation;
+import com.vmware.xenon.common.Operation.CompletionHandler;
 import com.vmware.xenon.common.OperationJoin;
 import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.ServiceDocument;
@@ -251,6 +252,12 @@ public class MigrationTaskService extends StatefulService {
             setMaintenanceIntervalMicros(initState.maintenanceIntervalMicros);
         }
 
+        if (initState.taskInfo.stage == TaskStage.CANCELLED) {
+            logInfo("In stage %s, will restart on next maintenance interval",
+                    initState.taskInfo.stage);
+            return;
+        }
+
         Operation.createPatch(getUri())
             .setBody(patchState)
             .sendWith(this);
@@ -362,41 +369,47 @@ public class MigrationTaskService extends StatefulService {
             return;
         }
 
-        Operation.createGet(getUri())
-            .setCompletion((o, t) -> {
-                if (t != null) {
-                    logWarning("Error retrieving document %s, %s", getUri(), t);
-                    return;
+        CompletionHandler c = (o, t) -> {
+            if (t != null) {
+                logWarning("Error retrieving document %s, %s", getUri(), t);
+                return;
+            }
+            State state = o.getBody(State.class);
+            if (!state.continuousMigration) {
+                return;
+            }
+            if (state.taskInfo.stage == TaskStage.STARTED
+                    || state.taskInfo.stage == TaskStage.CREATED) {
+                return;
+            }
+
+            State patch = new State();
+            logInfo("Continuous migration enabled, restarting");
+            // iff the task finished, it is safe to pick up the latestSourceUpdateTimeMicros
+            // otherwise we will use the last used query
+            if (state.taskInfo.stage == TaskStage.FINISHED) {
+                patch.querySpec = state.querySpec;
+                // update or add a the numeric query clause
+                Query q = findUpdateTimeMicrosRangeClause(patch.querySpec.query);
+                if (q != null) {
+                    q.setNumericRange(NumericRange
+                            .createGreaterThanOrEqualRange(state.latestSourceUpdateTimeMicros));
+                } else {
+                    Query timeClause = Query.Builder
+                            .create()
+                            .addRangeClause(
+                                    ServiceDocument.FIELD_NAME_UPDATE_TIME_MICROS,
+                                    NumericRange
+                                            .createGreaterThanOrEqualRange(state.latestSourceUpdateTimeMicros))
+                            .build();
+                    patch.querySpec.query.addBooleanClause(timeClause);
                 }
-                State state = o.getBody(State.class);
-                if (state.continuousMigration
-                        && !(state.taskInfo.stage == TaskStage.STARTED || state.taskInfo.stage == TaskStage.CREATED)) {
-                    State patch = new State();
-                    // iff the task finished, it is safe to pick up the latestSourceUpdateTimeMicros
-                    // otherwise we will use the last used query
-                    if (state.taskInfo.stage == TaskStage.FINISHED) {
-                        patch.querySpec = state.querySpec;
-                        // update or add a the numeric query clause
-                        Query q = findUpdateTimeMicrosRangeClause(patch.querySpec.query);
-                        if (q != null) {
-                            q.setNumericRange(NumericRange.createGreaterThanOrEqualRange(state.latestSourceUpdateTimeMicros));
-                        } else {
-                            Query timeClause = Query.Builder.create()
-                                    .addRangeClause(
-                                            ServiceDocument.FIELD_NAME_UPDATE_TIME_MICROS,
-                                            NumericRange.createGreaterThanOrEqualRange(state.latestSourceUpdateTimeMicros))
-                                    .build();
-                            patch.querySpec.query.addBooleanClause(timeClause);
-                        }
-                    }
-                    // send state update putting service back into started state
-                    patch.taskInfo = TaskState.createAsStarted();
-                    Operation.createPatch(getUri())
-                        .setBody(patch)
-                        .sendWith(this);
-                }
-            })
-            .sendWith(this);;
+            }
+            // send state update putting service back into started state
+            patch.taskInfo = TaskState.createAsStarted();
+            Operation.createPatch(getUri()).setBody(patch).sendWith(this);
+        };
+        Operation.createGet(getUri()).setCompletion(c).sendWith(this);
     }
 
     private Query findUpdateTimeMicrosRangeClause(Query query) {
