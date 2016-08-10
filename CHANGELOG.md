@@ -2,6 +2,10 @@
 
 ## 0.9.3-SNAPSHOT
 
+* Add Operation#appendCompletion method. This method adds completion handler
+  in FIFO style. This is symmetric to nestCompletion which adds completion
+  handler in LIFO. See the javadoc for details.
+
 * Add time series stats for thread count, CPU, memory, disk in the
   existing stats tracked by /core/management/stats
 

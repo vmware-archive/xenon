@@ -1191,6 +1191,19 @@ public class Operation implements Cloneable {
         return this.body != null;
     }
 
+    /**
+     * Add CompletionHandler in LIFO style.
+     *
+     * This is symmetric to {@link #appendCompletion(CompletionHandler)}.
+     * <pre>
+     * {@code
+     *   op.setCompletion(ORG);
+     *   op.nestCompletion(A);
+     *   op.nestCompletion(B);
+     *   // complete() will trigger: B -> A -> ORG
+     * }
+     * </pre>
+     */
     public Operation nestCompletion(CompletionHandler h) {
         CompletionHandler existing = this.completion;
 
@@ -1217,6 +1230,28 @@ public class Operation implements Cloneable {
                 fail(ex);
             }
         });
+    }
+
+    /**
+     * Add CompletionHandler in FIFO style.
+     *
+     * This is symmetric to {@link #nestCompletion(CompletionHandler)}.
+     * <pre>
+     * {@code
+     *   op.setCompletion(ORG);
+     *   op.addCompletion(A);
+     *   op.addCompletion(B);
+     *   // complete() will trigger: ORG -> A -> B
+     * }
+     * </pre>
+     */
+    public Operation appendCompletion(CompletionHandler h) {
+        CompletionHandler existing = this.completion;
+        setCompletion((o, e) -> {
+            o.nestCompletion(h);
+            existing.handle(o, e);
+        });
+        return this;
     }
 
     Operation addHeader(String headerLine, boolean isResponse) {
