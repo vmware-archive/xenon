@@ -515,6 +515,11 @@ public class UriUtils {
             throw new IllegalStateException("No IP addresses found in host:" + host.toString());
         }
 
+        if (host.getPublicUri().getHost().equals(remoteService.getHost())
+                && (host.getPublicUri().getPort() == remoteService.getPort())) {
+            return true;
+        }
+
         if (host.getPort() != remoteService.getPort()
                 && host.getSecurePort() != remoteService.getPort()) {
             return false;
