@@ -2,6 +2,10 @@
 
 ## 0.9.3-SNAPSHOT
 
+* Add a flavor of mergeWithState() that processes a
+  ServiceStateCollectionUpdateRequest object to add and remove
+  elements from a collection
+
 * Add Operation#appendCompletion method. This method adds completion handler
   in FIFO style. This is symmetric to nestCompletion which adds completion
   handler in LIFO. See the javadoc for details.
