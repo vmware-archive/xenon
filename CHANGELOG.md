@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.9.3-SNAPSHOT
+## 0.9.3
 
 * Add a flavor of mergeWithState() that processes a
   ServiceStateCollectionUpdateRequest object to add and remove
