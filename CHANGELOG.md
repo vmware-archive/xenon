@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 0.9.4-SNAPSHOT
+
 ## 0.9.3
 
 * Add a flavor of mergeWithState() that processes a

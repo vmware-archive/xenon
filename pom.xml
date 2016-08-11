@@ -4,7 +4,7 @@
 
   <groupId>com.vmware.xenon</groupId>
   <artifactId>xenon-parent</artifactId>
-  <version>0.9.3</version>
+  <version>0.9.4-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>xenon-parent</name>
