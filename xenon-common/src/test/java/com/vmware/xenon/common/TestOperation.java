@@ -30,6 +30,7 @@ import java.util.function.Consumer;
 import org.junit.Test;
 
 import com.vmware.xenon.common.Operation.CompletionHandler;
+import com.vmware.xenon.common.Operation.SerializedOperation;
 import com.vmware.xenon.common.Service.Action;
 import com.vmware.xenon.common.test.MinimalTestServiceState;
 import com.vmware.xenon.common.test.TestContext;
@@ -633,5 +634,40 @@ public class TestOperation extends BasicReusableHostTestCase {
                     this.host.completeIteration();
                 }));
         this.host.testWait();
+    }
+
+    @Test
+    public void testSerializedOperation() throws Throwable {
+        String link = ExampleService.FACTORY_LINK;
+        String contextId = UUID.randomUUID().toString();
+        String transactionId = UUID.randomUUID().toString();
+        Operation op = Operation
+                .createPost(UriUtils.buildUri(this.host, link, "someQuery", "someUserInfo"))
+                .setBody("body")
+                .setReferer(this.host.getReferer())
+                .setContextId(contextId)
+                .setTransactionId(transactionId)
+                .setStatusCode(Operation.STATUS_CODE_OK);
+
+        SerializedOperation sop = SerializedOperation.create(op);
+        verifyOp(op, sop);
+    }
+
+    private void verifyOp(Operation op, SerializedOperation sop) {
+        assertEquals(op.getAction(), sop.action);
+        assertEquals(op.getUri().getHost(), sop.host);
+        assertEquals(op.getUri().getPort(), sop.port);
+        assertEquals(op.getUri().getPath(), sop.path);
+        assertEquals(op.getUri().getQuery(), sop.query);
+        assertEquals(op.getId(), sop.id.longValue());
+        assertEquals(op.getReferer(), sop.referer);
+        assertEquals(op.getBodyRaw(), sop.jsonBody);
+        assertEquals(op.getStatusCode(), sop.statusCode);
+        assertEquals(op.options, sop.options);
+        assertEquals(op.getContextId(), sop.contextId);
+        assertEquals(op.getTransactionId(), sop.transactionId);
+        assertEquals(op.getUri().getUserInfo(), sop.userInfo);
+        assertEquals(SerializedOperation.KIND, sop.documentKind);
+        assertEquals(op.getExpirationMicrosUtc(), sop.documentExpirationTimeMicros);
     }
 }
