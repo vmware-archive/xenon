@@ -13,71 +13,131 @@
 
 package com.vmware.xenon.common.test;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.vmware.xenon.common.Operation.CompletionHandler;
-import com.vmware.xenon.common.Utils;
 
 /**
  * Test context used for synchronous tests. Provides an isolated version of the
  * {@code VerificationHost} testStart and testWait methods and allows nesting
  */
 public class TestContext {
+
     private CountDownLatch latch;
-    private long expiration;
+
+    private Duration interval = Duration.ofSeconds(1);
+
+    private Duration duration;
+
     private volatile Throwable error;
 
+    private boolean started;
+
+    /**
+     * Consider using {@link #TestContext(int, Duration)}
+     * This method exists for backward compatibility, and may be deprecated/deleted in future.
+     */
     public static TestContext create(int count, long expIntervalMicros) {
-        TestContext ctx = new TestContext();
-        ctx.latch = new CountDownLatch(count);
-        ctx.expiration = Utils.getNowMicrosUtc();
-        ctx.expiration += expIntervalMicros;
-        return ctx;
+        return new TestContext(count, Duration.of(expIntervalMicros, ChronoUnit.MICROS));
     }
 
-    public void completeIteration() {
+    public TestContext(int count, Duration duration) {
+        this.latch = new CountDownLatch(count);
+        this.duration = duration;
+    }
+
+    public void complete() {
+        this.started = true;
         this.latch.countDown();
     }
 
-    public void failIteration(Throwable e) {
+    public void fail(Throwable e) {
+        this.started = true;
         this.error = e;
         this.latch.countDown();
     }
 
-    public void await() throws Throwable {
-        if (this.latch == null) {
-            throw new IllegalStateException("This context is already used");
+    public void setCount(int count) {
+        if (this.started) {
+            throw new RuntimeException(String.format(
+                    "%s has already started. count=%d", getClass().getSimpleName(), this.latch.getCount()));
         }
+        this.latch = new CountDownLatch(count);
+    }
 
-        // keep polling latch every second, allows for easier debugging
-        while (Utils.getNowMicrosUtc() < this.expiration) {
-            if (this.latch.await(1, TimeUnit.SECONDS)) {
-                break;
+    public void setTimeout(Duration duration) {
+        if (this.started) {
+            throw new RuntimeException(String.format(
+                    "%s has already started. count=%d", getClass().getSimpleName(), this.latch.getCount()));
+        }
+        this.duration = duration;
+    }
+
+    public void setCheckInterval(Duration interval) {
+        this.interval = interval;
+    }
+
+    public void await() {
+
+        ExceptionTestUtils.executeSafely(() -> {
+
+            if (this.latch == null) {
+                throw new IllegalStateException("This context is already used");
             }
-        }
 
-        if (this.expiration < Utils.getNowMicrosUtc()) {
-            throw new TimeoutException();
-        }
+            LocalDateTime expireAt = LocalDateTime.now().plus(this.duration);
+            // keep polling latch every interval
+            while (expireAt.isAfter(LocalDateTime.now())) {
+                if (this.latch.await(this.interval.toNanos(), TimeUnit.NANOSECONDS)) {
+                    break;
+                }
+            }
 
-        // prevent this latch from being reused
-        this.latch = null;
+            LocalDateTime now = LocalDateTime.now();
+            if (expireAt.isBefore(now)) {
+                Duration difference = Duration.between(expireAt, now);
 
-        if (this.error != null) {
-            throw this.error;
-        }
+                throw new TimeoutException(String.format(
+                        "%s has expired. [duration=%s, count=%d]", getClass().getSimpleName(), difference,
+                        this.latch.getCount()));
+            }
 
-        return;
+            // prevent this latch from being reused
+            this.latch = null;
+
+            if (this.error != null) {
+                throw this.error;
+            }
+        });
+    }
+
+    /**
+     * Consider using {@link #complete()}.
+     * This method exists for backward compatibility, and may be deprecated/deleted in future.
+     */
+    public void completeIteration() {
+        complete();
+    }
+
+    /**
+     * Consider using {@link #fail(Throwable)}.
+     * This method exists for backward compatibility, and may be deprecated/deleted in future.
+     */
+    public void failIteration(Throwable e) {
+        fail(e);
     }
 
     public CompletionHandler getCompletion() {
         return (o, e) -> {
             if (e != null) {
-                this.failIteration(e);
+                this.fail(e);
             } else {
-                this.completeIteration();
+                this.complete();
             }
         };
     }
@@ -85,9 +145,9 @@ public class TestContext {
     public CompletionHandler getExpectedFailureCompletion() {
         return (o, e) -> {
             if (e != null) {
-                this.completeIteration();
+                this.complete();
             } else {
-                this.failIteration(new IllegalStateException("got success, expected failure"));
+                this.fail(new IllegalStateException("got success, expected failure"));
             }
         };
     }
