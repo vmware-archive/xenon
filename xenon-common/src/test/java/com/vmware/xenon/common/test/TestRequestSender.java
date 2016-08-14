@@ -147,7 +147,7 @@ public class TestRequestSender {
         return response;
     }
 
-    private ServiceHost getSender() {
+    public ServiceHost getHostSender() {
 
         if (this.sender instanceof ServiceHost) {
             return (ServiceHost) this.sender;
@@ -155,7 +155,7 @@ public class TestRequestSender {
             return ((Service) this.sender).getHost();
         }
 
-        throw new UnsupportedOperationException("Not supported to " + this.sender);
+        throw new UnsupportedOperationException("Not supported for instance: " + this.sender);
     }
 
     public Duration getTimeout() {
