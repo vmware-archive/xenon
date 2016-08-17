@@ -2,6 +2,8 @@
 
 ## 0.9.4-SNAPSHOT
 
+* Improve QueryFilters to support numeric document properties
+
 ## 0.9.3
 
 * Add a flavor of mergeWithState() that processes a
