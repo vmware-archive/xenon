@@ -5,6 +5,7 @@ GOBIN := $(GOVENDOR)/bin
 GO ?= go
 GO1.5 ?= go1.5
 GO1.6 ?= go1.6
+GO1.7 ?= go1.7
 
 GO_FOUND ?= 0
 OS := $(shell uname)
@@ -45,7 +46,7 @@ endif
 
 ifneq ($(FOUND_GO),)
 goversion:
-	@( $(GO) version | grep -q '$(GO1.5)\|$(GO1.6)' ) || ( echo "Please install $(GO1.5) or $(GO1.6) to build this module (found: $$($(GO) version))" && exit 1 )
+	@( $(GO) version | grep -q '$(GO1.5)\|$(GO1.6)\|$(GO1.7)' ) || ( echo "Please install $(GO1.5), $(GO1.6) or $(GO1.7) to build this module (found: $$($(GO) version))" && exit 1 )
 else
 goversion:
 endif
