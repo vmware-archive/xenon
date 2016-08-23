@@ -664,7 +664,7 @@ public class VerificationHost extends ExampleServiceHost {
     public QueryTask waitForQueryTaskCompletion(QuerySpecification q, int totalDocuments,
             int versionCount, URI u, boolean forceRemote, boolean deleteOnFinish,
             boolean throwOnFailure) {
-        Date expiration = getTestExpiration();
+
         long startNanos = System.nanoTime();
         if (q.options == null) {
             q.options = EnumSet.noneOf(QueryOption.class);
