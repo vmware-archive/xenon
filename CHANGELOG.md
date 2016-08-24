@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 0.9.5-SNAPSHOT
+
 ## 0.9.4
 
 * Add support for per thread user defined kryo serializers. See method
