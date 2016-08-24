@@ -4,6 +4,10 @@
 
 ## 0.9.4
 
+* QueryOption.INCLUDE_ALL_VERSIONS now includes deleted versions,
+  no longer requiring INCLUDE_DELETED to be also set. So it actually
+  trully returns *all* versions
+
 * Add support for per thread user defined kryo serializers. See method
   Utils#registerCustomKryoSerializers
 
