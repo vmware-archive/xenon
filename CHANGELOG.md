@@ -2,12 +2,6 @@
 
 ## 0.9.5-SNAPSHOT
 
-## 0.9.4
-
-* QueryOption.INCLUDE_ALL_VERSIONS now includes deleted versions,
-  no longer requiring INCLUDE_DELETED to be also set. So it actually
-  trully returns *all* versions
-
 * Add a new sendWithDeferredResult pair of methods to the request senders
   The new sendWithDeferredResult set of methods return DeferredResult
   instances to enable monadic style of chaining potentially asynchronous
@@ -15,6 +9,12 @@
   SampleBootstrapService for usage examples.
   The implementation of DeferredResult encapsulates CompletableFuture with
   similar interface, excluding the blocking methods.
+
+## 0.9.4
+
+* QueryOption.INCLUDE_ALL_VERSIONS now includes deleted versions,
+  no longer requiring INCLUDE_DELETED to be also set. So it actually
+  trully returns *all* versions
 
 * Add support for per thread user defined kryo serializers. See method
   Utils#registerCustomKryoSerializers
