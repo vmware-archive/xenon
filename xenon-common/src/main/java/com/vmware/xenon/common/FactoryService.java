@@ -142,6 +142,14 @@ public abstract class FactoryService extends StatelessService {
         return this.selfQueryResultLimit;
     }
 
+    /**
+     * Returns true if the option is supported by the child services
+     * of the factory.
+     */
+    public boolean hasChildOption(ServiceOption option) {
+        return this.childOptions.contains(option);
+    }
+
     @Override
     public final void handleStart(Operation startPost) {
 

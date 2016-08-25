@@ -247,6 +247,19 @@ public class NodeSelectorSynchronizationService extends StatelessService {
                     bestPeerRsp, request.stateDescription, Utils.getTimeComparisonEpsilonMicros());
         }
 
+        if (bestPeerRsp == null &&
+                request.options.contains(ServiceOption.ON_DEMAND_LOAD)) {
+            // For ODL services we only synchronize at access time.
+            // If the service is not found on the OWNER node, the
+            // owner will kick off synchronization to check if
+            // any of the peers has the requested service. Since none
+            // of the peers had the requested state we return 404.
+            post.setStatusCode(Operation.STATUS_CODE_NOT_FOUND);
+            post.setBody(null);
+            post.complete();
+            return;
+        }
+
         if (results.contains(DocumentRelationship.IN_CONFLICT)) {
             markServiceInConflict(request.state, bestPeerRsp);
             // if we detect conflict, we will synchronize local service with selected peer state
@@ -359,7 +372,7 @@ public class NodeSelectorSynchronizationService extends StatelessService {
                 if (!incrementEpoch
                         && bestPeerRsp.getClass().equals(peerState.getClass())
                         && ServiceDocument.equals(request.stateDescription, bestPeerRsp, peerState)) {
-                    skipSynchOrStartServiceOnPeer(peerOp, peerState.documentSelfLink);
+                    skipSynchOrStartServiceOnPeer(peerOp, peerState.documentSelfLink, request);
                     continue;
                 }
 
@@ -386,7 +399,14 @@ public class NodeSelectorSynchronizationService extends StatelessService {
      * The service state on the peer node is identical to best state. We should
      * skip sending a synchronization POST, if the service is already started
      */
-    private void skipSynchOrStartServiceOnPeer(Operation peerOp, String link) {
+    private void skipSynchOrStartServiceOnPeer(Operation peerOp, String link, SynchronizePeersRequest request) {
+        // If the service is an ON_DEMAND_LOAD service, we don't bother trying to
+        // start it on the peer host. It will get started on-demand when a request comes in.
+        if (request.options.contains(ServiceOption.ON_DEMAND_LOAD)) {
+            peerOp.complete();
+            return;
+        }
+
         Operation checkGet = Operation.createGet(UriUtils.buildUri(peerOp.getUri(), link))
                 .addPragmaDirective(Operation.PRAGMA_DIRECTIVE_NO_FORWARDING)
                 .setConnectionSharing(true)
