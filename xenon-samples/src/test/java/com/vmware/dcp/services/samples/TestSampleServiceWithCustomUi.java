@@ -14,6 +14,7 @@
 package com.vmware.dcp.services.samples;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -158,7 +159,7 @@ public class TestSampleServiceWithCustomUi extends BasicReusableHostTestCase {
         Operation op = Operation
                 .createGet(URI.create(UriUtils.buildUri(this.host, THE_SERVICE_URI + "/ui/bogusFile") + "/"))
                 .setCompletion(getSafeHandler((o, e) -> {
-                    assertNull(e);
+                    assertNotNull(e);
                     assertEquals("Expected 404 NOT FOUND", Operation.STATUS_CODE_NOT_FOUND, o.getStatusCode());
                 }));
 
