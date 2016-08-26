@@ -33,7 +33,7 @@ public class ExceptionTestUtils {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T extends Exception> void throwsUnchecked(Throwable throwable) throws T {
+    private static <T extends Throwable> void throwsUnchecked(Throwable throwable) throws T {
         throw (T) throwable;
     }
 
