@@ -117,6 +117,10 @@ public class TestServiceDocument {
         Assert.assertTrue("Check existence of element", source.mapOfStrings.containsKey(SOME_STRING_VALUE));
         Assert.assertTrue("Check existence of element", source.mapOfStrings.containsKey(SOME_OTHER_STRING_VALUE));
         Assert.assertEquals("Number of Array elements", 2, source.intArray.length);
+
+        patch.intArray = null;
+        patch.listOfStrings = null;
+        Assert.assertFalse("Repeated patch should not change source", Utils.mergeWithState(d, source, patch));
     }
 
     /**
@@ -147,6 +151,10 @@ public class TestServiceDocument {
         Assert.assertEquals("Number of map elements", 1, source.mapOfStrings.size());
         Assert.assertTrue("Check existence of element", source.mapOfStrings.containsKey(SOME_OTHER_STRING_VALUE));
         Assert.assertEquals("Number of Array elements", 2, source.intArray.length);
+
+        patch.intArray = null;
+        patch.listOfStrings = null;
+        Assert.assertFalse("Repeated patch should not change source", Utils.mergeWithState(d, source, patch));
     }
 
     /**
@@ -181,6 +189,8 @@ public class TestServiceDocument {
         Assert.assertEquals("Check unmodified key/value is preserved.", source.mapOfStrings.get("key-1"), "value-1");
         Assert.assertEquals("Check modified key/value is changed as intended.", source.mapOfStrings.get("key-2"), "value-2-patched");
         Assert.assertEquals("Check new key/value is added.", source.mapOfStrings.get("key-4"), "value-4-new");
+
+        Assert.assertFalse("Repeated patch should not change source", Utils.mergeWithState(d, source, patch));
     }
 
     @Test
@@ -233,12 +243,63 @@ public class TestServiceDocument {
      * Test merging in an empty patch.
      */
     @Test
-    public void testEmptyMerge() {
+    public void testEmptyPatch() {
         MergeTest source = new MergeTest();
         source.s = SOME_STRING_VALUE;
         source.x = SOME_INT_VALUE;
         source.ignore = SOME_IGNORE_VALUE;
         MergeTest patch = new MergeTest();
+        ServiceDocumentDescription d = ServiceDocumentDescription.Builder.create()
+                .buildDescription(MergeTest.class);
+        Assert.assertFalse("There should be no changes", Utils.mergeWithState(d, source, patch));
+        Assert.assertEquals("Annotated s field", source.s, SOME_STRING_VALUE);
+        Assert.assertEquals("Annotated x field", source.x, SOME_INT_VALUE);
+        Assert.assertEquals("Non-annotated ignore field", source.ignore, SOME_IGNORE_VALUE);
+    }
+
+    /**
+     * Test merging in an empty patch over a non-empty source.
+     */
+    @Test
+    public void testEmptyPatchNonEmptySource() {
+        MergeTest source = new MergeTest();
+        source.s = SOME_STRING_VALUE;
+        source.x = SOME_INT_VALUE;
+        source.ignore = SOME_IGNORE_VALUE;
+        source.intArray = new int[] { SOME_INT_VALUE };
+        source.listOfStrings = Arrays.asList(SOME_STRING_VALUE, SOME_OTHER_STRING_VALUE);
+        source.mapOfStrings = new HashMap<String, String>();
+        source.mapOfStrings.put(SOME_STRING_VALUE, SOME_STRING_VALUE);
+        source.setOfStrings = new HashSet<String>();
+        source.setOfStrings.add(SOME_STRING_VALUE);
+        MergeTest patch = new MergeTest();
+        ServiceDocumentDescription d = ServiceDocumentDescription.Builder.create()
+                .buildDescription(MergeTest.class);
+        Assert.assertFalse("There should be no changes", Utils.mergeWithState(d, source, patch));
+        Assert.assertEquals("Annotated s field", source.s, SOME_STRING_VALUE);
+        Assert.assertEquals("Annotated x field", source.x, SOME_INT_VALUE);
+        Assert.assertEquals("Non-annotated ignore field", source.ignore, SOME_IGNORE_VALUE);
+    }
+
+    /**
+     * Test merging in an empty patch over a non-empty source.
+     */
+    @Test
+    public void testEmptyPatchCollectionsNonEmptySource() {
+        MergeTest source = new MergeTest();
+        source.s = SOME_STRING_VALUE;
+        source.x = SOME_INT_VALUE;
+        source.ignore = SOME_IGNORE_VALUE;
+        source.intArray = new int[] { SOME_INT_VALUE };
+        source.listOfStrings = Arrays.asList(SOME_STRING_VALUE, SOME_OTHER_STRING_VALUE);
+        source.mapOfStrings = new HashMap<String, String>();
+        source.mapOfStrings.put(SOME_STRING_VALUE, SOME_STRING_VALUE);
+        source.setOfStrings = new HashSet<String>();
+        source.setOfStrings.add(SOME_STRING_VALUE);
+        MergeTest patch = new MergeTest();
+        patch.listOfStrings = new ArrayList<>();
+        patch.setOfStrings = new HashSet<>();
+        patch.mapOfStrings = new HashMap<>();
         ServiceDocumentDescription d = ServiceDocumentDescription.Builder.create()
                 .buildDescription(MergeTest.class);
         Assert.assertFalse("There should be no changes", Utils.mergeWithState(d, source, patch));
@@ -259,7 +320,40 @@ public class TestServiceDocument {
         MergeTest patch = new MergeTest();
         patch.s = source.s;
         patch.x = source.x;
-        patch.ignore = SOME_OTHER_IGNORE_VALUE;
+        patch.ignore = source.ignore;
+        ServiceDocumentDescription d = ServiceDocumentDescription.Builder.create()
+                .buildDescription(MergeTest.class);
+        Assert.assertFalse("There should be no changes", Utils.mergeWithState(d, source, patch));
+        Assert.assertEquals("Annotated s field", source.s, SOME_STRING_VALUE);
+        Assert.assertEquals("Annotated x field", source.x, SOME_INT_VALUE);
+        Assert.assertEquals("Non-annotated ignore field", source.ignore, SOME_IGNORE_VALUE);
+    }
+
+    /**
+     * Test merging patch with same values as existing value.
+     */
+    @Test
+    public void testEqualsMergeNonEmptySource() {
+        MergeTest source = new MergeTest();
+        source.s = SOME_STRING_VALUE;
+        source.x = SOME_INT_VALUE;
+        source.ignore = SOME_IGNORE_VALUE;
+        source.intArray = new int[] { SOME_INT_VALUE };
+        source.listOfStrings = new ArrayList<>();
+        source.listOfStrings.add(SOME_STRING_VALUE);
+        source.listOfStrings.add(SOME_OTHER_STRING_VALUE);
+        source.mapOfStrings = new HashMap<String, String>();
+        source.mapOfStrings.put(SOME_STRING_VALUE, SOME_STRING_VALUE);
+        source.setOfStrings = new HashSet<String>();
+        source.setOfStrings.add(SOME_STRING_VALUE);
+
+        MergeTest patch = new MergeTest();
+        patch.s = source.s;
+        patch.x = source.x;
+        patch.ignore = source.ignore;
+        patch.mapOfStrings = source.mapOfStrings;
+        patch.setOfStrings = source.setOfStrings;
+
         ServiceDocumentDescription d = ServiceDocumentDescription.Builder.create()
                 .buildDescription(MergeTest.class);
         Assert.assertFalse("There should be no changes", Utils.mergeWithState(d, source, patch));
