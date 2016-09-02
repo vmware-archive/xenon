@@ -47,6 +47,7 @@ import java.util.logging.Logger;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
@@ -381,6 +382,7 @@ public class TestNodeGroupService {
         }
     }
 
+    @Ignore("https://www.pivotaltracker.com/story/show/129681537")
     @Test
     public void verifyOdlServiceSynchronization() throws Throwable {
         // Setup peer nodes
