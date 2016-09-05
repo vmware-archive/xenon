@@ -30,6 +30,42 @@ import com.vmware.xenon.common.Utils;
 public class TestServiceDocument {
 
     @Test
+    public void copyTo() throws Throwable {
+        // if a field is added to ServiceDocument, this method must be updated.
+        // Also, methods ServiceDocument.isBuiltInFieldXXX() must be updated as well
+        assertEquals(26, ServiceDocument.class.getFields().length);
+        ServiceDocument one = new ServiceDocument();
+        one.documentAuthPrincipalLink = UUID.randomUUID().toString();
+        one.documentDescription = null;
+        one.documentEpoch = Utils.getNowMicrosUtc();
+        one.documentExpirationTimeMicros = Utils.getNowMicrosUtc();
+        one.documentKind = UUID.randomUUID().toString();
+        one.documentOwner = UUID.randomUUID().toString();
+        one.documentSelfLink = UUID.randomUUID().toString();
+        one.documentSourceLink = UUID.randomUUID().toString();
+        one.documentTransactionId = UUID.randomUUID().toString();
+        one.documentUpdateAction = UUID.randomUUID().toString();
+        one.documentUpdateTimeMicros = Utils.getNowMicrosUtc();
+        one.documentVersion = Utils.getNowMicrosUtc();
+
+        ServiceDocument two = new ServiceDocument();
+        one.copyTo(two);
+
+        assertEquals(one.documentAuthPrincipalLink, two.documentAuthPrincipalLink);
+        assertEquals(one.documentDescription, two.documentDescription);
+        assertEquals(one.documentEpoch, two.documentEpoch);
+        assertEquals(one.documentExpirationTimeMicros, two.documentExpirationTimeMicros);
+        assertEquals(one.documentKind, two.documentKind);
+        assertEquals(one.documentOwner, two.documentOwner);
+        assertEquals(one.documentSelfLink, two.documentSelfLink);
+        assertEquals(one.documentSourceLink, two.documentSourceLink);
+        assertEquals(one.documentTransactionId, two.documentTransactionId);
+        assertEquals(one.documentUpdateAction, two.documentUpdateAction);
+        assertEquals(one.documentUpdateTimeMicros, two.documentUpdateTimeMicros);
+        assertEquals(one.documentVersion, two.documentVersion);
+    }
+
+    @Test
     public void equals() throws Throwable {
         ServiceDocumentDescription description = TestUtils.buildStateDescription(
                 ExampleService.ExampleServiceState.class, null);

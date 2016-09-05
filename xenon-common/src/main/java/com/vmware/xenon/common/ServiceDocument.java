@@ -241,6 +241,7 @@ public class ServiceDocument {
         target.documentKind = this.documentKind;
         target.documentSelfLink = this.documentSelfLink;
         target.documentUpdateTimeMicros = this.documentUpdateTimeMicros;
+        target.documentUpdateAction = this.documentUpdateAction;
         target.documentExpirationTimeMicros = this.documentExpirationTimeMicros;
         target.documentAuthPrincipalLink = this.documentAuthPrincipalLink;
         target.documentTransactionId = this.documentTransactionId;
