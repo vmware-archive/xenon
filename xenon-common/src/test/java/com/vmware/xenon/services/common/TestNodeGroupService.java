@@ -3233,10 +3233,9 @@ public class TestNodeGroupService {
             joinedHostOwnerIds.add(st.documentOwner);
         }
 
-        Map<String, Set<String>> ownerIdsPerLink = computeOwnerIdsPerLink(joinedHost,
-                childStates.keySet());
-        Date exp = this.host.getTestExpiration();
-        while (new Date().before(exp)) {
+        this.host.waitFor("ownership did not converge", () -> {
+            Map<String, Set<String>> ownerIdsPerLink = computeOwnerIdsPerLink(joinedHost,
+                    childStates.keySet());
             boolean isConverged = true;
             Map<String, Set<Long>> epochsPerLink = new HashMap<>();
             List<URI> nodeSelectorStatsUris = new ArrayList<>();
@@ -3363,36 +3362,8 @@ public class TestNodeGroupService {
                 }
             }
 
-            if (!isConverged) {
-                Thread.sleep(1000);
-                continue;
-            }
-
-            // get stats from each node selector and verify epoch retries
-            Map<URI, ServiceStats> allNodeSelectorStats = new ConcurrentSkipListMap<>();
-            this.host.testStart(nodeSelectorStatsUris.size());
-            for (URI statUri : nodeSelectorStatsUris) {
-                Operation get = Operation.createGet(statUri)
-                        .setCompletion((o, e) -> {
-                            if (e != null) {
-                                this.host.failIteration(e);
-                                return;
-                            }
-
-                            ServiceStats st = o.getBody(ServiceStats.class);
-                            allNodeSelectorStats.put(o.getUri(), st);
-                            this.host.completeIteration();
-                        });
-                this.host.send(get);
-            }
-
-            this.host.testWait();
-            break;
-        }
-
-        if (new Date().after(exp)) {
-            throw new TimeoutException();
-        }
+            return isConverged;
+        });
     }
 
     private <T extends ServiceDocument> Map<String, T> doStateUpdateReplicationTest(Action action,
