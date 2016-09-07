@@ -272,11 +272,7 @@ public class Utils {
      * @see Utils#toDocumentBytes(Object, byte[], int)
      */
     public static int toBytes(ServiceDocument o, byte[] buffer, int position) {
-        Kryo k = getKryoThreadLocalForDocuments();
-        Output out = new Output(buffer);
-        out.setPosition(position);
-        k.writeClassAndObject(out, o);
-        return out.position();
+        return toDocumentBytes(o, buffer, position);
     }
 
     /**
