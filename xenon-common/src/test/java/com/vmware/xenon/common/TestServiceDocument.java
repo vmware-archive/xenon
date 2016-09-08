@@ -14,13 +14,16 @@
 package com.vmware.xenon.common;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -37,6 +40,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.vmware.xenon.common.Utils.MergeResult;
 import com.vmware.xenon.services.common.QueryTask;
 import com.vmware.xenon.services.common.QueryValidationTestService;
 
@@ -206,9 +210,62 @@ public class TestServiceDocument {
         collectionsToRemove.put("listOfStrings", new ArrayList<>(state.listOfStrings));
         collectionsToAdd.put("setOfStrings", new ArrayList<>(Arrays.asList(SOME_STRING_VALUE)));
         ServiceStateCollectionUpdateRequest request = ServiceStateCollectionUpdateRequest.create(collectionsToAdd, collectionsToRemove);
-        Utils.updateCollections(state, request);
+        boolean changed = Utils.updateCollections(state, request);
+        assertTrue(changed);
         assertEquals(state.listOfStrings.size(), 0);
         assertEquals(state.setOfStrings.size(), 1);
+
+        // repeating the update should not change the state anymore
+        changed = Utils.updateCollections(state, request);
+        assertFalse(changed);
+    }
+
+    @Test
+    public void testCollectionsUpdateThroughMergeMethod() throws Throwable {
+        MergeTest state = new MergeTest();
+        state.setOfStrings = new HashSet<String>();
+        Map<String, Collection<Object>> collectionsToAdd = new HashMap<>();
+        collectionsToAdd.put("setOfStrings", new ArrayList<>(Arrays.asList(SOME_STRING_VALUE)));
+        ServiceStateCollectionUpdateRequest request =
+                ServiceStateCollectionUpdateRequest.create(collectionsToAdd, null);
+
+        Operation patchOperation = Operation.createPatch(new URI("http://test")).setBody(request);
+        ServiceDocumentDescription desc = ServiceDocumentDescription.Builder.create()
+                .buildDescription(MergeTest.class);
+        EnumSet<MergeResult> result = Utils.mergeWithStateAdvanced(desc, state, MergeTest.class,
+                patchOperation);
+        assertTrue(result.contains(MergeResult.SPECIAL_MERGE));
+        assertTrue(result.contains(MergeResult.STATE_CHANGED));
+        assertEquals(state.setOfStrings.size(), 1);
+
+        // repeating the update should not change the state anymore
+        result = Utils.mergeWithStateAdvanced(desc, state, MergeTest.class, patchOperation);
+        assertTrue(result.contains(MergeResult.SPECIAL_MERGE));
+        assertFalse(result.contains(MergeResult.STATE_CHANGED));
+    }
+
+    @Test
+    public void testMergeWithStateAdvanced() throws Throwable {
+        MergeTest state = new MergeTest();
+        state.s = "one";
+
+        MergeTest patch = new MergeTest();
+        patch.s = "two";
+
+        Operation patchOperation = Operation.createPatch(new URI("http://test")).setBody(patch);
+        ServiceDocumentDescription desc = ServiceDocumentDescription.Builder.create()
+                .buildDescription(MergeTest.class);
+        EnumSet<MergeResult> result = Utils.mergeWithStateAdvanced(desc, state, MergeTest.class,
+                patchOperation);
+        assertFalse(result.contains(MergeResult.SPECIAL_MERGE));
+        assertTrue(result.contains(MergeResult.STATE_CHANGED));
+        assertEquals("two", state.s);
+
+        // repeating the update should not change the state anymore
+        result = Utils.mergeWithStateAdvanced(desc, state, MergeTest.class, patchOperation);
+        assertFalse(result.contains(MergeResult.SPECIAL_MERGE));
+        assertFalse(result.contains(MergeResult.STATE_CHANGED));
+        assertEquals("two", state.s);
     }
 
     @Test
