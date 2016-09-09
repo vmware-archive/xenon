@@ -262,6 +262,11 @@ public class ServiceHost implements ServiceRequestSender {
          */
         public Path resourceSandbox;
 
+        /**
+         * The logical location of this host, if any
+         */
+        public String location;
+
     }
 
     protected static final LogFormatter LOG_FORMATTER = new LogFormatter();
@@ -418,6 +423,7 @@ public class ServiceHost implements ServiceRequestSender {
         public boolean isServiceStateCaching = true;
         public Properties codeProperties;
         public long serviceCount;
+        public String location;
 
         /**
          * Relative memory limit per service path. The limit is expressed as
@@ -703,6 +709,18 @@ public class ServiceHost implements ServiceRequestSender {
         }
 
         this.state.initialPeerNodes = args.peerNodes;
+        this.state.location = args.location;
+    }
+
+    public String getLocation() {
+        return this.state.location;
+    }
+
+    public void setLocation(String location) {
+        if (isStarted()) {
+            throw new IllegalStateException("Already started");
+        }
+        this.state.location = location;
     }
 
     protected void configureLogging(File storageSandboxDir) throws IOException {
@@ -1181,7 +1199,8 @@ public class ServiceHost implements ServiceRequestSender {
                             this.state.privateKeyFileReference, this.state.privateKeyPassphrase);
                 }
                 if (this.state.responsePayloadSizeLimit > 0) {
-                    this.httpsListener.setResponsePayloadSizeLimit(this.state.responsePayloadSizeLimit);
+                    this.httpsListener
+                            .setResponsePayloadSizeLimit(this.state.responsePayloadSizeLimit);
                 }
 
                 this.httpsListener.start(getSecurePort(), this.state.bindAddress);
@@ -3064,14 +3083,14 @@ public class ServiceHost implements ServiceRequestSender {
         return null;
     }
 
-
     /**
      * Helper method to associate a token with a userServiceLink
      * @param userLinktoTokenMap map to add the entry to
      * @param userServiceLink the user service reference
      * @param token user token
      */
-    private void addUserToken(Map<String, Set<String>> userLinktoTokenMap, String userServiceLink, String token) {
+    private void addUserToken(Map<String, Set<String>> userLinktoTokenMap, String userServiceLink,
+            String token) {
         Set<String> tokenSet = userLinktoTokenMap.get(userServiceLink);
         if (tokenSet == null) {
             tokenSet = new HashSet<String>();
@@ -4191,7 +4210,8 @@ public class ServiceHost implements ServiceRequestSender {
         checkReplicatedServiceAvailable(ch, servicePath, ServiceUriPaths.DEFAULT_NODE_SELECTOR);
     }
 
-    public void checkReplicatedServiceAvailable(CompletionHandler ch, String servicePath, String nodeSelectorPath) {
+    public void checkReplicatedServiceAvailable(CompletionHandler ch, String servicePath,
+            String nodeSelectorPath) {
         Service s = this.findService(servicePath, true);
         if (s == null) {
             ch.handle(null, new IllegalStateException("service not found"));
@@ -4586,7 +4606,7 @@ public class ServiceHost implements ServiceRequestSender {
                     // if the service we are trying to DELETE never existed, we swallow the 404 error.
                     // This is for consistency in behavior with non ON_DEMAND_LOAD services.
                     if (inboundOp.getAction() == Action.DELETE &&
-                                response.statusCode == Operation.STATUS_CODE_NOT_FOUND) {
+                            response.statusCode == Operation.STATUS_CODE_NOT_FOUND) {
                         inboundOp.complete();
                         return;
                     }
@@ -5154,7 +5174,7 @@ public class ServiceHost implements ServiceRequestSender {
         synchronized (this.state) {
             Set<String> tokenSet = this.userLinktoTokenMap.remove(userLink);
             if (tokenSet != null) {
-                for (String token :tokenSet) {
+                for (String token : tokenSet) {
                     this.authorizationContextCache.remove(token);
                 }
             }
