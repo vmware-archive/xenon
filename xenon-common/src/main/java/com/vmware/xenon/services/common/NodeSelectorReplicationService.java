@@ -122,7 +122,7 @@ public class NodeSelectorReplicationService extends StatelessService {
             int successThreshold) {
         int eligibleMemberCount = nodes.size();
         final int successThresholdFinal = successThreshold;
-        final int failureThresholdFinal = eligibleMemberCount - successThreshold;
+        final int failureThresholdFinal = (eligibleMemberCount - successThreshold) + 1;
         // Index 0 - success count
         // index 1 - failure count
         // index 2 - most recent failure status
@@ -136,6 +136,8 @@ public class NodeSelectorReplicationService extends StatelessService {
 
             int sCount = countsAndStatus[0];
             int fCount = countsAndStatus[1];
+            boolean completeWithSuccess = false;
+            boolean completeWithFailure = false;
             synchronized (outboundOp) {
                 if (e != null) {
                     countsAndStatus[1] = countsAndStatus[1] + 1;
@@ -144,29 +146,29 @@ public class NodeSelectorReplicationService extends StatelessService {
                     countsAndStatus[0] = countsAndStatus[0] + 1;
                     sCount = countsAndStatus[0];
                 }
+                // to avoid a AtomicBoolean and additional allocations, and make the completion
+                // check atomic, do the count checks inside the synchronized block
+                completeWithSuccess = sCount == successThresholdFinal;
+                completeWithFailure = fCount == failureThresholdFinal;
             }
 
-            if (sCount >= successThresholdFinal) {
-                if (sCount == successThresholdFinal) {
-                    outboundOp.setStatusCode(Operation.STATUS_CODE_OK).complete();
-                }
-                // stop further processing, request is complete
+            if (completeWithSuccess) {
+                // this code must only be called once.
+                outboundOp.setStatusCode(Operation.STATUS_CODE_OK).complete();
                 return;
             }
 
             if (e != null && o != null) {
-                logWarning("Replication request to %s failed with %d, %s",
+                logWarning("(Original id: %d) Replication request to %s failed with %d, %s",
+                        outboundOp.getId(),
                         o.getUri(), o.getStatusCode(), e.getMessage());
                 countsAndStatus[2] = o.getStatusCode();
             }
 
-            if (fCount == 0) {
-                return;
-            }
-
-            if (fCount > failureThresholdFinal || ((fCount + sCount) == eligibleMemberCount)) {
+            if (completeWithFailure) {
                 String error = String
-                        .format("%s to %s failed. Success: %d,  Fail: %d, quorum: %d, failure threshold: %d",
+                        .format("(Original id: %d) %s to %s failed. Success: %d,  Fail: %d, quorum: %d, failure threshold: %d",
+                                outboundOp.getId(),
                                 outboundOp.getAction(),
                                 outboundOp.getUri().getPath(),
                                 sCount,
