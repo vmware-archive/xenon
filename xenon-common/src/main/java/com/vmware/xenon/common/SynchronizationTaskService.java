@@ -158,6 +158,7 @@ public class SynchronizationTaskService
         }
         if (this.childServiceInstantiator == null) {
             post.fail(new IllegalArgumentException("childServiceInstantiator must be set."));
+            return null;
         }
         if (task.factorySelfLink == null) {
             post.fail(new IllegalArgumentException("factorySelfLink must be set."));
@@ -177,18 +178,23 @@ public class SynchronizationTaskService
         }
         if (task.taskInfo != null && task.taskInfo.stage != TaskState.TaskStage.CREATED) {
             post.fail(new IllegalArgumentException("taskInfo.stage must be set to CREATED."));
+            return null;
         }
         if (task.childOptions != null) {
             post.fail(new IllegalArgumentException("childOptions must not be set."));
+            return null;
         }
         if (task.membershipUpdateTimeMicros != null) {
             post.fail(new IllegalArgumentException("membershipUpdateTimeMicros must not be set."));
+            return null;
         }
         if (task.subStage != null) {
             post.fail(new IllegalArgumentException("subStage must not be set."));
+            return null;
         }
         if (task.queryPageReference != null) {
             post.fail(new IllegalArgumentException("queryPageReference must not be set."));
+            return null;
         }
         return task;
     }
