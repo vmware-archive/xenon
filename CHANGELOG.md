@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 0.9.6-SNAPSHOT
+
 ## 0.9.5
 
 * Add PREFIX option in QueryTerm.MatchType to support string prefix field queries
