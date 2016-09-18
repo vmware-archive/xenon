@@ -1843,19 +1843,11 @@ public class VerificationHost extends ExampleServiceHost {
     }
 
     public URI getPeerHostUri() {
-        if (!this.peerNodeGroups.isEmpty()) {
-            List<URI> peerNodeGroupList = new ArrayList<URI>(this.peerNodeGroups.keySet());
-            return getUriFromList(null, peerNodeGroupList);
-        }
-        return null;
+        return getPeerServiceUri("");
     }
 
     public URI getPeerNodeGroupUri() {
-        URI hostUri = getPeerHostUri();
-        if (hostUri != null) {
-            return this.peerNodeGroups.get(hostUri);
-        }
-        return null;
+        return getPeerServiceUri(ServiceUriPaths.DEFAULT_NODE_GROUP);
     }
 
     /**
@@ -1871,7 +1863,13 @@ public class VerificationHost extends ExampleServiceHost {
 
     public URI getPeerServiceUri(String link) {
         if (!this.localPeerHosts.isEmpty()) {
-            List<URI> localPeerList = new ArrayList<>(this.localPeerHosts.keySet());
+            List<URI> localPeerList = new ArrayList<>();
+            for (VerificationHost h : this.localPeerHosts.values()) {
+                if (h.isStopping() || !h.isStarted()) {
+                    continue;
+                }
+                localPeerList.add(h.getUri());
+            }
             return getUriFromList(link, localPeerList);
         } else {
             List<URI> peerList = new ArrayList<>(this.peerNodeGroups.keySet());
