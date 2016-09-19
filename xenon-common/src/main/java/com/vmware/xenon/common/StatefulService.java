@@ -963,8 +963,10 @@ public class StatefulService implements Service {
      * Process notification to transaction coordinator and complete request
      */
     private void processCompletionStageTransactionNotification(Operation op, Throwable e) {
-        // Notify transaction coordinator before completing the operation
-        if (op.isWithinTransaction() && this.getHost().getTransactionServiceUri() != null) {
+        // Notify transaction coordinator before completing the operation;
+        // unless this service is not visible inside the transaction
+        if (op.isWithinTransaction() && this.getHost().getTransactionServiceUri() != null
+                && op.getStatusCode() != Operation.STATUS_CODE_NOT_FOUND) {
             allocatePendingTransactions();
             notifyTransactionCoordinatorOp(this, op, e)
                     .setCompletion((txOp, txE) -> {
@@ -1424,8 +1426,7 @@ public class StatefulService implements Service {
         if (optionsChanged && option == ServiceOption.DOCUMENT_OWNER) {
             EnumSet<ServiceOption> addedOptions = null;
             EnumSet<ServiceOption> removedOptions = null;
-            EnumSet<ServiceOption> docOwner =
-                    EnumSet.of(ServiceOption.DOCUMENT_OWNER);
+            EnumSet<ServiceOption> docOwner = EnumSet.of(ServiceOption.DOCUMENT_OWNER);
             if (enable) {
                 addedOptions = docOwner;
             } else {

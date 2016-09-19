@@ -265,9 +265,6 @@ public class TransactionService extends StatefulService {
                     record.coordinatorLinks);
         }
         if (!record.isSuccessful) {
-            if (existing.failedLinks == null) {
-                existing.failedLinks = new HashSet<>();
-            }
             existing.failedLinks.add(put.getReferer().getPath());
         }
         setState(put, existing);
@@ -438,7 +435,13 @@ public class TransactionService extends StatefulService {
      * Handle the case when a client requests to abort.
      */
     private void handleAbort(TransactionServiceState existing) {
-        OperationJoin.create(createNotifyServicesToAbort(existing))
+        Collection<Operation> ops = createNotifyServicesToAbort(existing);
+        if (ops.isEmpty()) {
+            selfPatch(ResolutionKind.ABORTED);
+            return;
+        }
+
+        OperationJoin.create(ops)
                 .setCompletion((operations, failures) -> {
                     if (failures != null) {
                         logWarning("Transaction failed to notify some services to abort: %s",
@@ -526,7 +529,7 @@ public class TransactionService extends StatefulService {
                 continue;
             }
             for (String coordinator : state.servicesToCoordinators.get(service)) {
-                if ((cache.contains(coordinator)) || (coordinator.equals(getSelfLink()))) {
+                if (cache.contains(coordinator) || coordinator.equals(getSelfLink())) {
                     continue;
                 } else {
                     cache.add(coordinator);
@@ -587,7 +590,7 @@ public class TransactionService extends StatefulService {
                 continue;
             }
             for (String coordinator : state.servicesToCoordinators.get(service)) {
-                if ((cache.contains(coordinator)) || (coordinator.equals(getSelfLink()))) {
+                if (cache.contains(coordinator) || coordinator.equals(getSelfLink())) {
                     continue;
                 } else {
                     cache.add(coordinator);
@@ -672,6 +675,7 @@ public class TransactionService extends StatefulService {
             state.modifiedLinks.remove(service);
         }
         operations.addAll(state.readLinks.stream()
+                .peek(service -> state.modifiedLinks.remove(service))
                 .map(service -> createNotifyOp(service, Operation.TX_COMMIT))
                 .collect(Collectors.toSet()));
         operations.addAll(state.modifiedLinks.stream()

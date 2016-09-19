@@ -294,7 +294,6 @@ public class TestTransactionService extends BasicReusableHostTestCase {
         sumAccounts(null, 100.0 * this.accountCount / 2);
     }
 
-    @Ignore
     @Test
     public void testSingleClientMultipleActiveTransactions() throws Throwable {
         String[] txids = new String[this.accountCount];
