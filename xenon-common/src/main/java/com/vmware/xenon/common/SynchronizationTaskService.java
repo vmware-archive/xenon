@@ -141,7 +141,7 @@ public class SynchronizationTaskService
     @Override
     protected void initializeState(State initialState, Operation post) {
         // Initializing internal fields only. Note that the task is initially created
-        // in the FINISHED stage. This is because, handleStart only creates a
+        // in the CREATED stage. This is because, handleStart only creates a
         // place-holder task per factoryService without actually kicking-off
         // the state-machine.
         initialState.taskInfo = new TaskState();
