@@ -124,8 +124,7 @@ public class MinimalTestService extends StatefulService {
         }
         MinimalTestServiceState initialState = (MinimalTestServiceState) post.getBodyRaw();
         // verify state has not been modified post completion
-        if (initialState.documentSelfLink == null || initialState.documentKind == null
-                || initialState.id == null) {
+        if (initialState.documentSelfLink == null || initialState.id == null) {
             this.isStateModifiedPostCompletion = true;
         }
     }
