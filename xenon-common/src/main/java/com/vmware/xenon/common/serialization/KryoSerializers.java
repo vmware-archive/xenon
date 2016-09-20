@@ -81,6 +81,7 @@ public final class KryoSerializers {
             // For performance reasons, and to avoid memory use, assume documents do not
             // require object graph serialization with duplicate or recursive references
             k.setReferences(false);
+            k.setCopyReferences(false);
         } else {
             // To avoid monotonic increase of memory use, due to reference tracking, we must
             // reset after each use.
