@@ -73,6 +73,8 @@ public class MinimalTestService extends StatefulService {
 
     public boolean delayMaintenance;
 
+    public boolean isStateModifiedPostCompletion;
+
     public MinimalTestService() {
         super(MinimalTestServiceState.class);
     }
@@ -97,8 +99,9 @@ public class MinimalTestService extends StatefulService {
     public void handleStart(Operation post) {
         HANDLE_START_COUNT.incrementAndGet();
 
+        MinimalTestServiceState s = null;
         if (post.hasBody()) {
-            MinimalTestServiceState s = post.getBody(MinimalTestServiceState.class);
+            s = post.getBody(MinimalTestServiceState.class);
             if (s.id == null) {
                 post.fail(new IllegalArgumentException(ERROR_MESSAGE_ID_IS_REQUIRED),
                         MinimalTestServiceErrorResponse.create(ERROR_MESSAGE_ID_IS_REQUIRED));
@@ -109,8 +112,22 @@ public class MinimalTestService extends StatefulService {
                 // we want to induce a timeout, so do NOT complete
                 return;
             }
+            // these fields are set by the parent factory and the runtime before indexing. We set them here
+            // eagerly so the state modification test below passes
+            s.documentSelfLink = getSelfLink();
+            s.documentKind = Utils.buildKind(s.getClass());
         }
         post.complete();
+
+        if (!post.hasBody()) {
+            return;
+        }
+        MinimalTestServiceState initialState = (MinimalTestServiceState) post.getBodyRaw();
+        // verify state has not been modified post completion
+        if (initialState.documentSelfLink == null || initialState.documentKind == null
+                || initialState.id == null) {
+            this.isStateModifiedPostCompletion = true;
+        }
     }
 
     public boolean gotStopped;

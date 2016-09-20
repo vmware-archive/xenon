@@ -2477,7 +2477,8 @@ public class ServiceHost implements ServiceRequestSender {
                     post.linkSerializedState(null);
                 }
 
-                saveServiceState(s, post, (ServiceDocument) post.getBodyRaw());
+                ServiceDocument clonedState = (ServiceDocument) Utils.clone(post.getBodyRaw());
+                saveServiceState(s, post, clonedState);
                 break;
             case AVAILABLE:
                 // It's possible a service is stopped before it transitions to available

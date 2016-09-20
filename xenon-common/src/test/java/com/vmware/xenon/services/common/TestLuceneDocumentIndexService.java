@@ -193,6 +193,27 @@ public class TestLuceneDocumentIndexService {
                 .setExpiredDocumentSearchThreshold(this.expiredDocumentSearchThreshold);
     }
 
+    @Test
+    public void immutableInitialState() throws Throwable {
+        setUpHost(false);
+        List<MinimalTestService> services = new ArrayList<>();
+        TestContext ctx = this.host.testCreate(this.serviceCount);
+        for (int i = 0; i < this.serviceCount; i++) {
+            MinimalTestService s = new MinimalTestService();
+            s.toggleOption(ServiceOption.PERSISTENCE, true);
+            MinimalTestServiceState initialState = new MinimalTestServiceState();
+            initialState.id = UUID.randomUUID().toString();
+            Operation post = Operation.createPost(this.host, Utils.getNowMicrosUtc() + "")
+                    .setBody(initialState)
+                    .setCompletion(ctx.getCompletion());
+            this.host.startService(post, s);
+            services.add(s);
+        }
+        this.host.testWait(ctx);
+        for (MinimalTestService s : services) {
+            assertTrue(!s.isStateModifiedPostCompletion);
+        }
+    }
 
     @Test
     public void corruptedIndexRecovery() throws Throwable {
