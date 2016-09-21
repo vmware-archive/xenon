@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 0.9.7-SNAPSHOT
+
 ## 0.9.6
 
 * Add errorCode property to ServiceErrorResponse to allow Xenon services
