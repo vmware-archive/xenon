@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.logging.Level;
 
+import com.vmware.xenon.common.Operation.CompletionHandler;
 import com.vmware.xenon.common.Service.Action;
 import com.vmware.xenon.services.common.AuthCredentialsService.AuthCredentialsServiceState;
 import com.vmware.xenon.services.common.QueryTask;
@@ -177,6 +178,20 @@ public class AuthorizationSetupHelper {
 
     public AuthorizationSetupHelper setCompletion(AuthSetupCompletion completion) {
         this.completion = completion;
+        return this;
+    }
+
+    /**
+     * Use {@link CompletionHandler} as {@link AuthSetupCompletion}.
+     *
+     * <p><em>NOTE:</em>
+     * <p>When {@link CompletionHandler#handle(Operation, Throwable)} is called, operation is
+     * always set to null.
+     * Therefore, completion handler should only be used for checking success or failure of auth
+     * setup by verifying the presence of error object.
+     */
+    public AuthorizationSetupHelper setCompletion(CompletionHandler completion) {
+        this.completion = ex -> completion.handle(null, ex);
         return this;
     }
 

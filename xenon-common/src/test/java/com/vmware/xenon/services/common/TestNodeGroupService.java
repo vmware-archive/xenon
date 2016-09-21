@@ -2209,13 +2209,7 @@ public class TestNodeGroupService {
                 .setUserGroupName("foo-user-group")
                 .setResourceGroupName("foo-resource-group")
                 .setRoleName("foo-role-1")
-                .setCompletion(ex -> {
-                    if (ex == null) {
-                        testContext.completeIteration();
-                    } else {
-                        testContext.failIteration(ex);
-                    }
-                })
+                .setCompletion(testContext.getCompletion())
                 .start();
         testContext.await();
 
@@ -2229,13 +2223,7 @@ public class TestNodeGroupService {
                 .setUserSelfLink(fooUserLink)
                 .setDocumentKind(Utils.buildKind(ExampleServiceState.class))
                 .setRoleName("foo-role-2")
-                .setCompletion(ex -> {
-                    if (ex == null) {
-                        ctxToCreateAnotherRole.completeIteration();
-                    } else {
-                        ctxToCreateAnotherRole.failIteration(ex);
-                    }
-                })
+                .setCompletion(ctxToCreateAnotherRole.getCompletion())
                 .setupRole();
         ctxToCreateAnotherRole.await();
 
@@ -2251,13 +2239,7 @@ public class TestNodeGroupService {
                 .setUserEmail("bar@vmware.com")
                 .setUserPassword("password")
                 .setDocumentKind(Utils.buildKind(ExampleServiceState.class))
-                .setCompletion(ex -> {
-                    if (ex == null) {
-                        ctxToCreateBar.completeIteration();
-                    } else {
-                        ctxToCreateBar.failIteration(ex);
-                    }
-                })
+                .setCompletion(ctxToCreateBar.getCompletion())
                 .start();
         ctxToCreateBar.await();
 
@@ -2273,13 +2255,7 @@ public class TestNodeGroupService {
                 .setUserEmail("baz@vmware.com")
                 .setUserPassword("password")
                 .setDocumentKind(Utils.buildKind(ExampleServiceState.class))
-                .setCompletion(ex -> {
-                    if (ex == null) {
-                        ctxToCreateBaz.completeIteration();
-                    } else {
-                        ctxToCreateBaz.failIteration(ex);
-                    }
-                })
+                .setCompletion(ctxToCreateBaz.getCompletion())
                 .start();
         ctxToCreateBaz.await();
 
@@ -2353,13 +2329,7 @@ public class TestNodeGroupService {
                 .setResourceGroupName("/core/authz/resource-groups/new-rg")
                 .setResourceQuery(q)
                 .setRoleName("bar-role-2")
-                .setCompletion(ex -> {
-                    if (ex == null) {
-                        ctxToCreateAnotherRoleForBar.completeIteration();
-                    } else {
-                        ctxToCreateAnotherRoleForBar.failIteration(ex);
-                    }
-                })
+                .setCompletion(ctxToCreateAnotherRoleForBar.getCompletion())
                 .setupRole();
         ctxToCreateAnotherRoleForBar.await();
         groupHost.resetSystemAuthorizationContext();

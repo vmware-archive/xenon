@@ -110,14 +110,6 @@ public class TestAuthSetupHelper extends BasicTestCase {
         this.host.waitForServiceAvailable(ServiceHostManagementService.SELF_LINK);
         OperationContext.setAuthorizationContext(this.host.getSystemAuthorizationContext());
 
-        AuthorizationSetupHelper.AuthSetupCompletion authCompletion = (ex) -> {
-            if (ex == null) {
-                this.host.completeIteration();
-            } else {
-                this.host.failIteration(ex);
-            }
-        };
-
         EnumSet<Action> verbs = EnumSet.of(Action.GET);
 
         this.host.testStart(1);
@@ -129,7 +121,7 @@ public class TestAuthSetupHelper extends BasicTestCase {
                 .setResourceGroupName(GUEST_RESOURCE_GROUP)
                 .setRoleName(GUEST_ROLE)
                 .setVerbs(verbs)
-                .setCompletion(authCompletion)
+                .setCompletion(this.host.getCompletion())
                 .setupRole();
 
         this.host.testWait();
@@ -163,14 +155,6 @@ public class TestAuthSetupHelper extends BasicTestCase {
         this.host.waitForServiceAvailable(ServiceHostManagementService.SELF_LINK);
         OperationContext.setAuthorizationContext(this.host.getSystemAuthorizationContext());
 
-        AuthorizationSetupHelper.AuthSetupCompletion authCompletion = (ex) -> {
-            if (ex == null) {
-                this.host.completeIteration();
-            } else {
-                this.host.failIteration(ex);
-            }
-        };
-
         this.host.testStart(1);
 
         Query userQuery = Query.Builder.create()
@@ -189,7 +173,7 @@ public class TestAuthSetupHelper extends BasicTestCase {
                 .setUserGroupQuery(userQuery)
                 .setResourceQuery(resourceQuery)
                 .setRoleName(GUEST_ROLE)
-                .setCompletion(authCompletion)
+                .setCompletion(this.host.getCompletion())
                 .setupRole();
 
         this.host.testWait();
@@ -222,13 +206,6 @@ public class TestAuthSetupHelper extends BasicTestCase {
      * create two users with associated user groups, resource groups, and roles
      */
     private void makeUsersWithAuthSetupHelper() throws Throwable {
-        AuthorizationSetupHelper.AuthSetupCompletion authCompletion = (ex) -> {
-            if (ex == null) {
-                this.host.completeIteration();
-            } else {
-                this.host.failIteration(ex);
-            }
-        };
 
         this.host.testStart(3);
         AuthorizationSetupHelper.create()
@@ -236,7 +213,7 @@ public class TestAuthSetupHelper extends BasicTestCase {
                 .setUserEmail(this.adminUser)
                 .setUserPassword(this.adminUser)
                 .setIsAdmin(true)
-                .setCompletion(authCompletion)
+                .setCompletion(this.host.getCompletion())
                 .start();
 
         AuthorizationSetupHelper.create()
@@ -245,7 +222,7 @@ public class TestAuthSetupHelper extends BasicTestCase {
                 .setUserPassword(this.exampleUser)
                 .setIsAdmin(false)
                 .setDocumentKind(Utils.buildKind(ExampleServiceState.class))
-                .setCompletion(authCompletion)
+                .setCompletion(this.host.getCompletion())
                 .start();
 
         AuthorizationSetupHelper.create()
@@ -254,7 +231,7 @@ public class TestAuthSetupHelper extends BasicTestCase {
                 .setUserPassword(this.exampleWithManagementServiceUser)
                 .setIsAdmin(false)
                 .setDocumentLink(ServiceHostManagementService.SELF_LINK)
-                .setCompletion(authCompletion)
+                .setCompletion(this.host.getCompletion())
                 .start();
 
         this.host.testWait();

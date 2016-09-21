@@ -119,14 +119,6 @@ public class NettyHttpServiceClientTest {
 
         if (ENABLE_AUTH) {
             // Create example user auth related objects
-            AuthorizationSetupHelper.AuthSetupCompletion authCompletion = (ex) -> {
-                if (ex == null) {
-                    HOST.completeIteration();
-                } else {
-                    HOST.failIteration(ex);
-                }
-            };
-
             HOST.setSystemAuthorizationContext();
             HOST.testStart(1);
             AuthorizationSetupHelper.create()
@@ -135,7 +127,7 @@ public class NettyHttpServiceClientTest {
                     .setUserPassword(SAMPLE_PASSWORD)
                     .setUserSelfLink(SAMPLE_EMAIL)
                     .setIsAdmin(true)
-                    .setCompletion(authCompletion)
+                    .setCompletion(HOST.getCompletion())
                     .start();
             HOST.testWait();
             HOST.resetAuthorizationContext();

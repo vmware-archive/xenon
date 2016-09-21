@@ -101,14 +101,6 @@ public class BasicReusableHostTestCase {
 
         TestContext testContext = this.host.testCreate(1);
 
-        AuthorizationSetupHelper.AuthSetupCompletion authCompletion = (ex) -> {
-            if (ex != null) {
-                testContext.failIteration(ex);
-                return;
-            }
-            testContext.completeIteration();
-        };
-
         // create admin user. if it already exists, skip creation.
         this.host.setSystemAuthorizationContext();
         AuthorizationSetupHelper.create()
@@ -117,7 +109,7 @@ public class BasicReusableHostTestCase {
                 .setUserPassword(this.adminPassword)
                 .setUserSelfLink(this.adminEmail)
                 .setIsAdmin(true)
-                .setCompletion(authCompletion)
+                .setCompletion(testContext.getCompletion())
                 .start();
         testContext.await();
         this.host.resetAuthorizationContext();
