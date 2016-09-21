@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.9.6-SNAPSHOT
+## 0.9.6
 
 * Add errorCode property to ServiceErrorResponse to allow Xenon services
   to indicate a specific error case that otherwise cannot be expressed
