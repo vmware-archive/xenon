@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Test;
@@ -52,7 +53,7 @@ public class TestExampleWithMultiNode {
 
         // to speed up tests, set short maintenance interval.
         // it needs to "explicitly" set for VerificationHost instance
-        host.setMaintenanceIntervalMicros(VerificationHost.FAST_MAINT_INTERVAL_MILLIS * 10);
+        host.setMaintenanceIntervalMicros(TimeUnit.MILLISECONDS.toMicros(VerificationHost.FAST_MAINT_INTERVAL_MILLIS));
         host.start();
 
         // add to the list for cleanup after each test run
