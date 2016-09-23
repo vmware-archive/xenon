@@ -24,14 +24,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.vmware.xenon.common.BasicReusableHostTestCase;
+import com.vmware.xenon.common.BasicTestCase;
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.Service.Action;
 import com.vmware.xenon.common.SynchronizationTaskService;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.Utils;
 
-public class TestOperationIndexService extends BasicReusableHostTestCase {
+public class TestOperationIndexService extends BasicTestCase {
 
     /**
      * Command line argument specifying request count
