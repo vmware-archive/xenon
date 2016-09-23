@@ -2783,7 +2783,7 @@ public class VerificationHost extends ExampleServiceHost {
         }
         List<Operation> ops = new ArrayList<>();
         for (String link : res.documentLinks) {
-            ops.add(Operation.createDelete(UriUtils.buildUri(this, link)));
+            ops.add(Operation.createDelete(UriUtils.buildUri(factoryURI, link)));
         }
         this.sender.sendAndWait(ops);
     }
