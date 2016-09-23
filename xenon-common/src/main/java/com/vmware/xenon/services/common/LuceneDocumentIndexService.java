@@ -257,6 +257,7 @@ public class LuceneDocumentIndexService extends StatelessService {
     private Set<String> fieldsToLoadWithExpand;
 
     private RoundRobinOperationQueue queryQueue = RoundRobinOperationQueue.create();
+    private RoundRobinOperationQueue updateQueue = RoundRobinOperationQueue.create();
 
     private URI uri;
 
@@ -559,60 +560,78 @@ public class LuceneDocumentIndexService extends StatelessService {
             return;
         }
 
-        ExecutorService exec = this.privateIndexingExecutor;
         if (a == Action.GET || a == Action.PATCH) {
-            exec = this.privateQueryExecutor;
+            offerQueryOperation(op);
+            this.privateQueryExecutor.execute(this::handleQueryRequest);
+        } else {
+            offerUpdateOperation(op);
+            this.privateIndexingExecutor.execute(this::handleUpdateRequest);
         }
-
-        offerOperation(op);
-
-        if (exec.isShutdown()) {
-            op.fail(new CancellationException());
-            return;
-        }
-
-        exec.execute(this::handleRequestImpl);
     }
 
-    private void handleRequestImpl() {
-        Operation op = null;
+    private void handleQueryRequest() {
+
+        Operation op = pollQueryOperation();
         try {
             this.writerAvailable.acquire();
-            op = pollOperation();
-            switch (op.getAction()) {
-            case DELETE:
-                handleDeleteImpl(op);
-                break;
-            case POST:
-                updateIndex(op);
-                break;
-            case GET:
-                handleGetImpl(op);
-                break;
-            case PATCH:
-                ServiceDocument sd = (ServiceDocument) op.getBodyRaw();
-                if (sd.documentKind != null) {
-                    if (sd.documentKind.equals(QueryTask.KIND)) {
-                        QueryTask task = (QueryTask) op.getBodyRaw();
-                        handleQueryTaskPatch(op, task);
-                        break;
+            while (op != null) {
+                switch (op.getAction()) {
+                case GET:
+                    handleGetImpl(op);
+                    break;
+                case PATCH:
+                    ServiceDocument sd = (ServiceDocument) op.getBodyRaw();
+                    if (sd.documentKind != null) {
+                        if (sd.documentKind.equals(QueryTask.KIND)) {
+                            QueryTask task = (QueryTask) op.getBodyRaw();
+                            handleQueryTaskPatch(op, task);
+                            break;
+                        }
+                        if (sd.documentKind.equals(BackupRequest.KIND)) {
+                            BackupRequest backupRequest = (BackupRequest) op.getBodyRaw();
+                            handleBackup(op, backupRequest);
+                            break;
+                        }
+                        if (sd.documentKind.equals(RestoreRequest.KIND)) {
+                            RestoreRequest backupRequest = (RestoreRequest) op.getBodyRaw();
+                            handleRestore(op, backupRequest);
+                            break;
+                        }
                     }
-                    if (sd.documentKind.equals(BackupRequest.KIND)) {
-                        BackupRequest backupRequest = (BackupRequest) op.getBodyRaw();
-                        handleBackup(op, backupRequest);
-                        break;
-                    }
-                    if (sd.documentKind.equals(RestoreRequest.KIND)) {
-                        RestoreRequest backupRequest = (RestoreRequest) op.getBodyRaw();
-                        handleRestore(op, backupRequest);
-                        break;
-                    }
+                    getHost().failRequestActionNotSupported(op);
+                    break;
+                default:
+                    break;
                 }
+                op = pollQueryOperation();
+            }
+        } catch (Throwable e) {
+            checkFailureAndRecover(e);
+            if (op != null) {
+                op.fail(e);
+            }
+        } finally {
+            this.writerAvailable.release();
+        }
+    }
 
-                getHost().failRequestActionNotSupported(op);
-                break;
-            default:
-                break;
+    private void handleUpdateRequest() {
+        Operation op = pollUpdateOperation();
+        try {
+            this.writerAvailable.acquire();
+            while (op != null) {
+                switch (op.getAction()) {
+                case DELETE:
+                    handleDeleteImpl(op);
+                    break;
+                case POST:
+                    updateIndex(op);
+                    break;
+
+                default:
+                    break;
+                }
+                op = pollUpdateOperation();
             }
         } catch (Throwable e) {
             checkFailureAndRecover(e);
@@ -799,14 +818,28 @@ public class LuceneDocumentIndexService extends StatelessService {
     /**
      * retrieves the next available operation given the fairness scheme
      */
-    private Operation pollOperation() {
+    private Operation pollQueryOperation() {
         return this.queryQueue.poll();
+    }
+
+    private Operation pollUpdateOperation() {
+        return this.updateQueue.poll();
     }
 
     /**
      * Queues operation in a multi-queue that uses the subject as the key per queue
      */
-    private void offerOperation(Operation op) {
+    private void offerQueryOperation(Operation op) {
+        String subject = getSubject(op);
+        this.queryQueue.offer(subject, op);
+    }
+
+    private void offerUpdateOperation(Operation op) {
+        String subject = getSubject(op);
+        this.updateQueue.offer(subject, op);
+    }
+
+    private String getSubject(Operation op) {
         String subject = null;
         if (!getHost().isAuthorizationEnabled()
                 || op.getAuthorizationContext().isSystemUser()) {
@@ -814,7 +847,7 @@ public class LuceneDocumentIndexService extends StatelessService {
         } else {
             subject = op.getAuthorizationContext().getClaims().getSubject();
         }
-        this.queryQueue.offer(subject, op);
+        return subject;
     }
 
     private boolean queryIndex(
