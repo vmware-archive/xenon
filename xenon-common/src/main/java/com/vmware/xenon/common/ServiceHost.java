@@ -2241,6 +2241,21 @@ public class ServiceHost implements ServiceRequestSender {
         }
 
         if (!isIdempotent && !post.hasPragmaDirective(Operation.PRAGMA_DIRECTIVE_SYNCH)) {
+            if (existing.getProcessingStage() == ProcessingStage.CREATED) {
+                // there is a possibility of collision with a synchronization attempt: The sync task
+                // attaches a child it enumerated from a peer, starts in stage CREATED while loading
+                // state from index, and then discovers service is deleted. In the meantime a legitimate
+                // re-start (a POST following a DELETE, with version > delete version) arrives and since
+                // the service is attached, can fail with conflict. To avoid this. retry. Retry is bounded
+                // since sync task will fail its attempt if the service is marked deleted
+                log(Level.FINE, "Retrying (%d) POST to %s in stage %s",
+                        post.getId(),
+                        servicePath, existing.getProcessingStage());
+                schedule(() -> {
+                    handleRequest(null, post);
+                }, this.getMaintenanceIntervalMicros(), TimeUnit.MICROSECONDS);
+                return true;
+            }
             // service already attached, not idempotent, and this is not a synchronization attempt.
             // We fail request with conflict
             failRequestServiceAlreadyStarted(servicePath, service, post);

@@ -339,9 +339,7 @@ class ServiceResourceTracker {
             // the index service tracks expiration of persisted services
             return;
         }
-        // Issue DELETE to stop the service. The PRAGMA is not required, since
-        // we know the service is in memory only, but we are using it to maintain
-        // symmetry with the expiration induced deletes from the index
+        // Issue DELETE to stop the service
         Operation deleteExp = Operation.createDelete(s.getUri())
                 .disableFailureLogging(true)
                 .addPragmaDirective(Operation.PRAGMA_DIRECTIVE_NO_INDEX_UPDATE)
