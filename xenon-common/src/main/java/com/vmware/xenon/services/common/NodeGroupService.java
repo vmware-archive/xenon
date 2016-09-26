@@ -42,6 +42,13 @@ import com.vmware.xenon.services.common.NodeState.NodeStatus;
 public class NodeGroupService extends StatefulService {
     public static final String STAT_NAME_JOIN_RETRY_COUNT = "joinRetryCount";
 
+    public static final String PROPERTY_NAME_PEER_REQUEST_TIMEOUT_MICROS = Utils.PROPERTY_NAME_PREFIX
+            + "NodeGroupService.peerRequestTimeoutMicros";
+
+    public static final long PEER_REQUEST_TIMEOUT_MICROS = Long.getLong(
+            PROPERTY_NAME_PEER_REQUEST_TIMEOUT_MICROS,
+            ServiceHostState.DEFAULT_OPERATION_TIMEOUT_MICROS / 3);
+
     private enum NodeGroupChange {
         PEER_ADDED, PEER_STATUS_CHANGE, SELF_CHANGE
     }
@@ -111,8 +118,7 @@ public class NodeGroupService extends StatefulService {
          * so we have the chance to mark a non responsive peer as unavailable, and retry pending operations
          * before they expire.
          */
-        public long peerRequestTimeoutMicros = ServiceHostState.DEFAULT_OPERATION_TIMEOUT_MICROS
-                / 3;
+        public long peerRequestTimeoutMicros = PEER_REQUEST_TIMEOUT_MICROS;
     }
 
     public static class NodeGroupState extends ServiceDocument {

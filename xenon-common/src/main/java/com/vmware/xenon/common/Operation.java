@@ -430,10 +430,18 @@ public class Operation implements Cloneable {
     public static final String PRAGMA_DIRECTIVE_REPLICATED = "xn-rpl";
 
     /**
-     * Infrastructure use only. Set when the consensus protocol determines that a service instance,
-     * on the owner node, must synchronize its state with peers. Associated with a PUT action.
+     * Infrastructure use only. Set when the Synchronization task makes a POST request
+     * to trigger synchronization of a service instance. This post request is processed
+     * by the OWNER of the service instance.
      */
-    public static final String PRAGMA_DIRECTIVE_SYNCH = "xn-synch";
+    public static final String PRAGMA_DIRECTIVE_SYNCH_OWNER = "xn-synch-owner";
+
+    /**
+     * Infrastructure use only. Set when the owner node of a service instance
+     * computes the best state as part of synchronization and broadcasts the
+     * best state to all peer nodes.
+     */
+    public static final String PRAGMA_DIRECTIVE_SYNCH_PEER = "xn-synch-peer";
 
     /**
      * Advanced use. Instructs the runtime to queue a request, for a service to become available
@@ -1732,7 +1740,15 @@ public class Operation implements Cloneable {
     }
 
     boolean isSynchronize() {
-        return hasPragmaDirective(Operation.PRAGMA_DIRECTIVE_SYNCH);
+        return isSynchronizeOwner() || isSynchronizePeer();
+    }
+
+    boolean isSynchronizeOwner() {
+        return hasPragmaDirective(Operation.PRAGMA_DIRECTIVE_SYNCH_OWNER);
+    }
+
+    boolean isSynchronizePeer() {
+        return hasPragmaDirective(Operation.PRAGMA_DIRECTIVE_SYNCH_PEER);
     }
 
     /**

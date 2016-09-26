@@ -220,6 +220,13 @@ public class AuthorizationCacheUtils {
      * @param clazz service state class
      */
     public static <T extends ServiceDocument> T extractBody(Operation request, Service s, Class<T> clazz) {
+        // If this was a synchronization request to the document
+        // owner node, the request will not contain a body.
+        if (!request.hasBody() &&
+                request.hasPragmaDirective(Operation.PRAGMA_DIRECTIVE_SYNCH_OWNER)) {
+            return null;
+        }
+
         T state = null;
         switch (request.getAction()) {
         case PUT:
