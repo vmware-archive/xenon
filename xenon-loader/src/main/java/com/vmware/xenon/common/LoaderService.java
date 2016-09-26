@@ -197,11 +197,11 @@ public class LoaderService extends StatefulService {
 
         if (!libDir.exists()) {
             if (!libDir.mkdirs()) {
-                logWarning("Failed to precreate the Loader path directory %s", libDir);
+                logFine("Failed to pre-create the Loader path directory %s", libDir);
                 return null;
             }
         } else if (!libDir.isDirectory()) {
-            logWarning("Loader path %s is not a directory.", libDir.getAbsolutePath());
+            logFine("Loader path %s is not a directory.", libDir.getAbsolutePath());
             return null;
         }
 
