@@ -32,6 +32,7 @@ import com.vmware.xenon.common.OperationJoin;
 import com.vmware.xenon.common.OperationJoin.JoinedCompletionHandler;
 import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.ServiceHost;
+import com.vmware.xenon.common.ServiceHost.ServiceHostState;
 import com.vmware.xenon.common.ServiceStats;
 import com.vmware.xenon.common.ServiceStats.ServiceStat;
 import com.vmware.xenon.common.UriUtils;
@@ -39,6 +40,12 @@ import com.vmware.xenon.common.Utils;
 import com.vmware.xenon.services.common.NodeGroupService.NodeGroupState;
 
 public class NodeGroupUtils {
+    public static final String PROPERTY_NAME_OPERATION_TIMEOUT_SECONDS = Utils.PROPERTY_NAME_PREFIX
+            + "NodeGroupUtils.operationTimeoutSeconds";
+
+    private static final long OPERATION_TIMEOUT_SECONDS = Long.getLong(
+            PROPERTY_NAME_OPERATION_TIMEOUT_SECONDS,
+            TimeUnit.MICROSECONDS.toSeconds(ServiceHostState.DEFAULT_OPERATION_TIMEOUT_MICROS / 3));
 
     /**
      * Issues a GET to service/stats and looks for {@link Service#STAT_NAME_AVAILABLE}
@@ -96,6 +103,9 @@ public class NodeGroupUtils {
             throw new IllegalArgumentException("selectorPath is required");
         }
 
+        long timeoutMicros = Math.min(host.getOperationTimeoutMicros(),
+                TimeUnit.SECONDS.toMicros(OPERATION_TIMEOUT_SECONDS));
+
         // Create operation to retrieve stats. This completion will execute after
         // we determine the owner node
         Operation get = Operation.createGet(statsUri).setCompletion((o, e) -> {
@@ -117,7 +127,7 @@ public class NodeGroupUtils {
             ch.handle(o, null);
         });
         get.setReferer(host.getPublicUri())
-                .setExpiration(Utils.getNowMicrosUtc() + host.getOperationTimeoutMicros());
+                .setExpiration(Utils.getNowMicrosUtc() + timeoutMicros);
 
         URI nodeSelector = UriUtils.buildUri(service, selectorPath);
         SelectAndForwardRequest req = new SelectAndForwardRequest();
@@ -125,6 +135,7 @@ public class NodeGroupUtils {
 
         Operation selectPost = Operation.createPost(nodeSelector)
                 .setReferer(host.getPublicUri())
+                .setExpiration(get.getExpirationMicrosUtc())
                 .setBodyNoCloning(req);
         selectPost.setCompletion((o, e) -> {
             if (e != null) {

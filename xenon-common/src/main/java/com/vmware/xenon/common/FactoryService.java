@@ -875,12 +875,14 @@ public abstract class FactoryService extends StatelessService {
                     // was considered out-dated by the synchronization-task.
                     if (o.getStatusCode() == Operation.STATUS_CODE_BAD_REQUEST) {
                         ServiceErrorResponse rsp = o.getBody(ServiceErrorResponse.class);
+                        logInfo("Failure on POST to synch task: %s", Utils.toJsonHtml(rsp));
                         if (rsp.getErrorCode() == ServiceErrorResponse.ERROR_CODE_OUTDATED_SYNCH_REQUEST) {
                             parentOp.complete();
                             return;
                         }
                     }
                     if (e != null) {
+                        logInfo("Failure on POST to synch task: %s", e.getMessage());
                         parentOp.fail(e);
                         return;
                     }
