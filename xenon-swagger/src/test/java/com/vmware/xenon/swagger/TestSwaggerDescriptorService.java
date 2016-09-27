@@ -21,10 +21,13 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Map;
 
 import io.swagger.models.Info;
+import io.swagger.models.Model;
 import io.swagger.models.Path;
 import io.swagger.models.Swagger;
+import io.swagger.models.properties.Property;
 import io.swagger.util.Json;
 import io.swagger.util.Yaml;
 import org.junit.AfterClass;
@@ -37,6 +40,7 @@ import com.vmware.xenon.common.Utils;
 import com.vmware.xenon.common.test.VerificationHost;
 import com.vmware.xenon.services.common.ExampleService;
 import com.vmware.xenon.services.common.ServiceUriPaths;
+import com.vmware.xenon.swagger.TokenService.UserToken;
 import com.vmware.xenon.ui.UiService;
 
 /**
@@ -223,5 +227,9 @@ public class TestSwaggerDescriptorService {
         assertNotNull(p.getPost().getParameters());
         assertNull(p.getPatch());
         assertNull(p.getDelete());
+
+        Model model = swagger.getDefinitions().get(Utils.buildKind(UserToken.class));
+        Map<String, Property> properties = model.getProperties();
+        assertNull(properties.get(UserToken.FIELD_NAME_INTERNAL_ID));
     }
 }

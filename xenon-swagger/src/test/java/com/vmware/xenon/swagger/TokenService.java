@@ -21,7 +21,9 @@ import java.util.logging.Level;
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.RequestRouter.Route;
 import com.vmware.xenon.common.ServiceDocument;
+import com.vmware.xenon.common.ServiceDocument.UsageOption;
 import com.vmware.xenon.common.ServiceDocumentDescription;
+import com.vmware.xenon.common.ServiceDocumentDescription.PropertyUsageOption;
 import com.vmware.xenon.common.StatelessService;
 
 public class TokenService extends StatelessService {
@@ -32,8 +34,12 @@ public class TokenService extends StatelessService {
     }
 
     static class UserToken {
+        public static final String FIELD_NAME_INTERNAL_ID = "internalId";
+
         public String user;
         public String token;
+        @UsageOption(option = PropertyUsageOption.SERVICE_USE)
+        public String internalId;
     }
 
 
@@ -47,7 +53,9 @@ public class TokenService extends StatelessService {
     @Override
     public void handlePost(Operation post) {
         UserToken body = post.getBody(UserToken.class);
-        log(Level.INFO, "user:%s token:%s", body.user, body.token);
+        body.internalId = UUID.randomUUID().toString();
+        log(Level.INFO, "user:%s token:%s internal", body.user, body.token);
+        post.complete();
     }
 
     @Override

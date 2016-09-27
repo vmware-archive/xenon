@@ -78,7 +78,8 @@ class ModelRegistry {
         for (Entry<String, PropertyDescription> e : desc) {
             String name = e.getKey();
             PropertyDescription pd = e.getValue();
-            if (pd.usageOptions.contains(PropertyUsageOption.INFRASTRUCTURE)) {
+            if (pd.usageOptions.contains(PropertyUsageOption.INFRASTRUCTURE)
+                    || pd.usageOptions.contains(PropertyUsageOption.SERVICE_USE)) {
                 continue;
             }
             Property property = makeProperty(pd);
