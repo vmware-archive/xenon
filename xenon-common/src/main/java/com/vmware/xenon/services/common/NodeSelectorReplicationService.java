@@ -15,8 +15,9 @@ package com.vmware.xenon.services.common;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.vmware.xenon.common.NodeSelectorService;
 import com.vmware.xenon.common.NodeSelectorService.SelectAndForwardRequest;
@@ -40,12 +41,18 @@ public class NodeSelectorReplicationService extends StatelessService {
             1);
 
     private Service parent;
+    private Map<String, Integer> nodeCountPerLocation;
+    private Map<URI, String> locationPerNodeURI;
 
     public NodeSelectorReplicationService(Service parent) {
         this.parent = parent;
         super.setHost(parent.getHost());
         super.setSelfLink(UriUtils.buildUriPath(parent.getSelfLink(),
                 ServiceHost.SERVICE_URI_SUFFIX_REPLICATION));
+        if (parent.getHost().getLocation() != null) {
+            this.nodeCountPerLocation = new ConcurrentHashMap<>();
+            this.locationPerNodeURI = new ConcurrentHashMap<>();
+        }
         super.setProcessingStage(ProcessingStage.AVAILABLE);
     }
 
@@ -140,12 +147,22 @@ public class NodeSelectorReplicationService extends StatelessService {
      */
     private int getNodeCountInLocation(String location,
             Collection<NodeState> nodes) {
-        return (int) nodes.stream()
+        // try cached value first
+        Integer count = this.nodeCountPerLocation.get(location);
+        if (count != null) {
+            return count.intValue();
+        }
+
+        // fill cache maps
+        int intCount = (int) nodes.stream()
                 .filter(ns -> Objects.equals(location,
                         ns.customProperties.get(NodeState.PROPERTY_NAME_LOCATION)))
-                .peek(ns -> logInfo("Node in location %s: %s (groupReference: %s)", location,
-                        ns.id, ns.groupReference))
+                .peek(ns -> this.locationPerNodeURI.put(UriUtils.buildUri(
+                        ns.groupReference.getHost(), ns.groupReference.getPort(), null, null),
+                        location))
                 .count();
+        this.nodeCountPerLocation.put(location, Integer.valueOf(intCount));
+        return intCount;
     }
 
     /**
@@ -159,12 +176,11 @@ public class NodeSelectorReplicationService extends StatelessService {
         }
 
         URI remotePeerService = remotePeerResponse.getUri();
-        return !nodes.stream()
-                .filter(ns -> Objects.equals(location,
-                        ns.customProperties.get(NodeState.PROPERTY_NAME_LOCATION)))
-                .filter(ns -> ns.groupReference.getHost().equals(remotePeerService.getHost())
-                        && ns.groupReference.getPort() == remotePeerService.getPort())
-                .collect(Collectors.toList()).isEmpty();
+        URI remoteNodeUri = UriUtils.buildUri(remotePeerService.getHost(),
+                remotePeerService.getPort(), null, null);
+
+        String remoteNodeLocation = this.locationPerNodeURI.get(remoteNodeUri);
+        return location.equals(remoteNodeLocation);
     }
 
     private void replicateUpdateToNodes(Operation outboundOp,
