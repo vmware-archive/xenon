@@ -413,9 +413,7 @@ public class NodeSelectorSynchronizationService extends StatelessService {
                 .setExpiration(Utils.getNowMicrosUtc() + TimeUnit.SECONDS.toMicros(2))
                 .setCompletion((o, e) -> {
                     if (e == null) {
-                        if (this.isDetailedLoggingEnabled) {
-                            logInfo("Skipping %s , state identical with best state", o.getUri());
-                        }
+                        logInfo("Skipping %s , state identical with best state", o.getUri());
                         peerOp.complete();
                         return;
                     }
@@ -448,15 +446,20 @@ public class NodeSelectorSynchronizationService extends StatelessService {
         peerOp.addRequestHeader(Operation.REPLICATION_PHASE_HEADER,
                 Operation.REPLICATION_PHASE_COMMIT);
 
-        //  must get started on peers, regardless if the index has it. Since only one node is doing
+        // must get started on peers, regardless if the index has it. Since only one node is doing
         // synchronization, its responsible for starting the children on ALL nodes. If this is a synchronization
         // due to a node joining or leaving and some peers have already started the service, the POST will
         // automatically get converted to a PUT, if the factory is IDEMPOTENT. Otherwise, it will fail
-        clonedState.documentSelfLink = bestState.documentSelfLink.replace(
-                request.factoryLink, "");
+        clonedState.documentSelfLink = UriUtils.getLastPathSegment(bestState.documentSelfLink);
 
         if (isServiceDeleted) {
             peerOp.setAction(Action.DELETE);
+
+            // If this is a delete request, let's reset the uri to
+            // the actual documentSelfLink, both on the operation
+            // and the ServiceDocument.
+            peerOp.setUri(UriUtils.buildUri(peer, bestState.documentSelfLink));
+            clonedState.documentSelfLink = bestState.documentSelfLink;
         }
 
         peerOp.setBody(clonedState);

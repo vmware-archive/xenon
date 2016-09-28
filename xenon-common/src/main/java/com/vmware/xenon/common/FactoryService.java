@@ -362,6 +362,14 @@ public abstract class FactoryService extends StatelessService {
         completePostRequest(o, childService);
     }
 
+    @Override
+    public void handleStop(Operation op) {
+        if (!ServiceHost.isServiceStop(op)) {
+            logWarning("Abrupt stop of factory %s", this.getSelfLink());
+        }
+        super.handleStop(op);
+    }
+
     private void completePostRequest(Operation o, Service childService) {
         if (!o.isFromReplication() && !o.isReplicationDisabled()) {
             o.nestCompletion(startOp -> {
