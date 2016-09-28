@@ -7,6 +7,14 @@
 
 * Added thread id to log formatter.
 
+* Added support for external authentication in xenon.
+  You can now:
+  1) Redirect unauthenticated requests to an external oauth server for authentication
+  2) Ability to verify access tokens generated from a configured oauth server
+
+* Removed public method setAuthorizationContext(ServiceHost, Operation) from
+  OperationContext.java
+
 ## 1.3.0
 
 * Document signature calculation changed to be more efficient while format stays
