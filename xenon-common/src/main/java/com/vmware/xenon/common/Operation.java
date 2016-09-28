@@ -562,8 +562,7 @@ public class Operation implements Cloneable {
     private short retryCount;
     private short retriesRemaining;
 
-    // KeepAlive is default enabled
-    public EnumSet<OperationOption> options = EnumSet.of(OperationOption.KEEP_ALIVE);
+    public EnumSet<OperationOption> options = EnumSet.noneOf(OperationOption.class);
 
     public static Operation create(SerializedOperation ctx, ServiceHost host) {
         Operation op = new Operation();
@@ -1351,7 +1350,7 @@ public class Operation implements Cloneable {
     }
 
     public boolean isKeepAlive() {
-        return hasOption(OperationOption.KEEP_ALIVE);
+        return this.remoteCtx == null ? false : hasOption(OperationOption.KEEP_ALIVE);
     }
 
     public Operation setKeepAlive(boolean isKeepAlive) {
