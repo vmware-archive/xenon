@@ -958,13 +958,36 @@ public class StatefulService implements Service {
                     failRequest(op, failure);
                     return;
                 }
-                processCompletionStageTransactionNotification(op, null);
+                checkAndNestAuthupdateCompletionStage(op);
             });
 
             ServiceDocument mergedState = op.getLinkedState();
             this.context.host.saveServiceState(this, op, mergedState);
         } finally {
             processPending(op);
+        }
+    }
+
+    /**
+     * Update any authz cache artifacts. Service authors need to
+     * override this method to define custom authz cache clear behavior
+     */
+    protected void processCompletionStageUpdateAuthzArtifacts(Operation op) {
+        op.complete();
+    }
+
+    private void checkAndNestAuthupdateCompletionStage(Operation op) {
+        if (!this.getHost().isAuthorizationEnabled() || !this.getHost().isPrivilegedService(this)) {
+            processCompletionStageTransactionNotification(op, null);
+        } else {
+            op.nestCompletion((o, failure) -> {
+                if (failure != null) {
+                    failRequest(op, failure);
+                    return;
+                }
+                processCompletionStageTransactionNotification(op, null);
+            });
+            processCompletionStageUpdateAuthzArtifacts(op);
         }
     }
 

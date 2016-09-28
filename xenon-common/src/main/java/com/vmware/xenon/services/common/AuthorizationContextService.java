@@ -19,8 +19,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Set;
 
 import com.vmware.xenon.common.Claims;
 import com.vmware.xenon.common.Operation;
@@ -88,6 +90,7 @@ public class AuthorizationContextService extends StatelessService {
     public static final String SELF_LINK = ServiceUriPaths.CORE_AUTHZ_VERIFICATION;
 
     private final Map<String, Collection<Operation>> pendingOperationsBySubject = new HashMap<>();
+    private final Set<String> cacheClearRequests = Collections.synchronizedSet(new HashSet<>());
 
     /**
      * The service host will invoke this method to allow a service to handle
@@ -98,6 +101,7 @@ public class AuthorizationContextService extends StatelessService {
      */
     @Override
     public boolean queueRequest(Operation op) {
+
         AuthorizationContext ctx = op.getAuthorizationContext();
         if (ctx == null) {
             op.fail(new IllegalArgumentException("no authorization context"));
@@ -116,6 +120,11 @@ public class AuthorizationContextService extends StatelessService {
             return true;
         }
 
+        // handle a cache clear request
+        if (op.hasPragmaDirective(Operation.PRAGMA_DIRECTIVE_CLEAR_AUTH_CACHE)) {
+            return handleCacheClearRequest(op, subject);
+        }
+
         // Allow unconditionally if this is the system user
         if (subject.equals(SystemUserService.SELF_LINK)) {
             op.complete();
@@ -132,6 +141,30 @@ public class AuthorizationContextService extends StatelessService {
         // user, find out which roles apply, and verify whether the authorization
         // context allows access to the service targeted by the operation.
         return false;
+    }
+
+    private boolean handleCacheClearRequest(Operation op, String subject) {
+        AuthorizationCacheClearRequest requestBody = op.getBody(AuthorizationCacheClearRequest.class);
+        if (!AuthorizationCacheClearRequest.KIND.equals(requestBody.kind)) {
+            op.fail(new IllegalArgumentException("invalid request body type"));
+            return true;
+        }
+        if (requestBody.subjectLink == null) {
+            op.fail(new IllegalArgumentException("no subjectLink"));
+            return true;
+        }
+        if (!subject.equals(SystemUserService.SELF_LINK)) {
+            op.fail(Operation.STATUS_CODE_FORBIDDEN);
+            return true;
+        }
+        synchronized (this.pendingOperationsBySubject) {
+            if (this.pendingOperationsBySubject.containsKey(requestBody.subjectLink)) {
+                this.cacheClearRequests.add(requestBody.subjectLink);
+            }
+        }
+        getHost().clearAuthorizationContext(this, requestBody.subjectLink);
+        op.complete();
+        return true;
     }
 
     @Override
@@ -164,7 +197,6 @@ public class AuthorizationContextService extends StatelessService {
             pendingOperations.add(op);
             this.pendingOperationsBySubject.put(subject, pendingOperations);
         }
-
         getSubject(ctx, claims);
     }
 
@@ -209,7 +241,6 @@ public class AuthorizationContextService extends StatelessService {
                     for (Object doc : result.documents.values()) {
                         UserGroupState userGroupState = Utils.fromJson(doc,
                                 UserGroupState.class);
-
                         try {
                             QueryFilter f = QueryFilter.create(userGroupState.query);
                             if (QueryFilterUtils.evaluate(f, userState, getHost())) {
@@ -421,8 +452,16 @@ public class AuthorizationContextService extends StatelessService {
             }
 
             AuthorizationContext newContext = builder.getResult();
-            getHost().cacheAuthorizationContext(this, newContext);
-            completePendingOperations(claims.getSubject(), newContext);
+            boolean retry = false;
+            if (this.cacheClearRequests.remove(claims.getSubject())) {
+                retry = true;
+            }
+            if (retry) {
+                getSubject(ctx, claims);
+            } else {
+                getHost().cacheAuthorizationContext(this, newContext);
+                completePendingOperations(claims.getSubject(), newContext);
+            }
         } catch (Throwable e) {
             failThrowable(claims.getSubject(), e);
         }
@@ -430,12 +469,9 @@ public class AuthorizationContextService extends StatelessService {
 
     private Collection<Operation> getPendingOperations(String subject) {
         Collection<Operation> operations;
-
         synchronized (this.pendingOperationsBySubject) {
-            operations = this.pendingOperationsBySubject.get(subject);
-            this.pendingOperationsBySubject.remove(subject);
+            operations = this.pendingOperationsBySubject.remove(subject);
         }
-
         if (operations == null) {
             return Collections.emptyList();
         }
