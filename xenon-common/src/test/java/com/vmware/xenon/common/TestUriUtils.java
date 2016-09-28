@@ -261,6 +261,32 @@ public class TestUriUtils {
     }
 
     @Test
+    public void testConvertUriPathCharsFromLink() {
+        assertEquals("core-examples",
+                UriUtils.convertPathCharsFromLink("///core/examples///"));
+        assertEquals("core-examples",
+                UriUtils.convertPathCharsFromLink("///core/examples?expand&count=100"));
+        assertEquals("core-local-query-tasks",
+                UriUtils.convertPathCharsFromLink("///core/local-query-tasks"));
+        assertEquals(null,
+                UriUtils.convertPathCharsFromLink("@*#(@&@#"));
+    }
+
+    @Test
+    public void testTrimPathSlashes() {
+        assertEquals("a", UriUtils.trimPathSlashes("//a//"));
+        assertEquals("a", UriUtils.trimPathSlashes("///a"));
+        assertEquals("a", UriUtils.trimPathSlashes("a///"));
+        assertEquals("a", UriUtils.trimPathSlashes("/a/"));
+        assertEquals("a", UriUtils.trimPathSlashes("a"));
+        assertEquals("a/b", UriUtils.trimPathSlashes("/a/b/"));
+        assertEquals("a/b", UriUtils.trimPathSlashes("////a/b/////"));
+        assertEquals("a/b", UriUtils.trimPathSlashes("////a/b"));
+        assertEquals("a/b", UriUtils.trimPathSlashes("a/b/////"));
+        assertEquals("a/b", UriUtils.trimPathSlashes("a/b"));
+    }
+
+    @Test
     public void isChildPath() {
         assertFalse(UriUtils.isChildPath(null, "/a/b"));
         assertFalse(UriUtils.isChildPath("/a/b/c", null));

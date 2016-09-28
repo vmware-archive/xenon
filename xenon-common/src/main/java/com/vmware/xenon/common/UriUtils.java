@@ -808,6 +808,32 @@ public class UriUtils {
         return tuple;
     }
 
+    /**
+     * Infrastructure use only.
+     *
+     * Converts path characters '/' into '-'. Returns null if malformed paths.
+     *
+     * Examples:
+     *     /core/examples/ -> core-examples
+     *     /core/local-query-tasks -> core-local-query-tasks
+     *     /core/examples?expand&count=1 -> core-examples
+     */
+    public static String convertPathCharsFromLink(String path) {
+        String uriPath;
+        try {
+            uriPath = (new URI(path)).getPath();
+        } catch (URISyntaxException ex) {
+            return null;
+        }
+        return UriUtils.trimPathSlashes(uriPath)
+                .replace('/', '-');
+    }
+
+    public static String trimPathSlashes(String path) {
+        // removes beginning and trailing slashes from a URI path.
+        return path.replaceAll("^/*|/*$", "");
+    }
+
     public static boolean hasODataExpandParamValue(URI uri) {
         String query = uri.getQuery();
         if (query == null || query.isEmpty()) {

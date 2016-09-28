@@ -175,7 +175,8 @@ public abstract class FactoryService extends StatelessService {
         }
 
         String path = UriUtils.buildUriPath(
-                SynchronizationTaskService.FACTORY_LINK, this.getSelfLink());
+                SynchronizationTaskService.FACTORY_LINK,
+                UriUtils.convertPathCharsFromLink(this.getSelfLink()));
 
         // Create a place-holder Synchronization-Task for this factory service
         Operation post = Operation
@@ -903,7 +904,7 @@ public abstract class FactoryService extends StatelessService {
     private SynchronizationTaskService.State createSynchronizationTaskState(
             Long membershipUpdateTimeMicros) {
         SynchronizationTaskService.State task = new SynchronizationTaskService.State();
-        task.documentSelfLink = this.getSelfLink();
+        task.documentSelfLink = UriUtils.convertPathCharsFromLink(this.getSelfLink());
         task.factorySelfLink = this.getSelfLink();
         task.factoryStateKind = Utils.buildKind(this.getStateType());
         task.membershipUpdateTimeMicros = membershipUpdateTimeMicros;
