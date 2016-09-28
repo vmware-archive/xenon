@@ -35,14 +35,32 @@
       <organizationUrl>https://www.vmware.com/</organizationUrl>
     </developer>
     <developer>
-      <name>Pieter Noordhuis</name>
-      <email>pnoordhuis@vmware.com</email>
+      <name>Tadaya Tsuyukubo</name>
+      <email>ttsuyukubo@vmware.com</email>
       <organization>VMware</organization>
       <organizationUrl>https://www.vmware.com/</organizationUrl>
     </developer>
     <developer>
-      <name>Mihnea Olteanu</name>
-      <email>molteanu@vmware.com</email>
+      <name>Sufian Dar</name>
+      <email>dars@vmware.com</email>
+      <organization>VMware</organization>
+      <organizationUrl>https://www.vmware.com/</organizationUrl>
+    </developer>
+    <developer>
+      <name>Asaf Kariv</name>
+      <email>kariva@vmware.com</email>
+      <organization>VMware</organization>
+      <organizationUrl>https://www.vmware.com/</organizationUrl>
+    </developer>
+    <developer>
+      <name>Gurudutt Belur</name>
+      <email>gbelur@vmware.com</email>
+      <organization>VMware</organization>
+      <organizationUrl>https://www.vmware.com/</organizationUrl>
+    </developer>
+    <developer>
+      <name>Vamsi Krishna Brahmajosyula</name>
+      <email>vbrahmajosyula@vmware.com</email>
       <organization>VMware</organization>
       <organizationUrl>https://www.vmware.com/</organizationUrl>
     </developer>
