@@ -36,8 +36,8 @@ public class SynchronizationTaskService
     public static final String PROPERTY_NAME_SYNCHRONIZATION_LOGGING = Utils.PROPERTY_NAME_PREFIX
             + "SynchronizationTaskService.isDetailedLoggingEnabled";
 
-    public static final String PROPERTY_NAME_QUERY_GET_TIMEOUT_SECONDS = Utils.PROPERTY_NAME_PREFIX
-            + "SynchronizationTaskService.queryGetTimeoutSeconds";
+    public static final String PROPERTY_NAME_QUERY_TIMEOUT_SECONDS = Utils.PROPERTY_NAME_PREFIX
+            + "SynchronizationTaskService.queryTimeoutSeconds";
 
     public static SynchronizationTaskService create(Supplier<Service> childServiceInstantiator) {
         if (childServiceInstantiator.get() == null) {
@@ -106,9 +106,11 @@ public class SynchronizationTaskService
     private final boolean isDetailedLoggingEnabled = Boolean
             .getBoolean(PROPERTY_NAME_SYNCHRONIZATION_LOGGING);
 
-    private final long queryPageGetTimeoutSeconds = Long.getLong(
-            PROPERTY_NAME_QUERY_GET_TIMEOUT_SECONDS,
+    private final long queryTimeoutSeconds = Long.getLong(
+            PROPERTY_NAME_QUERY_TIMEOUT_SECONDS,
             TimeUnit.MICROSECONDS.toSeconds(ServiceHostState.DEFAULT_OPERATION_TIMEOUT_MICROS / 3));
+
+    private final long queryTimeoutMicros = TimeUnit.SECONDS.toMicros(this.queryTimeoutSeconds);
 
     public SynchronizationTaskService() {
         super(State.class);
@@ -415,6 +417,7 @@ public class SynchronizationTaskService
         Operation queryPost = Operation
                 .createPost(this, ServiceUriPaths.CORE_QUERY_TASKS)
                 .setBody(queryTask)
+                .setExpiration(Utils.getNowMicrosUtc() + this.queryTimeoutMicros)
                 .setCompletion((o, e) -> {
                     if (getHost().isStopping()) {
                         sendSelfCancellationPatch(task, "host is stopping");
@@ -525,11 +528,9 @@ public class SynchronizationTaskService
             synchronizeChildrenInQueryPage(task, rsp);
         };
 
-        long timeOutMicros = TimeUnit.SECONDS.toMicros(this.queryPageGetTimeoutSeconds);
         sendRequest(Operation.createGet(task.queryPageReference)
-                .setExpiration(Utils.getNowMicrosUtc() + timeOutMicros)
+                .setExpiration(Utils.getNowMicrosUtc() + this.queryTimeoutMicros)
                 .setCompletion(c));
-
     }
 
     private void synchronizeChildrenInQueryPage(State task, ServiceDocumentQueryResult rsp) {
@@ -639,6 +640,7 @@ public class SynchronizationTaskService
                         parentOp.complete();
                     }
                     if (e != null) {
+                        logSevere("Setting factory availability failed with error %s", e.getMessage());
                         sendSelfFailurePatch(task, "Failed to set Factory Availability");
                         return;
                     }

@@ -428,8 +428,11 @@ public class NodeSelectorSynchronizationService extends StatelessService {
             ServiceDocument clonedState, URI peer) {
         URI targetFactoryUri = UriUtils.buildUri(peer, request.factoryLink);
         Operation peerOp = Operation.createPost(targetFactoryUri)
-                .transferRefererFrom(post).setExpiration(post.getExpirationMicrosUtc())
+                .transferRefererFrom(post)
                 .setCompletion(c);
+
+        peerOp.setRetryCount(0);
+        peerOp.setExpiration(post.getExpirationMicrosUtc());
 
         peerOp.toggleOption(OperationOption.CONNECTION_SHARING, true);
 
