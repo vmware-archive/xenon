@@ -5,6 +5,9 @@
 * Authorize all requests on default notification target services created in
   ServiceHost.startSubscriptionService()
 
+* Add "Queries" to Xenon UI to enable building query specifications
+  interactively and reviewing results.
+
 ## 0.9.6
 
 * Add errorCode property to ServiceErrorResponse to allow Xenon services
@@ -16,6 +19,13 @@
   scheme offers fair scheduling across users and mitigates head-of-line
   queuing problems. The support is transparent to all existing code and works
   with a single queue (for system context) if authorization is disabled.
+
+* Introduce Xenon UI, a built-in application which federates information
+  from nodes across the node groups and visualize them in a single pane of UI.
+  With this UI you can:
+  1) Navigate to any node within the node groups and browse node-specific document contents.
+  2) Add/Edit/Delete instances with test payloads.
+  3) Extract logs that are specific to each node.
 
 ## 0.9.5
 

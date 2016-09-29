@@ -37,7 +37,7 @@ The application is still in its early stage of development and is expected to it
 
 #### Availability
 
-Xenon UI comes as a web application with every Xenon jar after 0.9.5 and is available in /core/ui/default. In future we will also consider distribute it as a standalone desktop application.
+Xenon UI comes as a web application with every Xenon jar after 0.9.6 and is available in /core/ui/default. In future we will also consider distributing it as a standalone desktop application.
 
 #### Available Features
 
