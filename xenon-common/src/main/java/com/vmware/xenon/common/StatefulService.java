@@ -1478,6 +1478,7 @@ public class StatefulService implements Service {
         IllegalStateException failure = null;
         String statName = null;
         try {
+            boolean logTransition = false;
             synchronized (this.context) {
                 if (this.context.processingStage == stage) {
                     return;
@@ -1497,13 +1498,24 @@ public class StatefulService implements Service {
                 } else if (this.context.processingStage == ProcessingStage.PAUSED
                         && stage == ProcessingStage.AVAILABLE) {
                     statName = STAT_NAME_RESUME_COUNT;
+                    logTransition = true;
                     this.context.isUpdateActive = false;
+                } else if (this.context.processingStage == ProcessingStage.STOPPED
+                        && stage == ProcessingStage.AVAILABLE
+                        && hasOption(ServiceOption.ON_DEMAND_LOAD)) {
+                    // an ODL service can be stopped while an attempt to start is being processed.
+                    // Instead of failing the attempt that marks it available, accept the
+                    // transition from STOPPED -> AVAILABLE
+                    logTransition = true;
                 } else if (this.context.processingStage.ordinal() > stage.ordinal()) {
                     throw new IllegalArgumentException(this.context.processingStage
                             + " can not move to "
                             + stage);
                 }
 
+                if (logTransition) {
+                    logInfo("Transition from %s to %s", this.context.processingStage, stage);
+                }
                 this.context.processingStage = stage;
             }
         } finally {
