@@ -494,7 +494,7 @@ public class TestNodeGroupService {
         ServiceStat stopCount = host
                 .getServiceStats(host.getManagementServiceUri())
                 .get(ServiceHostManagementService.STAT_NAME_ODL_STOP_COUNT);
-        if (stopCount == null || stopCount.latestValue != serviceCount) {
+        if (stopCount == null || stopCount.latestValue < serviceCount) {
             this.host.log(Level.INFO,
                     "Current stopCount is %s",
                     (stopCount != null) ? String.valueOf(stopCount.latestValue) : "null");
