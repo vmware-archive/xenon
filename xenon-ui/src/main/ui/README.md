@@ -62,6 +62,7 @@ Xenon UI comes as a web application with every Xenon jar after 0.9.6 and is avai
 - System configuration: should allow edits of some system properties.
 - Performance: definitely need some tuning.
 - Improvements/fixes based on your feedback.
+- Browser compatibility: as of now the UI has only been developed and tested against Chrome, need to make it work cross browser.
 
 # Getting Started
 

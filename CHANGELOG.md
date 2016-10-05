@@ -37,6 +37,8 @@
   1) Navigate to any node within the node groups and browse node-specific document contents.
   2) Add/Edit/Delete instances with test payloads.
   3) Extract logs that are specific to each node.
+  *NOTE*: Xenon UI has only been developed and tested against Chrome as of now. Browser
+  compatibility improvements will be done in future releases.
 
 ## 0.9.5
 
