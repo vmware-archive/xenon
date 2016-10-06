@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.0.0-SNAPSHOT
+
 ## 0.9.7
 
 * Add new ServiceOption.IMMUTABLE, for services/documents that have
