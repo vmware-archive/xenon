@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.9.7-SNAPSHOT
+## 0.9.7
 
 * Add new ServiceOption.IMMUTABLE, for services/documents that have
   write once, read many semantics (metrics, logs, immutable configuration).
