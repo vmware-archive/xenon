@@ -25,6 +25,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
+import com.vmware.xenon.common.Service.ProcessingStage;
+
 /**
  * Performs periodic maintenance and expiration tracking on operations. Utilized by
  * service host for all operation related maintenance.
@@ -93,8 +95,18 @@ class OperationTracker {
         Iterator<Operation> startOpsIt = this.pendingStartOperations.iterator();
         checkOperationExpiration(nowMicros, startOpsIt);
 
-        for (SortedSet<Operation> ops : this.pendingServiceAvailableCompletions.values()) {
-            Iterator<Operation> it = ops.iterator();
+        for (Entry<String, SortedSet<Operation>> entry : this.pendingServiceAvailableCompletions
+                .entrySet()) {
+            String link = entry.getKey();
+            SortedSet<Operation> pendingOps = entry.getValue();
+            Service s = this.host.findService(link, true);
+            if (s != null && s.getProcessingStage() == ProcessingStage.AVAILABLE) {
+                this.host.log(Level.WARNING,
+                        "Service %s available, but has pending start operations", link);
+                this.host.processPendingServiceAvailableOperations(s, null, false);
+                break;
+            }
+            Iterator<Operation> it = pendingOps.iterator();
             checkOperationExpiration(nowMicros, it);
         }
 
