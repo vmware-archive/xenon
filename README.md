@@ -52,6 +52,9 @@ For more technical details including tutorials, please refer to the
 
 Various code samples are in the xenon-samples directory.
 
+## 1.4 Reporting Issues
+Xenon uses a public pivotal tracker project for tracking and reporting issues: https://www.pivotaltracker.com/n/projects/1471320
+
 # 2.0 Detailed Introduction to Xenon
 
 Xenon is a framework for writing small REST-based services. (Some people call them microservices.)
