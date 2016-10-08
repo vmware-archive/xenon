@@ -7,7 +7,9 @@ export * from './ui/event-context';
 export * from './ui/key-value-pair';
 export * from './ui/link';
 export * from './ui/modal-context';
+export * from './ui/node-group-circle';
 export * from './ui/notification';
+export * from './ui/url-fragment';
 
 export * from './core/boolean-clause';
 export * from './core/node-group';

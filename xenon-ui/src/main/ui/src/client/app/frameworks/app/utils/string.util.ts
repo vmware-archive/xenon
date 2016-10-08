@@ -1,7 +1,7 @@
 import * as moment from 'moment';
 import * as numeral from 'numeral';
 
-import { DocumentLink } from '../interfaces/index';
+import { DocumentLink, UrlFragment } from '../interfaces/index';
 
 export class StringUtil {
     /**
@@ -92,11 +92,39 @@ export class StringUtil {
     static parseDocumentLink(documentLink: string): DocumentLink {
         // TODO: need to do a regex check to make sure it's a valid format.
         var linkFragments: string[] = documentLink.split('/');
+        var linkFragmentsLength: number = linkFragments.length;
+
+        if (linkFragmentsLength < 3) {
+            return {
+                prefix: '',
+                type: '',
+                id: ''
+            };
+        }
 
         return {
-            prefix: linkFragments[1],
-            type: linkFragments[2],
-            id: linkFragments[3]
+            prefix: linkFragments[linkFragmentsLength - 3],
+            type: linkFragments[linkFragmentsLength - 2],
+            id: linkFragments[linkFragmentsLength - 1]
+        };
+    }
+
+    /**
+     * Given a url string, return the url fragment object.
+     *
+     * @param {string} url - url to be parsed
+     */
+    static parseUrl(url: string): UrlFragment {
+        var match: string[] = url.match(/^(https?\:)\/\/(([^:\/?#]*)(?:\:([0-9]+))?)(\/[^?#]*)(\?[^#]*|)(#.*|)$/);
+
+        return match && {
+            protocol: match[1],
+            host: match[2],
+            hostname: match[3],
+            port: match[4],
+            pathname: match[5],
+            search: match[6],
+            hash: match[7]
         };
     }
 
