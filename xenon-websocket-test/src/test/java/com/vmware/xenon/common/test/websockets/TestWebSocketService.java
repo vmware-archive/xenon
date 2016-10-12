@@ -15,12 +15,15 @@ package com.vmware.xenon.common.test.websockets;
 
 import java.util.UUID;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Tests websocket service with authentication off.
  */
 public class TestWebSocketService extends AbstractWebSocketServiceTest {
+
+    @Ignore("https://www.pivotaltracker.com/story/show/128205795")
     @Test
     public void actions() throws Throwable {
         testGet();
@@ -30,6 +33,7 @@ public class TestWebSocketService extends AbstractWebSocketServiceTest {
         testDelete();
     }
 
+    @Ignore("https://www.pivotaltracker.com/story/show/126512273")
     @Test
     public void subscriptionLifecycle() throws Throwable {
         subscribeUnsubscribe(UUID.randomUUID().toString());
