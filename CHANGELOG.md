@@ -2,6 +2,8 @@
 
 ## 1.1.0-SNAPSHOT
 
+* Upgrade Lucene from 6.0.0 to 6.2.1
+
 ## 1.0.0
 
 * Improve Xenon UI's' node selector to support multi node group use cases.
