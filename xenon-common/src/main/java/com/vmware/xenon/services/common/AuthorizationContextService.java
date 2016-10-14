@@ -206,6 +206,7 @@ public class AuthorizationContextService extends StatelessService {
     private void getSubject(AuthorizationContext ctx, Claims claims) {
         URI getSubjectUri = UriUtils.buildUri(getHost(), claims.getSubject());
         Operation get = Operation.createGet(getSubjectUri)
+                .setConnectionSharing(true)
                 .setCompletion((o, e) -> {
                     if (e != null) {
                         failThrowable(claims.getSubject(), e);
@@ -285,6 +286,7 @@ public class AuthorizationContextService extends StatelessService {
         URI getUserGroupsUri = UriUtils.buildUri(getHost(), ServiceUriPaths.CORE_AUTHZ_USER_GROUPS);
         getUserGroupsUri = UriUtils.buildExpandLinksQueryUri(getUserGroupsUri);
         Operation get = Operation.createGet(getUserGroupsUri)
+                .setConnectionSharing(true)
                 .setCompletion((o, e) -> {
                     if (e != null) {
                         failThrowable(claims.getSubject(), e);
@@ -370,6 +372,7 @@ public class AuthorizationContextService extends StatelessService {
         URI postQueryUri = UriUtils.buildUri(getHost(), ServiceUriPaths.CORE_LOCAL_QUERY_TASKS);
         Operation post = Operation.createPost(postQueryUri)
                 .setBody(queryTask)
+                .setConnectionSharing(true)
                 .setCompletion((o, e) -> {
                     if (e != null) {
                         failThrowable(claims.getSubject(), e);
