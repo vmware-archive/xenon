@@ -75,13 +75,9 @@ public class StatefulService implements Service {
         }
         this.context.stateType = stateType;
         if (this.context.options.contains(ServiceOption.LIFO_QUEUE)) {
-            this.context.synchQueue = OperationQueue
-                    .createLifo(Service.OPERATION_QUEUE_DEFAULT_LIMIT);
             this.context.operationQueue = OperationQueue
                     .createLifo(Service.OPERATION_QUEUE_DEFAULT_LIMIT);
         } else {
-            this.context.synchQueue = OperationQueue
-                    .createFifo(Service.OPERATION_QUEUE_DEFAULT_LIMIT);
             this.context.operationQueue = OperationQueue
                     .createFifo(Service.OPERATION_QUEUE_DEFAULT_LIMIT);
         }
@@ -189,9 +185,12 @@ public class StatefulService implements Service {
         Collection<Operation> opsToCancel = null;
         synchronized (this.context) {
             opsToCancel = this.context.operationQueue.toCollection();
-            opsToCancel.addAll(this.context.synchQueue.toCollection());
             this.context.operationQueue.clear();
-            this.context.synchQueue.clear();
+
+            if (this.context.synchQueue != null) {
+                opsToCancel.addAll(this.context.synchQueue.toCollection());
+                this.context.synchQueue.clear();
+            }
         }
 
         for (Operation o : opsToCancel) {
@@ -222,6 +221,10 @@ public class StatefulService implements Service {
                     if (op.isSynchronizeOwner()) {
                         // Synchronization requests are queued in a separate queue
                         // so that they can prioritized higher than other updates.
+                        if (this.context.synchQueue == null) {
+                            this.context.synchQueue = OperationQueue
+                                    .createFifo(Service.SYNCH_QUEUE_DEFAULT_LIMIT);
+                        }
                         if (!this.context.synchQueue.offer(op)) {
                             getHost().failRequestLimitExceeded(op);
                         }
@@ -1178,11 +1181,16 @@ public class StatefulService implements Service {
 
     @Override
     public Operation dequeueRequest() {
-        Operation op;
+        Operation op = null;
         synchronized (this.context) {
-            // Synch requests are prioritized higher than
-            // other update requests.
-            op = this.context.synchQueue.poll();
+            if (this.context.synchQueue != null) {
+                // Synch requests are prioritized higher than
+                // other update requests.
+                op = this.context.synchQueue.poll();
+                if (this.context.synchQueue.isEmpty()) {
+                    this.context.synchQueue = null;
+                }
+            }
             if (op == null) {
                 op = this.context.operationQueue.poll();
             }
@@ -1522,7 +1530,6 @@ public class StatefulService implements Service {
     }
 
     protected void setOperationQueueLimit(int limit) {
-        this.context.synchQueue.setLimit(limit);
         this.context.operationQueue.setLimit(limit);
     }
 
@@ -1546,7 +1553,7 @@ public class StatefulService implements Service {
                     }
 
                     if (this.context.isUpdateActive ||
-                            !this.context.synchQueue.isEmpty() ||
+                            (this.context.synchQueue != null && !this.context.synchQueue.isEmpty()) ||
                             !this.context.operationQueue.isEmpty()) {
                         failure = new IllegalStateException("Service has active updates");
                         return null;

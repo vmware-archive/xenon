@@ -336,6 +336,11 @@ public interface Service extends ServiceRequestSender {
     static final int OPERATION_QUEUE_DEFAULT_LIMIT = 10000;
 
     /**
+     * Default Synchronization queue limit
+     */
+    static final int SYNCH_QUEUE_DEFAULT_LIMIT = 100;
+
+    /**
      * Equivalent to {@code getSelfId} and {@code UriUtils.getLastPathSegment}
      */
     static String getId(String link) {
