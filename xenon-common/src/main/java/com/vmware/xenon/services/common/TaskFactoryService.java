@@ -132,6 +132,7 @@ public class TaskFactoryService extends FactoryService {
                             .fail(e);
                 });
 
+        long expiration = initState.documentExpirationTimeMicros;
         ServiceSubscriber sr = ServiceSubscriber.create(true).setUsePublicUri(true);
         Consumer<Operation> notifyC = (nOp) -> {
             nOp.complete();
@@ -147,10 +148,17 @@ public class TaskFactoryService extends FactoryService {
                 stopInDirectTaskSubscription(subscribe, nOp.getUri());
                 return;
             case DELETE:
-                // the task might have expired and self deleted, fail the client post
-                post.setStatusCode(Operation.STATUS_CODE_TIMEOUT)
-                        .fail(new IllegalStateException("Task self deleted"));
-                stopInDirectTaskSubscription(subscribe, nOp.getUri());
+                if (Utils.getNowMicrosUtc() >= expiration) {
+                    // the task might have expired and self deleted, fail the client post
+                    post.setStatusCode(Operation.STATUS_CODE_TIMEOUT)
+                            .fail(new IllegalStateException("Task expired"));
+                    stopInDirectTaskSubscription(subscribe, nOp.getUri());
+                } else {
+                    // this is a self DELETE, the task is done
+                    post.complete();
+                    // subscription stop will happen on the PATCH/PUT for the terminal state
+                }
+
                 return;
             default:
                 break;
