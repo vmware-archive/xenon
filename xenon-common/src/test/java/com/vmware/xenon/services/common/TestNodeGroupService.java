@@ -630,7 +630,7 @@ public class TestNodeGroupService {
         // create additional example services which are not associated with the custom node group
         // and verify that they are always included in queries which target the custom node group
         // (e.g. that the query is never executed on the OBSERVER node).
-        Map<String, ExampleServiceState> exampleStates = createExampleServices(observerHostUri);
+        createExampleServices(observerHostUri);
         QueryTask.QuerySpecification q = new QueryTask.QuerySpecification();
         q.query.setTermPropertyName(ServiceDocument.FIELD_NAME_KIND).setTermMatchValue(
                 Utils.buildKind(ExampleServiceState.class));
