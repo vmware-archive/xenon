@@ -652,7 +652,7 @@ class ServiceResourceTracker {
             }
 
             this.host.log(Level.WARNING, "(%d) ODL check for %s", inboundOp.getId(), path);
-            return this.host.checkAndOnDemandStartService(inboundOp, factoryService);
+            return checkAndOnDemandStartService(inboundOp, factoryService);
         }
 
         inboundOp.addPragmaDirective(Operation.PRAGMA_DIRECTIVE_INDEX_CHECK);
@@ -686,6 +686,170 @@ class ServiceResourceTracker {
         return true;
     }
 
+    boolean checkAndOnDemandStartService(Operation inboundOp, Service parentService) {
+        if (!parentService.hasOption(ServiceOption.FACTORY)) {
+            this.host.failRequestServiceNotFound(inboundOp);
+            return true;
+        }
+
+        if (!parentService.hasOption(ServiceOption.ON_DEMAND_LOAD)) {
+            return false;
+        }
+
+        FactoryService factoryService = (FactoryService) parentService;
+
+        String servicePath = inboundOp.getUri().getPath();
+        if (ServiceHost.isHelperServicePath(servicePath)) {
+            servicePath = UriUtils.getParentPath(servicePath);
+
+        }
+        String finalServicePath = servicePath;
+        boolean doProbe = inboundOp.hasPragmaDirective(
+                Operation.PRAGMA_DIRECTIVE_QUEUE_FOR_SERVICE_AVAILABILITY);
+
+        if (!doProbe) {
+            startServiceOnDemand(inboundOp, parentService, factoryService, finalServicePath);
+            return true;
+        }
+
+        // we should not use startService for checking if a service ever existed. This can cause a race with
+        // a client POST creating the service for the first time, when they use
+        // PRAGMA_QUEUE_FOR_AVAILABILITY. Instead do an attempt to load state for the service path
+        Operation getOp = Operation
+                .createGet(inboundOp.getUri())
+                .addPragmaDirective(Operation.PRAGMA_DIRECTIVE_INDEX_CHECK)
+                .transferRefererFrom(inboundOp)
+                .setCompletion((o, e) -> {
+                    if (e != null) {
+                        inboundOp.fail(e);
+                        return;
+                    }
+
+                    if (!o.hasBody()) {
+                        // the index will return success, but no body if service is not found
+                        this.host.checkPragmaAndRegisterForAvailability(finalServicePath,
+                                inboundOp);
+                        return;
+                    }
+
+                    // service state exists, proceed with starting service
+                    startServiceOnDemand(inboundOp, parentService, factoryService,
+                            finalServicePath);
+                });
+
+        Service indexService = this.host.getDocumentIndexService();
+        if (indexService == null) {
+            inboundOp.fail(new CancellationException());
+            return true;
+        }
+        indexService.handleRequest(getOp);
+        return true;
+    }
+
+    void startServiceOnDemand(Operation inboundOp, Service parentService,
+            FactoryService factoryService, String finalServicePath) {
+        Operation onDemandPost = Operation.createPost(this.host, finalServicePath);
+
+        CompletionHandler c = (o, e) -> {
+            if (e != null) {
+                if (e instanceof CancellationException) {
+                    // local stop of idle service raced with client request to load it. Retry.
+                    this.host.log(Level.WARNING, "Stop of idle service %s detected, retrying",
+                            inboundOp
+                            .getUri().getPath());
+                    this.host.schedule(() -> {
+                        checkAndOnDemandStartService(inboundOp, parentService);
+                    }, 1, TimeUnit.SECONDS);
+                    return;
+                }
+
+                Action a = inboundOp.getAction();
+                ServiceErrorResponse response = o.hasBody()
+                        ? o.getBody(ServiceErrorResponse.class)
+                        : null;
+
+                if (response != null) {
+                    // Since we do a POST first for services using ON_DEMAND_LOAD to start the service,
+                    // we can get back a 409 status code i.e. the service has already been started or was
+                    // deleted previously. Differentiate based on action, if we need to fail or succeed
+                    if (response.statusCode == Operation.STATUS_CODE_CONFLICT) {
+                        if (a != Action.POST
+                                && response.errorCode == ServiceErrorResponse.ERROR_CODE_SERVICE_ALREADY_EXISTS) {
+                            // service exists, action is not attempt to recreate, so complete as success
+                            inboundOp.complete();
+                            return;
+                        }
+
+                        if (response.errorCode == ServiceErrorResponse.ERROR_CODE_STATE_MARKED_DELETED) {
+                            if (a == Action.DELETE) {
+                                // state marked deleted, and action is to delete again, return success
+                                inboundOp.complete();
+                            } else if (a == Action.POST) {
+                                // POSTs will fail with conflict since we must indicate the client is attempting a restart of a
+                                // existing service.
+                                this.host.failRequestServiceAlreadyStarted(finalServicePath, null,
+                                        inboundOp);
+                            } else {
+                                // All other actions fail with NOT_FOUND making it look like the service
+                                // does not exist (or ever existed)
+                                this.host.failRequestServiceNotFound(inboundOp,
+                                        ServiceErrorResponse.ERROR_CODE_STATE_MARKED_DELETED);
+                            }
+                            return;
+                        }
+                    }
+
+                    // if the service we are trying to DELETE never existed, we swallow the 404 error.
+                    // This is for consistency in behavior with non ON_DEMAND_LOAD services.
+                    if (inboundOp.getAction() == Action.DELETE &&
+                            response.statusCode == Operation.STATUS_CODE_NOT_FOUND) {
+                        inboundOp.complete();
+                        return;
+                    }
+
+                    // there is a possibility the user requests we queue and wait for service to show up
+                    if (response.statusCode == Operation.STATUS_CODE_NOT_FOUND) {
+                        this.host.checkPragmaAndRegisterForAvailability(finalServicePath,
+                                inboundOp);
+                        return;
+                    }
+                }
+
+                inboundOp.setBodyNoCloning(o.getBodyRaw()).setStatusCode(o.getStatusCode());
+                inboundOp.fail(e);
+                return;
+            }
+            // proceed with handling original client request, service now started
+            this.host.handleRequest(null, inboundOp);
+        };
+
+        onDemandPost.addPragmaDirective(Operation.PRAGMA_DIRECTIVE_INDEX_CHECK)
+                .addPragmaDirective(Operation.PRAGMA_DIRECTIVE_VERSION_CHECK)
+                .transferRefererFrom(inboundOp)
+                .setExpiration(inboundOp.getExpirationMicrosUtc())
+                .setReplicationDisabled(true)
+                .setCompletion(c);
+
+        Service childService;
+        try {
+            childService = factoryService.createServiceInstance();
+            childService.toggleOption(ServiceOption.FACTORY_ITEM, true);
+        } catch (Throwable e1) {
+            inboundOp.fail(e1);
+            return;
+        }
+
+        if (inboundOp.getAction() == Action.DELETE) {
+            onDemandPost.disableFailureLogging(true);
+            inboundOp.disableFailureLogging(true);
+        }
+
+        // bypass the factory, directly start service on host. This avoids adding a new
+        // version to the index and various factory processes that are invoked on new
+        // service creation
+        this.host.startService(onDemandPost, childService);
+    }
+
     void resumeService(String path, Service resumedService) {
         if (this.host.isStopping()) {
             return;
@@ -709,6 +873,27 @@ class ServiceResourceTracker {
 
         this.host.getManagementService().adjustStat(
                 ServiceHostManagementService.STAT_NAME_SERVICE_RESUME_COUNT, 1);
+    }
+
+    void retryPauseOrOnDemandLoadConflict(Operation op,
+            boolean isOdlConflict) {
+
+        op.removePragmaDirective(Operation.PRAGMA_DIRECTIVE_INDEX_CHECK);
+        String statName = isOdlConflict
+                ? ServiceHostManagementService.STAT_NAME_ODL_STOP_CONFLICT_COUNT
+                : ServiceHostManagementService.STAT_NAME_PAUSE_RESUME_CONFLICT_COUNT;
+        this.host.getManagementService().adjustStat(statName, 1);
+
+        this.host.log(Level.WARNING,
+                "Pause(%s)/ODL(%s) conflict: retrying %s (%d %s) on %s",
+                !isOdlConflict, isOdlConflict, op.getAction(), op.getId(), op.getContextId(),
+                op.getUri().getPath());
+
+        long interval = Math.max(TimeUnit.SECONDS.toMicros(1),
+                this.host.getMaintenanceIntervalMicros());
+        this.host.schedule(() -> {
+            this.host.handleRequest(null, op);
+        }, interval, TimeUnit.MICROSECONDS);
     }
 
     public void close() {
