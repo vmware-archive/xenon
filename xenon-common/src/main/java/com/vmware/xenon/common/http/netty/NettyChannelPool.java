@@ -37,6 +37,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.ServiceClient;
+import com.vmware.xenon.common.ServiceClient.ConnectionPoolMetrics;
 import com.vmware.xenon.common.ServiceHost.ServiceHostState;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.Utils;
@@ -248,11 +249,19 @@ public class NettyChannelPool {
         return group;
     }
 
-    public long getPendingRequestCount(Operation op) {
-        NettyChannelGroup group = getChannelGroup(op.getConnectionTag(), op.getUri().getHost(), op
-                .getUri()
-                .getPort());
-        return group.pendingRequests.size();
+    public ConnectionPoolMetrics getConnectionTagInfo(String tag) {
+        ConnectionPoolMetrics tagInfo = null;
+        for (NettyChannelGroup g : this.channelGroups.values()) {
+            if (!tag.equals(g.key.connectionTag)) {
+                continue;
+            }
+            if (tagInfo == null) {
+                tagInfo = new ConnectionPoolMetrics();
+            }
+            tagInfo.pendingRequestCount += g.pendingRequests.size();
+            tagInfo.inUseConnectionCount += g.inUseChannels.size();
+        }
+        return tagInfo;
     }
 
     public void connectOrReuse(NettyChannelGroupKey key, Operation request) {
