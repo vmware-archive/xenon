@@ -25,7 +25,7 @@ rm: stop
 	docker rm $(CONT) || true
 
 attach:
-	docker exec -ti $(CONT) /bin/bash
+	docker exec -ti $(CONT) /bin/sh
 
 stop:
 	docker stop -t 3 $(CONT) || docker kill $(CONT) || true
