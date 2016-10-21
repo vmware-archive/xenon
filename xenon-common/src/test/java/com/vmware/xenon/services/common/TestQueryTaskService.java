@@ -113,16 +113,18 @@ public class TestQueryTaskService {
         CommandLineArgumentParser.parseFromProperties(this.host);
         CommandLineArgumentParser.parseFromProperties(this);
         try {
-            this.host.setMaintenanceIntervalMicros(TimeUnit.MILLISECONDS
-                    .toMicros(VerificationHost.FAST_MAINT_INTERVAL_MILLIS));
+            this.host.setStressTest(this.host.isStressTest);
             // disable synchronization so it does not interfere with the various test assumptions
             // on index stats.
             this.host.setPeerSynchronizationEnabled(false);
             this.host.start();
-            this.host.setStressTest(this.host.isStressTest);
-            this.host.toggleServiceOptions(this.host.getDocumentIndexServiceUri(),
-                    EnumSet.of(ServiceOption.INSTRUMENTATION),
-                    null);
+            if (!this.host.isStressTest()) {
+                this.host.setMaintenanceIntervalMicros(TimeUnit.MILLISECONDS
+                        .toMicros(VerificationHost.FAST_MAINT_INTERVAL_MILLIS));
+                this.host.toggleServiceOptions(this.host.getDocumentIndexServiceUri(),
+                        EnumSet.of(ServiceOption.INSTRUMENTATION),
+                        null);
+            }
 
         } catch (Throwable e) {
             throw new Exception(e);
@@ -672,19 +674,22 @@ public class TestQueryTaskService {
 
         // first do the test with no concurrent updates to the index, while we query
         boolean interleaveWrites = false;
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < this.iterationCount; i++) {
             doThroughputQuery(services, q, 1, newState, interleaveWrites);
         }
         // now update the index, once for every N queries. This will have a significant
         // impact on performance
         interleaveWrites = true;
-        doThroughputQuery(services, q, 1, newState, interleaveWrites);
+        for (int i = 0; i < this.iterationCount; i++) {
+            doThroughputQuery(services, q, 1, newState, interleaveWrites);
+        }
     }
 
     public void doThroughputQuery(List<URI> services, Query q, int expectedResults,
             QueryValidationServiceState template, boolean interleaveWrites)
             throws Throwable {
 
+        int interleaveFactor = 10;
         this.host.log(
                 "Starting QPS test, service count: %d, query count: %d, interleave writes: %s",
                 this.serviceCount, this.queryCount, interleaveWrites);
@@ -709,7 +714,7 @@ public class TestQueryTaskService {
                             return;
                         }
 
-                        if (!interleaveWrites || (index % 100) != 0) {
+                        if (!interleaveWrites || (index % interleaveFactor) != 0) {
                             ctx.complete();
                             return;
                         }
@@ -799,7 +804,7 @@ public class TestQueryTaskService {
             QueryValidationServiceState newState)
             throws Throwable {
 
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < this.iterationCount; i++) {
             this.host.log("%d", i);
             this.host.createAndWaitSimpleDirectQuery(
                     QuerySpecification.buildCompositeFieldName("exampleValue", "name"),
