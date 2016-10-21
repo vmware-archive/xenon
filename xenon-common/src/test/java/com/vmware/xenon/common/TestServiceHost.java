@@ -1105,22 +1105,6 @@ public class TestServiceHost {
         ServiceStat http2PendingCount = hostMgmtStats
                 .get(ServiceHostManagementService.STAT_NAME_HTTP2_PENDING_OP_COUNT);
         assertTrue(http2PendingCount != null);
-        ServiceStat http1ConnectionCountDaily = hostMgmtStats
-                .get(ServiceHostManagementService.STAT_NAME_HTTP11_CONNECTION_COUNT_PER_DAY);
-        ServiceStat http1ConnectionCountHourly = hostMgmtStats
-                .get(ServiceHostManagementService.STAT_NAME_HTTP11_CONNECTION_COUNT_PER_HOUR);
-        ServiceStat http2ConnectionCountDaily = hostMgmtStats
-                .get(ServiceHostManagementService.STAT_NAME_HTTP2_CONNECTION_COUNT_PER_DAY);
-        ServiceStat http2ConnectionCountHourly = hostMgmtStats
-                .get(ServiceHostManagementService.STAT_NAME_HTTP2_CONNECTION_COUNT_PER_HOUR);
-        TestUtilityService.validateTimeSeriesStat(http1ConnectionCountDaily,
-                TimeUnit.HOURS.toMillis(1));
-        TestUtilityService.validateTimeSeriesStat(http1ConnectionCountHourly,
-                TimeUnit.MINUTES.toMillis(1));
-        TestUtilityService.validateTimeSeriesStat(http2ConnectionCountDaily,
-                TimeUnit.HOURS.toMillis(1));
-        TestUtilityService.validateTimeSeriesStat(http2ConnectionCountHourly,
-                TimeUnit.MINUTES.toMillis(1));
 
         TestUtilityService.validateTimeSeriesStat(freeMemDaily, TimeUnit.HOURS.toMillis(1));
         TestUtilityService.validateTimeSeriesStat(freeMemHourly, TimeUnit.MINUTES.toMillis(1));
