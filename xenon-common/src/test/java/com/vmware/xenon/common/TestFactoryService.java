@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -214,7 +215,7 @@ public class TestFactoryService extends BasicReusableHostTestCase {
                         }
 
                         doPost(h, doc, (e2) -> {
-                            if (e2 != null) {
+                            if (e2 != null && !(e2 instanceof CancellationException)) {
                                 ctx.failIteration(e2);
                                 return;
                             }
