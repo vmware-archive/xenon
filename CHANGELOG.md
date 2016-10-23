@@ -2,6 +2,9 @@
 
 ## 1.1.0-SNAPSHOT
 
+* Remove infrastructure Utils.toDocumentBytes/fromDocumentBytes and related methods,
+  KryoSerializers.serialize/deserializeObject are used instead
+
 * Pause/Resume now happens only for services with ServiceOption.ON_DEMAND_LOAD.
   Independent of memory usage, a ODL service will be either stopped or
   paused to disk, the moment we determine its idle. If the service has stats
