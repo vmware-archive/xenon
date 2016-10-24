@@ -95,7 +95,7 @@ public class NettyHttpServiceClient implements ServiceClient {
 
     private boolean warnHttp2ConversionToCallbacks = false;
 
-    private final Object START_LOCK = new Object();
+    private final Object startSync = new Object();
 
     public static ServiceClient create(String userAgent,
             ExecutorService executor,
@@ -139,7 +139,7 @@ public class NettyHttpServiceClient implements ServiceClient {
 
     @Override
     public void start() {
-        synchronized (this.START_LOCK) {
+        synchronized (this.startSync) {
             if (this.isStarted) {
                 return;
             }
@@ -186,7 +186,7 @@ public class NettyHttpServiceClient implements ServiceClient {
     @Override
     public void stop() {
         // In practice, it's safe not to synchronize here, but this make Findbugs happy.
-        synchronized (this.START_LOCK) {
+        synchronized (this.startSync) {
             if (this.isStarted == false) {
                 return;
             }
@@ -869,7 +869,7 @@ public class NettyHttpServiceClient implements ServiceClient {
     }
 
     public ServiceClient setRequestPayloadSizeLimit(int limit) {
-        synchronized (this.START_LOCK) {
+        synchronized (this.startSync) {
             if (this.isStarted) {
                 throw new IllegalStateException("Already started");
             }
