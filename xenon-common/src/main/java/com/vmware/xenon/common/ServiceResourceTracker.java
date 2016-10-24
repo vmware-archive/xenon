@@ -708,7 +708,7 @@ class ServiceResourceTracker {
                 return false;
             }
 
-            this.host.log(Level.WARNING, "(%d) ODL check for %s", inboundOp.getId(), path);
+            this.host.log(Level.FINE, "(%d) ODL check for %s", inboundOp.getId(), path);
             return checkAndOnDemandStartService(inboundOp, factoryService);
         }
 
