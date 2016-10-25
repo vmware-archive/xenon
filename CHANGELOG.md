@@ -2,6 +2,12 @@
 
 ## 1.1.1-SNAPSHOT
 
+* Remove time-series point stats in LuceneDocumentIndexService in favor of
+  the existing per-day / per-hour statistics.
+
+* Modify the handling of time-series stats aggregated by SUM to record the
+  delta when using adjustStat rather than the updated value.
+
 * Validate service options for Stateless services.
   Using PERSISTENCE, REPLICATION, OWNER_SELECTION, STRICT_UPDATE_CHECKING
   will fail service start.
