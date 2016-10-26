@@ -319,7 +319,7 @@ public class TestQueryTaskService {
         QueryValidationServiceState newState = createContinuousQueryTasks(failure, stateUpdates);
 
         this.host.log("Query task is active in index service");
-        long start = Utils.getNowMicrosUtc();
+        long start = System.nanoTime() / 1000;
 
         // start services
         List<URI> services = startQueryTargetServices(this.serviceCount, newState);
@@ -369,7 +369,7 @@ public class TestQueryTaskService {
             throw failure[0];
         }
 
-        long end = Utils.getNowMicrosUtc();
+        long end = System.nanoTime() / 1000;
 
         double thpt = totalCount / ((end - start) / 1000000.0);
         this.host.log("Update notification throughput (updates/sec): %f, update count: %d", thpt,
@@ -404,7 +404,8 @@ public class TestQueryTaskService {
 
         // If the expiration time is not set, then the query will receive the default
         // query expiration time of 1 minute.
-        task.documentExpirationTimeMicros = Utils.getNowMicrosUtc() + TimeUnit.DAYS.toMicros(1);
+        task.documentExpirationTimeMicros = Utils
+                .fromNowMicrosUtc(TimeUnit.DAYS.toMicros(1));
 
         URI queryTaskUri = this.host.createQueryTaskService(
                 UriUtils.buildUri(this.host.getUri(), ServiceUriPaths.CORE_QUERY_TASKS),
@@ -473,7 +474,8 @@ public class TestQueryTaskService {
 
         // If the expiration time is not set, then the query will receive the default
         // query expiration time of 1 minute.
-        task.documentExpirationTimeMicros = Utils.getNowMicrosUtc() + TimeUnit.DAYS.toMicros(1);
+        task.documentExpirationTimeMicros = Utils
+                .fromNowMicrosUtc(TimeUnit.DAYS.toMicros(1));
 
         URI updateQueryTask = this.host.createQueryTaskService(
                 UriUtils.buildUri(this.host.getUri(), ServiceUriPaths.CORE_QUERY_TASKS),
@@ -557,8 +559,8 @@ public class TestQueryTaskService {
         if (task.documentExpirationTimeMicros != 0) {
             // the value was set as an interval by the calling test. Make absolute here so
             // account for service creation above
-            task.documentExpirationTimeMicros = Utils.getNowMicrosUtc()
-                    + task.documentExpirationTimeMicros;
+            task.documentExpirationTimeMicros = Utils.fromNowMicrosUtc(
+                    +task.documentExpirationTimeMicros);
         }
 
         this.host.logThroughput();
@@ -1818,8 +1820,8 @@ public class TestQueryTaskService {
 
             QueryTask task = QueryTask.create(q);
             if (task.documentExpirationTimeMicros == 0) {
-                task.documentExpirationTimeMicros = Utils.getNowMicrosUtc() + targetHost
-                        .getOperationTimeoutMicros();
+                task.documentExpirationTimeMicros = Utils.fromNowMicrosUtc(targetHost
+                        .getOperationTimeoutMicros());
             }
             task.documentSelfLink = UUID.randomUUID().toString();
 
@@ -2013,8 +2015,8 @@ public class TestQueryTaskService {
         if (task.documentExpirationTimeMicros != 0) {
             // the value was set as an interval by the calling test. Make absolute here so
             // account for service creation above
-            task.documentExpirationTimeMicros = Utils.getNowMicrosUtc()
-                    + task.documentExpirationTimeMicros;
+            task.documentExpirationTimeMicros = Utils.fromNowMicrosUtc(
+                    task.documentExpirationTimeMicros);
         }
 
         this.host.logThroughput();
@@ -2157,8 +2159,8 @@ public class TestQueryTaskService {
         if (task.documentExpirationTimeMicros != 0) {
             // the value was set as an interval by the calling test. Make absolute here so
             // account for service creation above
-            task.documentExpirationTimeMicros = Utils.getNowMicrosUtc()
-                    + task.documentExpirationTimeMicros;
+            task.documentExpirationTimeMicros = Utils.fromNowMicrosUtc(
+                    task.documentExpirationTimeMicros);
         }
 
         this.host.logThroughput();
@@ -2744,7 +2746,8 @@ public class TestQueryTaskService {
                 .setTermMatchType(MatchType.PHRASE);
 
         QueryTask task = QueryTask.create(q);
-        task.documentExpirationTimeMicros = Utils.getNowMicrosUtc() + TimeUnit.SECONDS.toMicros(1);
+        task.documentExpirationTimeMicros = Utils.fromNowMicrosUtc(TimeUnit.SECONDS
+                .toMicros(1));
 
         URI taskURI = this.host.createQueryTaskService(task, false, false, task, null);
         this.host.waitForQueryTaskCompletion(q, 0, 0, taskURI, false, false);
@@ -2779,7 +2782,7 @@ public class TestQueryTaskService {
                 .setTermMatchValue(TEXT_VALUE)
                 .setTermMatchType(MatchType.PHRASE);
 
-        long exp = Utils.getNowMicrosUtc() + TimeUnit.SECONDS.toMicros(30);
+        long exp = Utils.fromNowMicrosUtc(TimeUnit.SECONDS.toMicros(30));
         QueryTask task = QueryTask.create(q);
         task.documentExpirationTimeMicros = exp;
 
@@ -2815,7 +2818,8 @@ public class TestQueryTaskService {
         // Increase expectedResultCount, should timeout and PATCH task state to FAILED
         q.expectedResultCount *= versions * 2;
         task = QueryTask.create(q);
-        task.documentExpirationTimeMicros = Utils.getNowMicrosUtc() + TimeUnit.SECONDS.toMicros(1);
+        task.documentExpirationTimeMicros = Utils.fromNowMicrosUtc(TimeUnit.SECONDS
+                .toMicros(1));
 
         taskURI = this.host.createQueryTaskService(task, false,
                 false, task, null);
@@ -2867,8 +2871,8 @@ public class TestQueryTaskService {
         if (task.documentExpirationTimeMicros != 0) {
             // the value was set as an interval by the calling test. Make absolute here so
             // account for service creation above
-            task.documentExpirationTimeMicros = Utils.getNowMicrosUtc()
-                    + task.documentExpirationTimeMicros;
+            task.documentExpirationTimeMicros = Utils.fromNowMicrosUtc(
+                    task.documentExpirationTimeMicros);
         }
 
         URI taskURI = this.host.createQueryTaskService(task, false,
@@ -2935,7 +2939,8 @@ public class TestQueryTaskService {
 
         // indirect query, many results expected
         QueryTask task = QueryTask.create(new QuerySpecification()).setDirect(false);
-        task.documentExpirationTimeMicros = Utils.getNowMicrosUtc() + TimeUnit.DAYS.toMicros(1);
+        task.documentExpirationTimeMicros = Utils
+                .fromNowMicrosUtc(TimeUnit.DAYS.toMicros(1));
 
         List<URI> pageServiceURIs = new ArrayList<>();
         List<URI> targetServiceURIs = new ArrayList<>();
@@ -3357,8 +3362,8 @@ public class TestQueryTaskService {
             q.options = EnumSet.noneOf(QueryOption.class);
         }
         if (isDirect) {
-            task.documentExpirationTimeMicros = Utils.getNowMicrosUtc()
-                    + TimeUnit.MILLISECONDS.toMicros(100);
+            task.documentExpirationTimeMicros = Utils.fromNowMicrosUtc(
+                    +TimeUnit.MILLISECONDS.toMicros(100));
         }
         URI u = this.host.createQueryTaskService(task, forceRemote,
                 isDirect, task, null);
