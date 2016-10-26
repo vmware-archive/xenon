@@ -2011,10 +2011,15 @@ public class TestLuceneDocumentIndexService {
     private void validateTimeSeriesStat(Map<String, ServiceStat> indexServiceStats, String name) {
         String nameForDayStat = name + ServiceStats.STAT_NAME_SUFFIX_PER_DAY;
         ServiceStat dayStat = indexServiceStats.get(nameForDayStat);
-        TestUtilityService.validateTimeSeriesStat(dayStat, TimeUnit.HOURS.toMillis(1));
+        if (dayStat != null) {
+            // ignore entries not updated as part of the current test
+            TestUtilityService.validateTimeSeriesStat(dayStat, TimeUnit.HOURS.toMillis(1));
+        }
         String nameForHourStat = name + ServiceStats.STAT_NAME_SUFFIX_PER_HOUR;
         ServiceStat hourStat = indexServiceStats.get(nameForHourStat);
-        TestUtilityService.validateTimeSeriesStat(hourStat, TimeUnit.MINUTES.toMillis(1));
+        if (hourStat != null) {
+            TestUtilityService.validateTimeSeriesStat(hourStat, TimeUnit.MINUTES.toMillis(1));
+        }
     }
 
     private void patchOrDeleteWithExpiration(URI factoryUri, Map<URI, ExampleServiceState> services,
