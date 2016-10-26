@@ -577,17 +577,16 @@ public class TestUtilityService extends BasicReusableHostTestCase {
     public static void validateTimeSeriesStat(ServiceStat stat, long expectedBinDurationMillis) {
         assertTrue(stat != null);
         assertTrue(stat.timeSeriesStats != null);
-        assertTrue(stat.version > 1);
+        assertTrue(stat.version >= 1);
         assertEquals(expectedBinDurationMillis, stat.timeSeriesStats.binDurationMillis);
-        double maxAvg = 0;
-        double countPerMaxAvgBin = 0;
-        for (TimeBin bin : stat.timeSeriesStats.bins.values()) {
-            if (bin.avg != null && bin.avg > maxAvg) {
-                maxAvg = bin.avg;
-                countPerMaxAvgBin = bin.count;
+        if (stat.timeSeriesStats.aggregationType.contains(AggregationType.AVG)) {
+            double maxCount = 0;
+            for (TimeBin bin : stat.timeSeriesStats.bins.values()) {
+                if (bin.count > maxCount) {
+                    maxCount = bin.count;
+                }
             }
+            assertTrue(maxCount >= 1);
         }
-        assertTrue(maxAvg > 0);
-        assertTrue(countPerMaxAvgBin >= 1);
     }
 }
