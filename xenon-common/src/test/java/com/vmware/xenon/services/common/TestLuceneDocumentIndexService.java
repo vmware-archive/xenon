@@ -1802,7 +1802,7 @@ public class TestLuceneDocumentIndexService {
         URI factoryUri = UriUtils.buildFactoryUri(this.host, ExampleService.class);
         Consumer<Operation> setBody = (o) -> {
             ExampleServiceState body = new ExampleServiceState();
-            body.name = UUID.randomUUID().toString();
+            body.name = Utils.getSystemNowMicrosUtc() + "";
             o.setBody(body);
         };
         Consumer<Operation> setBodyMinimal = (o) -> {
@@ -1817,7 +1817,7 @@ public class TestLuceneDocumentIndexService {
                 setBody, factoryUri);
 
         Set<String> names = new HashSet<>();
-        this.host.testStart(services.size());
+        TestContext ctx = this.host.testCreate(services.size());
         // patch services to a new version so we verify expiration across multiple versions
         for (URI u : services.keySet()) {
             ExampleServiceState s = new ExampleServiceState();
@@ -1827,15 +1827,17 @@ public class TestLuceneDocumentIndexService {
                     TimeUnit.DAYS.toMicros(1));
             names.add(s.name);
             this.host.send(Operation.createPatch(u).setBody(s)
-                    .setCompletion(this.host.getCompletion()));
+                    .setCompletion(ctx.getCompletion()));
         }
-        this.host.testWait();
+        this.host.testWait(ctx);
 
-        // verify state was saved by issuing a factory GET which goes to the index
+        // verify state was updated
         Map<URI, ExampleServiceState> states = this.host.getServiceState(null,
                 ExampleServiceState.class, services.keySet());
         for (ExampleServiceState st : states.values()) {
             assertTrue(names.contains(st.name));
+            // verify expiration is properly set
+            assertTrue(st.documentExpirationTimeMicros > TimeUnit.DAYS.toMicros(1) / 2);
         }
 
         Map<String, ServiceStat> stats = this.host.getServiceStats(
@@ -2009,9 +2011,12 @@ public class TestLuceneDocumentIndexService {
 
         ServiceDocumentQueryResult r = this.host.getFactoryState(factoryUri);
         ServiceHostState s = this.host.getState();
-        this.host.log("number of documents: %d, host state: %s", r.documentLinks.size(),
-                Utils.toJsonHtml(s));
+        this.host.log("number of documents: %d, num services: %s", r.documentLinks.size(),
+                s.serviceCount);
 
+        Map<String, ServiceStat> hostStats = this.host.getServiceStats(
+                UriUtils.buildUri(this.host, ServiceHostManagementService.SELF_LINK));
+        this.host.log("host stats: %s", Utils.toJsonHtml(hostStats));
         assertEquals(0, r.documentLinks.size());
 
         validateTimeSeriesStats();
