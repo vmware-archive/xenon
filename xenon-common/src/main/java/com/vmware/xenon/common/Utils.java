@@ -1041,7 +1041,7 @@ public final class Utils {
      * Contains flags describing the result of a state merging operation through the
      * {@link Utils#mergeWithStateAdvanced} method.
      */
-    public static enum MergeResult {
+    public enum MergeResult {
         SPECIAL_MERGE,   // whether the patch body represented a special update request
                          // (if not set, the patch body is assumed to be a service state)
         STATE_CHANGED    // whether the current state was changed as a result of the merge
@@ -1254,7 +1254,7 @@ public final class Utils {
         return hasChanged;
     }
 
-    private static enum CollectionOperation {
+    private enum CollectionOperation {
         ADD, REMOVE
     }
 

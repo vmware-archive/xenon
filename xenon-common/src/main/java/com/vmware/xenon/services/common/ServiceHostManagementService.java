@@ -85,7 +85,7 @@ public class ServiceHostManagementService extends StatefulService {
         super.toggleOption(ServiceOption.INSTRUMENTATION, true);
     }
 
-    public static enum OperationTracingEnable {
+    public enum OperationTracingEnable {
         START,
         STOP
     }

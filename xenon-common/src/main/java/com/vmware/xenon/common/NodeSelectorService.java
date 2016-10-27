@@ -63,7 +63,7 @@ public interface NodeSelectorService extends Service {
      * forward the request
      */
     public static class SelectAndForwardRequest {
-        public static enum ForwardingOption {
+        public enum ForwardingOption {
             REPLICATE,
             BROADCAST,
             UNICAST,

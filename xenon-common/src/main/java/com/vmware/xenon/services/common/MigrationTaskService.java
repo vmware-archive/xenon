@@ -93,7 +93,7 @@ public class MigrationTaskService extends StatefulService {
     public static final String STAT_NAME_ESTIMATED_TOTAL_SERVICE_COUNT = "estimatedTotalServiceCount";
     public static final String FACTORY_LINK = ServiceUriPaths.MIGRATION_TASKS;
 
-    public static enum MigrationOption {
+    public enum MigrationOption {
         /**
          * Enables continuous data migration.
          */

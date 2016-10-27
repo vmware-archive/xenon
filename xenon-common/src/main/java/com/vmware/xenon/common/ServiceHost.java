@@ -378,11 +378,11 @@ public class ServiceHost implements ServiceRequestSender {
     }
 
     public static class ServiceHostState extends ServiceDocument {
-        public static enum MemoryLimitType {
+        public enum MemoryLimitType {
             LOW_WATERMARK, HIGH_WATERMARK, EXACT
         }
 
-        public static enum SslClientAuthMode {
+        public enum SslClientAuthMode {
             NONE, WANT, NEED
         }
 
