@@ -111,11 +111,13 @@ public final class KryoSerializers {
     private static void configureJdkCollections(Kryo kryo) {
         // write singleton as arraylists of size 1
         CollectionSerializer emptyOrSingletonSerializer = new CollectionSerializer() {
+            @SuppressWarnings("rawtypes")
             @Override
             protected Collection<?> create(Kryo kryo, Input input, Class<Collection> type) {
                 return newCollection(type);
             }
 
+            @SuppressWarnings("rawtypes")
             private Collection<?> newCollection(Class<Collection> origType) {
                 if (NavigableSet.class.isAssignableFrom(origType)) {
                     return new TreeSet<>();
@@ -134,11 +136,13 @@ public final class KryoSerializers {
         };
 
         MapSerializer emptyOrSingletonMapSerializer = new MapSerializer(){
+            @SuppressWarnings("rawtypes")
             @Override
             protected Map<?, ?> create(Kryo kryo, Input input, Class<Map> type) {
                 return newMap(type);
             }
 
+            @SuppressWarnings("rawtypes")
             private Map<?, ?> newMap(Class<Map> origType) {
                 if (NavigableMap.class.isAssignableFrom(origType)) {
                     return new TreeMap<>();
