@@ -96,10 +96,10 @@ class FaultInjectionLuceneDocumentIndexService extends LuceneDocumentIndexServic
         try {
             this.logWarning("Closing writer abruptly to induce failure");
             int permits = QUERY_THREAD_COUNT + UPDATE_THREAD_COUNT;
-            this.writerAvailable.acquire(permits);
+            this.writerSync.acquire(permits);
             super.writer.commit();
             super.writer.close();
-            this.writerAvailable.release(permits);
+            this.writerSync.release(permits);
         } catch (Throwable e) {
         }
     }
@@ -235,6 +235,9 @@ public class TestLuceneDocumentIndexService {
             this.host.log("Error logging stats: %s", e.toString());
         }
         this.host.tearDown();
+        this.host = null;
+        LuceneDocumentIndexService.setIndexFileCountThresholdForWriterRefresh(
+                LuceneDocumentIndexService.DEFAULT_INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH);
         LuceneDocumentIndexService
                 .setExpiredDocumentSearchThreshold(this.expiredDocumentSearchThreshold);
     }
@@ -539,6 +542,13 @@ public class TestLuceneDocumentIndexService {
 
     @Test
     public void serviceHostRestartWithDurableServices() throws Throwable {
+        for (int i = 0; i < this.iterationCount; i++) {
+            doServiceHostRestartWithDurableServices();
+            tearDown();
+        }
+    }
+
+    private void doServiceHostRestartWithDurableServices() throws Throwable {
         setUpHost(false);
         VerificationHost h = VerificationHost.create();
         TemporaryFolder tmpFolder = new TemporaryFolder();
@@ -582,8 +592,6 @@ public class TestLuceneDocumentIndexService {
 
             if (!this.host.isStressTest()) {
                 h.setServiceStateCaching(false);
-                // set the index service memory use to be very low to cause pruning of any cached entries
-                h.setServiceMemoryLimit(ServiceUriPaths.CORE_DOCUMENT_INDEX, 0.0001);
                 h.setMaintenanceIntervalMicros(TimeUnit.MILLISECONDS.toMicros(250));
             }
 
@@ -1389,30 +1397,31 @@ public class TestLuceneDocumentIndexService {
     }
 
     private double getHostPauseCount() {
-        Map<String, ServiceStat> hostStats = this.host.getServiceStats(
-                UriUtils.buildUri(this.host, ServiceHostManagementService.SELF_LINK));
-        ServiceStat st = hostStats.get(Service.STAT_NAME_PAUSE_COUNT);
-        if (st == null) {
-            return 0.0;
-        }
-        return st.latestValue;
+        return getMgmtStat(ServiceHostManagementService.STAT_NAME_PAUSE_COUNT);
     }
 
     private double getHostODLStopCount() {
-        Map<String, ServiceStat> hostStats = this.host.getServiceStats(
-                UriUtils.buildUri(this.host, ServiceHostManagementService.SELF_LINK));
-        ServiceStat st = hostStats.get(ServiceHostManagementService.STAT_NAME_ODL_STOP_COUNT);
-        if (st == null) {
-            return 0.0;
-        }
-        return st.latestValue;
+        return getMgmtStat(ServiceHostManagementService.STAT_NAME_ODL_STOP_COUNT);
     }
 
     private double getMaintCount() {
+        return getMgmtStat(ServiceHostManagementService.STAT_NAME_SERVICE_HOST_MAINTENANCE_COUNT);
+    }
+
+    private ServiceStat getLuceneStat(String name) {
+        Map<String, ServiceStat> hostStats = this.host
+                .getServiceStats(this.host.getDocumentIndexServiceUri());
+        ServiceStat st = hostStats.get(name);
+        if (st == null) {
+            return new ServiceStat();
+        }
+        return st;
+    }
+
+    private double getMgmtStat(String name) {
         Map<String, ServiceStat> hostStats = this.host.getServiceStats(
                 UriUtils.buildUri(this.host, ServiceHostManagementService.SELF_LINK));
-        ServiceStat st = hostStats
-                .get(ServiceHostManagementService.STAT_NAME_SERVICE_HOST_MAINTENANCE_COUNT);
+        ServiceStat st = hostStats.get(name);
         if (st == null) {
             return 0.0;
         }
@@ -1600,12 +1609,18 @@ public class TestLuceneDocumentIndexService {
         if (this.host.isAuthorizationEnabled()) {
             subject = OperationContext.getAuthorizationContext().getClaims().getSubject();
         }
+
+        String timeSeriesStatName = LuceneDocumentIndexService.STAT_NAME_INDEXED_DOCUMENT_COUNT
+                + ServiceStats.STAT_NAME_SUFFIX_PER_HOUR;
+        double docCount = this.getLuceneStat(timeSeriesStatName).accumulatedValue;
+
         this.host.log(
-                "(%s) Factory: %s, Services: %d Ops: %f, Queries: %d, Total result count: %d, POST throughput(ops/sec): %f",
-                subject,
-                factoryUri.getPath(),
-                this.host.getState().serviceCount,
-                ioCount, queryCount, queryResultCount.get(), throughput);
+                        "(%s) Factory: %s, Services: %d Docs: %f, Ops: %f, Queries: %d, Total result count: %d, POST throughput(ops/sec): %f",
+                        subject,
+                        factoryUri.getPath(),
+                        this.host.getState().serviceCount,
+                        docCount,
+                        ioCount, queryCount, queryResultCount.get(), throughput);
     }
 
     @Test
@@ -1782,6 +1797,7 @@ public class TestLuceneDocumentIndexService {
         Service minimalFactory = this.host.startServiceAndWait(
                 new MinimalFactoryTestService(), minimalSelfLinkPrefix, new ServiceDocument());
 
+        LuceneDocumentIndexService.setIndexFileCountThresholdForWriterRefresh(100);
         do {
             this.host.log("Expiration: %s, now: %s", expiration, new Date());
             File f = new File(this.host.getStorageSandbox());
@@ -2169,9 +2185,16 @@ public class TestLuceneDocumentIndexService {
 
     @Test
     public void serviceVersionRetentionAndGrooming() throws Throwable {
-        setUpHost(false);
-        EnumSet<ServiceOption> caps = EnumSet.of(ServiceOption.PERSISTENCE);
-        doServiceVersionGroomingValidation(caps);
+        try {
+            Utils.setTimeDriftThreshold(TimeUnit.HOURS.toMicros(1));
+            for (int i = 0; i < this.iterationCount; i++) {
+                EnumSet<ServiceOption> caps = EnumSet.of(ServiceOption.PERSISTENCE);
+                doServiceVersionGroomingValidation(caps);
+                tearDown();
+            }
+        } finally {
+            Utils.setTimeDriftThreshold(Utils.DEFAULT_TIME_DRIFT_THRESHOLD_MICROS);
+        }
     }
 
     @Test
@@ -2263,6 +2286,7 @@ public class TestLuceneDocumentIndexService {
     }
 
     private void doServiceVersionGroomingValidation(EnumSet<ServiceOption> caps) throws Throwable {
+        setUpHost(false);
         long end = Utils.getSystemNowMicrosUtc()
                 + TimeUnit.SECONDS.toMicros(this.testDurationSeconds);
         final long offset = 10;

@@ -29,11 +29,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Queue;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -108,7 +106,6 @@ import com.vmware.xenon.common.ServiceDocumentDescription.PropertyUsageOption;
 import com.vmware.xenon.common.ServiceDocumentDescription.TypeName;
 import com.vmware.xenon.common.ServiceDocumentQueryResult;
 import com.vmware.xenon.common.ServiceHost.ServiceHostState.MemoryLimitType;
-import com.vmware.xenon.common.ServiceMaintenanceRequest;
 import com.vmware.xenon.common.ServiceStats;
 import com.vmware.xenon.common.ServiceStats.ServiceStat;
 import com.vmware.xenon.common.ServiceStats.TimeSeriesStats.AggregationType;
@@ -138,13 +135,7 @@ public class LuceneDocumentIndexService extends StatelessService {
 
     private static int EXPIRED_DOCUMENT_SEARCH_THRESHOLD = 1000;
 
-    private static int INDEX_SEARCHER_COUNT_THRESHOLD = DEFAULT_INDEX_SEARCHER_COUNT_THRESHOLD;
-
     private static int INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH = DEFAULT_INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH;
-
-    public static void setSearcherCountThreshold(int count) {
-        INDEX_SEARCHER_COUNT_THRESHOLD = count;
-    }
 
     public static void setIndexFileCountThresholdForWriterRefresh(int count) {
         INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH = count;
@@ -215,18 +206,31 @@ public class LuceneDocumentIndexService extends StatelessService {
     protected static final int QUERY_THREAD_COUNT = Utils.DEFAULT_THREAD_COUNT;
 
     protected Object searchSync;
-    protected Queue<IndexSearcher> searchersPendingClose = new ConcurrentLinkedQueue<>();
+    private ThreadLocal<Long> searcherUpdateTimeMicros = new ThreadLocal<Long>() {
+        @Override
+        protected Long initialValue() {
+            return 0L;
+        }
+    };
+
+    /**
+     * Map of searchers per thread id. We do not use a ThreadLocal since we need visibility to this map
+     * from the maintenance logic
+     */
+    protected Map<Long, IndexSearcher> searchers = new HashMap<>();
+
+    /**
+     * Map of searchers used for paginated query tasks, indexed by creation time
+     */
     protected TreeMap<Long, List<IndexSearcher>> searchersForPaginatedQueries = new TreeMap<>();
-    protected IndexSearcher searcher = null;
+
     protected IndexWriter writer = null;
-    protected final Semaphore writerAvailable = new Semaphore(
+    protected final Semaphore writerSync = new Semaphore(
             UPDATE_THREAD_COUNT + QUERY_THREAD_COUNT);
 
     protected Map<String, QueryTask> activeQueries = new ConcurrentSkipListMap<>();
 
-    private long searcherUpdateTimeMicros;
-
-    private long indexUpdateTimeMicros;
+    private long writerUpdateTimeMicros;
 
     private long indexWriterCreationTimeMicros;
 
@@ -314,10 +318,7 @@ public class LuceneDocumentIndexService extends StatelessService {
 
     private void initializeInstance() {
         this.searchSync = new Object();
-        this.searcher = null;
         this.searchersForPaginatedQueries.clear();
-        this.searchersPendingClose.clear();
-
         this.versionSort = new Sort(new SortedNumericSortField(ServiceDocument.FIELD_NAME_VERSION,
                 SortField.Type.LONG, true));
 
@@ -397,8 +398,8 @@ public class LuceneDocumentIndexService extends StatelessService {
         synchronized (this.searchSync) {
             this.writer = w;
             this.linkAccessTimes.clear();
-            this.indexUpdateTimeMicros = Utils.getNowMicrosUtc();
-            this.indexWriterCreationTimeMicros = this.indexUpdateTimeMicros;
+            this.writerUpdateTimeMicros = Utils.getNowMicrosUtc();
+            this.indexWriterCreationTimeMicros = this.writerUpdateTimeMicros;
         }
         return this.writer;
     }
@@ -420,7 +421,7 @@ public class LuceneDocumentIndexService extends StatelessService {
             logInfo("Upgrading index to %s", Version.LATEST.toString());
             IndexWriterConfig iwc = new IndexWriterConfig(null);
             new IndexUpgrader(dir, iwc, false).upgrade();
-            this.indexUpdateTimeMicros = Utils.getNowMicrosUtc();
+            this.writerUpdateTimeMicros = Utils.getNowMicrosUtc();
         }
     }
 
@@ -494,7 +495,7 @@ public class LuceneDocumentIndexService extends StatelessService {
         final int semaphoreCount = QUERY_THREAD_COUNT + UPDATE_THREAD_COUNT - 1;
         try {
 
-            this.writerAvailable.acquire(semaphoreCount);
+            this.writerSync.acquire(semaphoreCount);
             close(w);
 
             File directory = new File(new File(getHost().getStorageSandbox()), this.indexDirectory);
@@ -512,7 +513,7 @@ public class LuceneDocumentIndexService extends StatelessService {
             this.logInfo("restoring index %s from %s md5sum(%s)", directory, req.backupFile,
                     FileUtils.md5sum(new File(req.backupFile)));
             FileUtils.extractZipArchive(new File(req.backupFile), directory.toPath());
-            this.indexUpdateTimeMicros = Utils.getNowMicrosUtc();
+            this.writerUpdateTimeMicros = Utils.getNowMicrosUtc();
             createWriter(directory, true);
             op.complete();
             this.logInfo("restore complete");
@@ -520,7 +521,7 @@ public class LuceneDocumentIndexService extends StatelessService {
             logSevere(e);
             op.fail(e);
         } finally {
-            this.writerAvailable.release(semaphoreCount);
+            this.writerSync.release(semaphoreCount);
         }
     }
 
@@ -562,7 +563,7 @@ public class LuceneDocumentIndexService extends StatelessService {
 
         Operation op = pollQueryOperation();
         try {
-            this.writerAvailable.acquire();
+            this.writerSync.acquire();
             while (op != null) {
                 switch (op.getAction()) {
                 case GET:
@@ -600,14 +601,14 @@ public class LuceneDocumentIndexService extends StatelessService {
                 op.fail(e);
             }
         } finally {
-            this.writerAvailable.release();
+            this.writerSync.release();
         }
     }
 
     private void handleUpdateRequest() {
         Operation op = pollUpdateOperation();
         try {
-            this.writerAvailable.acquire();
+            this.writerSync.acquire();
             while (op != null) {
                 switch (op.getAction()) {
                 case DELETE:
@@ -628,7 +629,7 @@ public class LuceneDocumentIndexService extends StatelessService {
                 op.fail(e);
             }
         } finally {
-            this.writerAvailable.release();
+            this.writerSync.release();
         }
     }
 
@@ -693,16 +694,17 @@ public class LuceneDocumentIndexService extends StatelessService {
             clonedTask.querySpec = task.querySpec;
             clonedTask.querySpec.context.filter = QueryFilter.create(qs.query);
             this.activeQueries.put(task.documentSelfLink, clonedTask);
-            setTimeSeriesStat(STAT_NAME_ACTIVE_QUERY_FILTERS, AGGREGATION_TYPE_AVG_MAX,
-                    this.activeQueries.size());
+            adjustTimeSeriesStat(STAT_NAME_ACTIVE_QUERY_FILTERS, AGGREGATION_TYPE_SUM,
+                    1);
             logInfo("Activated continuous query task: %s", task.documentSelfLink);
             break;
         case CANCELLED:
         case FAILED:
         case FINISHED:
-            this.activeQueries.remove(task.documentSelfLink);
-            setTimeSeriesStat(STAT_NAME_ACTIVE_QUERY_FILTERS, AGGREGATION_TYPE_AVG_MAX,
-                    this.activeQueries.size());
+            if (this.activeQueries.remove(task.documentSelfLink) != null) {
+                adjustTimeSeriesStat(STAT_NAME_ACTIVE_QUERY_FILTERS, AGGREGATION_TYPE_SUM,
+                        -1);
+            }
             op.complete();
             return true;
         default:
@@ -879,11 +881,8 @@ public class LuceneDocumentIndexService extends StatelessService {
         }
 
         if (s == null) {
-            // If DO_NOT_REFRESH is set use the existing searcher.
-            s = this.searcher;
-            if (!options.contains(QueryOption.DO_NOT_REFRESH) || s == null) {
-                s = updateSearcher(selfLinkPrefix, count, w);
-            }
+            s = createOrRefreshSearcher(selfLinkPrefix, count, w,
+                    options.contains(QueryOption.DO_NOT_REFRESH));
         }
 
         tq = updateQuery(op, tq);
@@ -908,7 +907,7 @@ public class LuceneDocumentIndexService extends StatelessService {
             return;
         }
 
-        IndexSearcher s = updateSearcher(selfLink, 1, w);
+        IndexSearcher s = createOrRefreshSearcher(selfLink, 1, w, false);
 
         long startNanos = System.nanoTime();
         TopDocs hits = searchByVersion(selfLink, s, version);
@@ -1055,11 +1054,8 @@ public class LuceneDocumentIndexService extends StatelessService {
         }
 
         if (s == null) {
-            // If DO_NOT_REFRESH is set use the existing searcher.
-            s = this.searcher;
-            if (!qs.options.contains(QueryOption.DO_NOT_REFRESH) || s == null) {
-                s = updateSearcher(null, Integer.MAX_VALUE, this.writer);
-            }
+            s = createOrRefreshSearcher(null, Integer.MAX_VALUE, this.writer,
+                    qs.options.contains(QueryOption.DO_NOT_REFRESH));
         }
 
         ServiceDocumentQueryResult rsp = new ServiceDocumentQueryResult();
@@ -2058,7 +2054,7 @@ public class LuceneDocumentIndexService extends StatelessService {
             logWarning("Error deserializing state for %s: %s", link, e.getMessage());
         }
 
-        deleteAllDocumentsForSelfLink(Operation.createDelete(null), link, s);
+        deleteAllDocumentsForSelfLink(searcher, Operation.createDelete(null), link, s);
         return true;
     }
 
@@ -2095,13 +2091,13 @@ public class LuceneDocumentIndexService extends StatelessService {
         }
 
         this.adjustStat(STAT_NAME_WRITER_ALREADY_CLOSED_EXCEPTION_COUNT, 1);
-        reOpenWriterSynchronously();
+        applyFileLimitRefreshWriter(true);
     }
 
-    private void deleteAllDocumentsForSelfLink(Operation postOrDelete, String link,
+    private void deleteAllDocumentsForSelfLink(IndexSearcher s, Operation postOrDelete, String link,
             ServiceDocument state)
             throws Throwable {
-        deleteDocumentsFromIndex(postOrDelete, link, 0);
+        deleteDocumentsFromIndex(s, postOrDelete, link, 0);
         adjustTimeSeriesStat(STAT_NAME_SERVICE_DELETE_COUNT, AGGREGATION_TYPE_SUM, 1);
         logFine("%s expired", link);
         if (state == null) {
@@ -2121,7 +2117,7 @@ public class LuceneDocumentIndexService extends StatelessService {
      *
      * @throws Throwable
      */
-    private void deleteDocumentsFromIndex(Operation delete, String link,
+    private void deleteDocumentsFromIndex(IndexSearcher s, Operation delete, String link,
             long versionsToKeep) throws Throwable {
         IndexWriter wr = this.writer;
         if (wr == null) {
@@ -2131,12 +2127,6 @@ public class LuceneDocumentIndexService extends StatelessService {
 
         Query linkQuery = new TermQuery(new Term(ServiceDocument.FIELD_NAME_SELF_LINK,
                 link));
-
-        IndexSearcher s = updateSearcher(link, Integer.MAX_VALUE, wr);
-        if (s == null) {
-            delete.fail(new CancellationException());
-            return;
-        }
 
         TopDocs results;
 
@@ -2156,7 +2146,7 @@ public class LuceneDocumentIndexService extends StatelessService {
         if (versionsToKeep == 0) {
             // we are asked to delete everything, no need to sort or query
             wr.deleteDocuments(linkQuery);
-            this.indexUpdateTimeMicros = Utils.getNowMicrosUtc();
+            this.writerUpdateTimeMicros = Utils.getNowMicrosUtc();
             delete.complete();
             return;
         }
@@ -2259,8 +2249,8 @@ public class LuceneDocumentIndexService extends StatelessService {
             this.linkAccessTimes.put(link, t);
 
             // The index update time may only be increased.
-            if (this.indexUpdateTimeMicros < t) {
-                this.indexUpdateTimeMicros = t;
+            if (this.writerUpdateTimeMicros < t) {
+                this.writerUpdateTimeMicros = t;
             }
         }
     }
@@ -2286,43 +2276,43 @@ public class LuceneDocumentIndexService extends StatelessService {
      * @return an {@link IndexSearcher} that is fresh enough to execute the specified query
      * @throws IOException
      */
-    private IndexSearcher updateSearcher(String selfLink, int resultLimit, IndexWriter w)
+    private IndexSearcher createOrRefreshSearcher(String selfLink, int resultLimit, IndexWriter w,
+            boolean doNotRefresh)
             throws IOException {
+
         IndexSearcher s;
         boolean needNewSearcher = false;
+        long threadId = Thread.currentThread().getId();
         long now = Utils.getNowMicrosUtc();
-
         synchronized (this.searchSync) {
-            s = this.searcher;
+            s = this.searchers.get(threadId);
             if (s == null) {
                 needNewSearcher = true;
             } else if (selfLink != null && resultLimit == 1) {
-                Long latestUpdate = this.linkAccessTimes.get(selfLink);
-                if (latestUpdate != null
-                        && latestUpdate.compareTo(this.searcherUpdateTimeMicros) >= 0) {
-                    needNewSearcher = true;
+                Long perLinkUpdateTime = this.linkAccessTimes.get(selfLink);
+                if (perLinkUpdateTime != null
+                        && perLinkUpdateTime.compareTo(this.searcherUpdateTimeMicros.get()) >= 0) {
+                    needNewSearcher = !doNotRefresh;
                 }
-            } else if (this.searcherUpdateTimeMicros < this.indexUpdateTimeMicros) {
-                needNewSearcher = true;
-            }
-
-            if (!needNewSearcher) {
-                return s;
+            } else if (this.searcherUpdateTimeMicros.get() < this.writerUpdateTimeMicros) {
+                needNewSearcher = !doNotRefresh;
             }
         }
 
-        // Create a new searcher outside the lock. Another thread might race us and
-        // also create a searcher, but that is OK: the most recent one will be used.
+        if (s != null && !needNewSearcher) {
+            return s;
+        }
+
+        if (s != null) {
+            s.getIndexReader().close();
+        }
+
         s = new IndexSearcher(DirectoryReader.open(w, true, true));
 
         adjustTimeSeriesStat(STAT_NAME_SEARCHER_UPDATE_COUNT, AGGREGATION_TYPE_SUM, 1);
-
         synchronized (this.searchSync) {
-            this.searchersPendingClose.add(s);
-            if (this.searcherUpdateTimeMicros < now) {
-                this.searcher = s;
-                this.searcherUpdateTimeMicros = now;
-            }
+            this.searchers.put(threadId, s);
+            this.searcherUpdateTimeMicros.set(now);
             return s;
         }
     }
@@ -2336,13 +2326,13 @@ public class LuceneDocumentIndexService extends StatelessService {
     public void handleMaintenance(final Operation post) {
         this.privateIndexingExecutor.execute(() -> {
             try {
-                this.writerAvailable.acquire();
+                this.writerSync.acquire();
                 handleMaintenanceImpl(false);
                 post.complete();
             } catch (Throwable e) {
                 post.fail(e);
             } finally {
-                this.writerAvailable.release();
+                this.writerSync.release();
             }
 
         });
@@ -2355,126 +2345,90 @@ public class LuceneDocumentIndexService extends StatelessService {
                 return;
             }
 
-            IndexSearcher s = updateSearcher(null, Integer.MAX_VALUE, w);
-            if (s == null) {
-                return;
-            }
+            IndexSearcher s = createOrRefreshSearcher(null, Integer.MAX_VALUE, w, false);
 
-            applyDocumentExpirationPolicy(w);
+            applyDocumentExpirationPolicy(s);
             applyDocumentVersionRetentionPolicy();
-
-            long startNanos = System.nanoTime();
-            w.commit();
-            long durationNanos = System.nanoTime() - startNanos;
-            setTimeSeriesHistogramStat(STAT_NAME_COMMIT_DURATION_MICROS, AGGREGATION_TYPE_AVG_MAX,
-                    TimeUnit.NANOSECONDS.toMicros(durationNanos));
-            adjustTimeSeriesStat(STAT_NAME_COMMIT_COUNT, AGGREGATION_TYPE_SUM, 1);
-
             applyMemoryLimit();
+            applyIndexUpdates(w);
 
-            boolean reOpenWriter = applyIndexSearcherAndFileLimit();
-
-            if (!forceMerge && !reOpenWriter) {
-                return;
-            }
-            reOpenWriterSynchronously();
+            applyFileLimitRefreshWriter(false);
         } catch (Throwable e) {
             if (this.getHost().isStopping()) {
                 return;
             }
-            logWarning("Attempting recovery due to error: %s", e.getMessage());
-            reOpenWriterSynchronously();
+            logWarning("Attempting recovery due to error: %s", Utils.toString(e));
+            applyFileLimitRefreshWriter(true);
             throw e;
         }
     }
 
-    private boolean applyIndexSearcherAndFileLimit() {
-        File directory = new File(new File(getHost().getStorageSandbox()), this.indexDirectory);
-        String[] list = directory.list();
-        int count = list == null ? 0 : list.length;
-
-        boolean reOpenWriter = count >= INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH;
-
-        int searcherCount = this.searchersPendingClose.size();
-        if (searcherCount < INDEX_SEARCHER_COUNT_THRESHOLD && !reOpenWriter) {
-            return reOpenWriter;
-        }
-
-        // We always close index searchers before re-opening the index writer, otherwise we risk
-        // loosing pending commits on writer re-open. Notice this code executes if we either have
-        // too many index files on disk, thus we need to re-open the writer to consolidate, or
-        // when we have too many pending searchers
-        final int acquireReleaseCount = QUERY_THREAD_COUNT + UPDATE_THREAD_COUNT;
-        try {
-            if (getHost().isStopping()) {
-                return false;
-            }
-
-            this.writerAvailable.release();
-            this.writerAvailable.acquire(acquireReleaseCount);
-            this.searcher = null;
-
-            logInfo("Closing %d pending searchers, index file count: %d", searcherCount, count);
-
-            for (IndexSearcher s : this.searchersPendingClose) {
-                try {
-                    s.getIndexReader().close();
-                } catch (Throwable e) {
-                }
-            }
-            this.searchersPendingClose.clear();
-
-            IndexWriter w = this.writer;
-            if (w != null) {
-                try {
-                    w.deleteUnusedFiles();
-                } catch (Throwable e) {
-                }
-            }
-
-        } catch (InterruptedException e1) {
-            logSevere(e1);
-        } finally {
-            // release all but one, so we stay owning one reference to the semaphore
-            this.writerAvailable.release(acquireReleaseCount - 1);
-        }
-
-        return reOpenWriter;
+    void applyIndexUpdates(IndexWriter w) throws IOException {
+        long startNanos = System.nanoTime();
+        w.commit();
+        long durationNanos = System.nanoTime() - startNanos;
+        setTimeSeriesHistogramStat(STAT_NAME_COMMIT_DURATION_MICROS, AGGREGATION_TYPE_AVG_MAX,
+                TimeUnit.NANOSECONDS.toMicros(durationNanos));
+        adjustTimeSeriesStat(STAT_NAME_COMMIT_COUNT, AGGREGATION_TYPE_SUM, 1);
     }
 
-    private void reOpenWriterSynchronously() {
+    private void applyFileLimitRefreshWriter(boolean force) {
+        if (getHost().isStopping()) {
+            return;
+        }
+
+        long now = Utils.getNowMicrosUtc();
+        if (now - this.indexWriterCreationTimeMicros < getHost()
+                .getMaintenanceIntervalMicros()) {
+            logInfo("Skipping writer re-open, it was created recently");
+            return;
+        }
+
+        File directory = new File(new File(getHost().getStorageSandbox()), this.indexDirectory);
+        long count;
+        try {
+            count = Files.list(directory.toPath()).count();
+            if (!force && count < INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH) {
+                return;
+            }
+        } catch (IOException e1) {
+            logSevere(e1);
+            return;
+        }
 
         final int acquireReleaseCount = QUERY_THREAD_COUNT + UPDATE_THREAD_COUNT;
         try {
-
-            if (getHost().isStopping()) {
-                return;
-            }
-
             // Do not proceed unless we have blocked all reader+writer threads. We assume
             // the semaphore is already acquired by the current thread
-            this.writerAvailable.release();
-            this.writerAvailable.acquire(acquireReleaseCount);
-
+            this.writerSync.release();
+            this.writerSync.acquire(acquireReleaseCount);
             IndexWriter w = this.writer;
-
-            long now = Utils.getNowMicrosUtc();
-            if (now - this.indexWriterCreationTimeMicros < getHost()
-                    .getMaintenanceIntervalMicros()) {
-                logInfo("Skipping writer re-open, it was created recently");
+            if (w == null) {
                 return;
             }
 
-            File directory = new File(new File(getHost().getStorageSandbox()), this.indexDirectory);
+            logInfo("(%s) closing all readers, document count: %d, file count: %d",
+                    this.writerSync, w.maxDoc(), count);
+
+            for (IndexSearcher s : this.searchers.values()) {
+                s.getIndexReader().close();
+            }
+
+            this.searchers.clear();
+
+            if (!force) {
+                return;
+            }
+
             try {
-                if (w != null) {
-                    w.close();
-                }
+                w.close();
             } catch (Throwable e) {
             }
 
             w = createWriter(directory, false);
-            logInfo("Reopened writer, document count: %d", w.maxDoc());
+            count = Files.list(directory.toPath()).count();
+            logInfo("(%s) reopened writer, document count: %d, file count: %d",
+                    this.writerSync, w.maxDoc(), count);
         } catch (Throwable e) {
             // If we fail to re-open we should stop the host, since we can not recover.
             logSevere(e);
@@ -2484,16 +2438,12 @@ public class LuceneDocumentIndexService extends StatelessService {
             sendRequest(Operation.createDelete(this, ServiceUriPaths.CORE_MANAGEMENT));
         } finally {
             // release all but one, so we stay owning one reference to the semaphore
-            this.writerAvailable.release(acquireReleaseCount - 1);
+            this.writerSync.release(acquireReleaseCount - 1);
         }
     }
 
     private void applyDocumentVersionRetentionPolicy()
             throws Throwable {
-        IndexWriter wr = this.writer;
-        if (wr == null) {
-            return;
-        }
 
         Operation dummyDelete = Operation.createDelete(null);
         int count = 0;
@@ -2504,7 +2454,12 @@ public class LuceneDocumentIndexService extends StatelessService {
         }
 
         for (Entry<String, Long> e : links.entrySet()) {
-            deleteDocumentsFromIndex(dummyDelete, e.getKey(), e.getValue());
+            IndexWriter wr = this.writer;
+            if (wr == null) {
+                return;
+            }
+            IndexSearcher s = createOrRefreshSearcher(null, Integer.MAX_VALUE, wr, false);
+            deleteDocumentsFromIndex(s, dummyDelete, e.getKey(), e.getValue());
             count++;
         }
 
@@ -2517,31 +2472,10 @@ public class LuceneDocumentIndexService extends StatelessService {
         if (getHost().isStopping()) {
             return;
         }
-
-        long memThresholdBytes = this.linkAccessMemoryLimitMB * 1024 * 1024;
-        final int bytesPerLinkEstimate = 256;
-        int count = 0;
-        synchronized (this.searchSync) {
-            if (this.linkAccessTimes.isEmpty()) {
-                return;
-            }
-            if (memThresholdBytes < this.linkAccessTimes.size() * bytesPerLinkEstimate) {
-                count = this.linkAccessTimes.size();
-                this.linkAccessTimes.clear();
-                // force searcher update next time updateSearcher is called
-                if (this.searcher != null) {
-                    this.searchersPendingClose.add(this.searcher);
-                }
-                this.searcher = null;
-            }
-        }
-
-        if (count > 0) {
-            logInfo("Cleared %d link access times", count);
-        }
-
         // close any paginated query searchers that have expired
         long now = Utils.getNowMicrosUtc();
+        applyMemoryLimitToLinkAccessTimes();
+
         Map<Long, List<IndexSearcher>> entriesToClose = new HashMap<>();
         synchronized (this.searchSync) {
             Iterator<Entry<Long, List<IndexSearcher>>> itr = this.searchersForPaginatedQueries
@@ -2572,15 +2506,44 @@ public class LuceneDocumentIndexService extends StatelessService {
         }
     }
 
-    private void applyDocumentExpirationPolicy(IndexWriter w) throws Throwable {
-        // if we miss a document update, we will catch it, and refresh the searcher on the
-        // next update or maintenance
-        IndexSearcher s =
-                this.searcher != null ? this.searcher : updateSearcher(null, Integer.MAX_VALUE, w);
-        if (s == null) {
-            return;
+    void applyMemoryLimitToLinkAccessTimes() {
+        long memThresholdBytes = this.linkAccessMemoryLimitMB * 1024 * 1024;
+        final int bytesPerLinkEstimate = 256;
+        int count = 0;
+
+        // Note: this code will be updated in the future. It currently calls a host
+        // method, inside a lock, which is always a bad idea. The getServiceStage()
+        // method is lock free, but its still brittle. We can eliminate the linkAccessTimes
+        // list all together/
+        // TODO https://www.pivotaltracker.com/story/show/133390149
+        synchronized (this.searchSync) {
+            if (this.linkAccessTimes.isEmpty()) {
+                return;
+            }
+            if (memThresholdBytes > this.linkAccessTimes.size() * bytesPerLinkEstimate) {
+                return;
+            }
+            count = this.linkAccessTimes.size();
+            Iterator<Entry<String, Long>> li = this.linkAccessTimes.entrySet().iterator();
+            while (li.hasNext()) {
+                Entry<String, Long> e = li.next();
+                // remove entries for services no longer attached / started on host
+                if (getHost().getServiceStage(e.getKey()) == null) {
+                    count++;
+                    li.remove();
+                }
+            }
+            // update index time to force searcher update, per thread
+            this.writerUpdateTimeMicros = Utils.getNowMicrosUtc();
         }
 
+        if (count == 0) {
+            return;
+        }
+        logInfo("Cleared %d link access times", count);
+    }
+
+    private void applyDocumentExpirationPolicy(IndexSearcher s) throws Throwable {
         long expirationUpperBound = Utils.getNowMicrosUtc();
 
         Query versionQuery = LongPoint.newRangeQuery(
@@ -2589,6 +2552,11 @@ public class LuceneDocumentIndexService extends StatelessService {
         TopDocs results = s.search(versionQuery, EXPIRED_DOCUMENT_SEARCH_THRESHOLD);
         if (results.totalHits == 0) {
             return;
+        }
+
+        if (results.totalHits > EXPIRED_DOCUMENT_SEARCH_THRESHOLD) {
+            adjustTimeSeriesStat(STAT_NAME_DOCUMENT_EXPIRATION_FORCED_MAINTENANCE_COUNT,
+                    AGGREGATION_TYPE_SUM, 1);
         }
 
         // The expiration query will return all versions for a link. Use a set so we only delete once per link
@@ -2607,19 +2575,6 @@ public class LuceneDocumentIndexService extends StatelessService {
                 continue;
             }
             checkAndDeleteExpiratedDocuments(link, s, sd.doc, d, now);
-        }
-
-        // More documents to be expired trigger maintenance right away.
-        if (results.totalHits > EXPIRED_DOCUMENT_SEARCH_THRESHOLD) {
-            adjustTimeSeriesStat(STAT_NAME_DOCUMENT_EXPIRATION_FORCED_MAINTENANCE_COUNT,
-                    AGGREGATION_TYPE_SUM, 1);
-            ServiceMaintenanceRequest body = ServiceMaintenanceRequest.create();
-            Operation servicePost = Operation
-                    .createPost(UriUtils.buildUri(getHost(), getSelfLink()))
-                    .setReferer(getHost().getUri())
-                    .setBody(body);
-            // servicePost can be cached
-            handleMaintenance(servicePost);
         }
     }
 
