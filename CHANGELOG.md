@@ -25,6 +25,9 @@
   Using PERSISTENCE, REPLICATION, OWNER_SELECTION, STRICT_UPDATE_CHECKING
   will fail service start.
 
+* Support serialization in ServiceDocument of collections/maps obtained using
+  Collections.empty*, Collections.singleton* and Arrays.asList().
+
 ## 1.1.0
 
 * Remove infrastructure Utils.toDocumentBytes/fromDocumentBytes and related methods,
