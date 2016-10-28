@@ -521,18 +521,17 @@ public class TestQueryTaskService {
         // wait for filter to be active in the index service, which happens asynchronously
         // in relation to query task creation, before issuing updates.
 
-        Date exp = this.host.getTestExpiration();
-        while (new Date().before(exp)) {
+        this.host.waitFor("task never activated", () -> {
             ServiceStats indexStats = this.host.getServiceState(null, ServiceStats.class,
                     UriUtils.buildStatsUri(this.host.getDocumentIndexServiceUri()));
             ServiceStat activeQueryStat = indexStats.entries.get(
-                    LuceneDocumentIndexService.STAT_NAME_ACTIVE_QUERY_FILTERS);
+                    LuceneDocumentIndexService.STAT_NAME_ACTIVE_QUERY_FILTERS
+                            + ServiceStats.STAT_NAME_SUFFIX_PER_HOUR);
             if (activeQueryStat == null || activeQueryStat.latestValue < 1.0) {
-                Thread.sleep(250);
-                continue;
+                return false;
             }
-            break;
-        }
+            return true;
+        });
         return newState;
     }
 
