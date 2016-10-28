@@ -20,6 +20,10 @@ tmp/
 /release.properties
 pom.xml.releaseBackup
 
+# PMD maven plug in artifacts
+*.pmd
+*.pmdruleset.xml
+
 # go artifacts
 xenon-client/bin
 xenon-client/src/main/resources/*
