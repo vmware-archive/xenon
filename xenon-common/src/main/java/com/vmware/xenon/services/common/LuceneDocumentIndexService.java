@@ -205,13 +205,16 @@ public class LuceneDocumentIndexService extends StatelessService {
     protected static final int UPDATE_THREAD_COUNT = Utils.DEFAULT_THREAD_COUNT / 2;
     protected static final int QUERY_THREAD_COUNT = Utils.DEFAULT_THREAD_COUNT;
 
+    /**
+     * Synchronization object used to coordinate index searcher refresh
+     */
     protected Object searchSync;
-    private ThreadLocal<Long> searcherUpdateTimeMicros = new ThreadLocal<Long>() {
-        @Override
-        protected Long initialValue() {
-            return 0L;
-        }
-    };
+
+    /**
+     * Synchronization object used to coordinate index writer update
+     */
+    protected final Semaphore writerSync = new Semaphore(
+            UPDATE_THREAD_COUNT + QUERY_THREAD_COUNT);
 
     /**
      * Map of searchers per thread id. We do not use a ThreadLocal since we need visibility to this map
@@ -220,19 +223,27 @@ public class LuceneDocumentIndexService extends StatelessService {
     protected Map<Long, IndexSearcher> searchers = new HashMap<>();
 
     /**
+     * Searcher refresh time, per thread
+     */
+    private ThreadLocal<Long> searcherUpdateTimeMicros = new ThreadLocal<Long>() {
+        @Override
+        protected Long initialValue() {
+            return 0L;
+        }
+    };
+
+    /**
      * Map of searchers used for paginated query tasks, indexed by creation time
      */
     protected TreeMap<Long, List<IndexSearcher>> searchersForPaginatedQueries = new TreeMap<>();
 
     protected IndexWriter writer = null;
-    protected final Semaphore writerSync = new Semaphore(
-            UPDATE_THREAD_COUNT + QUERY_THREAD_COUNT);
 
     protected Map<String, QueryTask> activeQueries = new ConcurrentSkipListMap<>();
 
     private long writerUpdateTimeMicros;
 
-    private long indexWriterCreationTimeMicros;
+    private long writerCreationTimeMicros;
 
     private final Map<String, Long> linkAccessTimes = new HashMap<>();
     private final Map<String, Long> linkDocumentRetentionEstimates = new HashMap<>();
@@ -399,7 +410,7 @@ public class LuceneDocumentIndexService extends StatelessService {
             this.writer = w;
             this.linkAccessTimes.clear();
             this.writerUpdateTimeMicros = Utils.getNowMicrosUtc();
-            this.indexWriterCreationTimeMicros = this.writerUpdateTimeMicros;
+            this.writerCreationTimeMicros = this.writerUpdateTimeMicros;
         }
         return this.writer;
     }
@@ -2378,7 +2389,7 @@ public class LuceneDocumentIndexService extends StatelessService {
         }
 
         long now = Utils.getNowMicrosUtc();
-        if (now - this.indexWriterCreationTimeMicros < getHost()
+        if (now - this.writerCreationTimeMicros < getHost()
                 .getMaintenanceIntervalMicros()) {
             logInfo("Skipping writer re-open, it was created recently");
             return;
