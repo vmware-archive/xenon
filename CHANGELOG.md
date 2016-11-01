@@ -2,6 +2,9 @@
 
 ## 1.2.0-SNAPSHOT
 
+* LuceneDocumentIndexService's "backup" API now provides access to the
+  backup .zip file location in its `BackupResponse`
+
 ## 1.1.1
 
 * Reduce memory usage under heavy query load, using single index searcher
