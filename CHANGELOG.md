@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.1.1-SNAPSHOT
+## 1.1.1
 
 * Reduce memory usage under heavy query load, using single index searcher
   per thread, in LuceneDocumentIndexService. See:
