@@ -1744,7 +1744,10 @@ public class Operation implements Cloneable {
         return Operation.REPLICATION_PHASE_COMMIT.equals(phase);
     }
 
-    boolean isSynchronize() {
+    /**
+     * Indicate whether this operation is a synchronization operation.
+     */
+    public boolean isSynchronize() {
         return isSynchronizeOwner() || isSynchronizePeer();
     }
 
