@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.3.0-SNAPSHOT
+
 ## 1.2.0
 
 * Roll back to Lucene to version 6.0.0 due to an issue in 6.2.1. See:
