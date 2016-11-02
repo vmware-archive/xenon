@@ -1,6 +1,15 @@
 # CHANGELOG
 
+## 1.1.0-CR1
+
+* Roll back to Lucene to version 6.0.0 due to an issue in 6.2.1. See:
+  https://issues.apache.org/jira/browse/LUCENE-7491
+
 ## 1.1.0
+
+* Note: This release has a bug where Lucene will occasionally throw MergeExceptions
+  due to https://issues.apache.org/jira/browse/LUCENE-7491. This release should not
+  be used in production.
 
 * Remove infrastructure Utils.toDocumentBytes/fromDocumentBytes and related methods,
   KryoSerializers.serialize/deserializeObject are used instead
