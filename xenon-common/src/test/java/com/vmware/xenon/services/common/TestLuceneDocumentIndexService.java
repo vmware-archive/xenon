@@ -951,7 +951,7 @@ public class TestLuceneDocumentIndexService {
                 .setCompletion(this.host.getCompletion());
         this.host.sendAndWait(delete);
 
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 10; i++) {
             // attempt to use service we just deleted, we should get failure
             // do a PATCH, expect 404
             this.host.log("Doing patch on deleted, expect failure");

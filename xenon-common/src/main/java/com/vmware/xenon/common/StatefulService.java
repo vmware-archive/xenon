@@ -129,10 +129,12 @@ public class StatefulService implements Service {
         if (op.getAction() != Action.DELETE
                 && this.context.processingStage != ProcessingStage.AVAILABLE) {
 
-            if (this.context.processingStage == ProcessingStage.PAUSED) {
-                logWarning("Service in stage %s, retrying request", this.context.processingStage);
-                getHost().handleRequest(this, op);
-                return true;
+            if (hasOption(ServiceOption.ON_DEMAND_LOAD)) {
+                if (this.context.processingStage == ProcessingStage.PAUSED
+                        || this.context.processingStage == ProcessingStage.STOPPED) {
+                    getHost().retryPauseOrOnDemandLoadConflict(op, false);
+                    return true;
+                }
             }
 
             // this should never happen since the host will not forward requests if we are not
@@ -241,13 +243,14 @@ public class StatefulService implements Service {
      */
     private boolean queueRequestInternal(final Operation op) {
         boolean isPaused = false;
+        boolean isOdlStopped = false;
         if (op.getAction() != Action.GET && op.getAction() != Action.OPTIONS) {
             // serialize updates
             synchronized (this.context) {
                 if (this.context.processingStage == ProcessingStage.PAUSED) {
                     isPaused = true;
                 } else if (this.context.processingStage == ProcessingStage.STOPPED) {
-                    // fall through, request will be cancelled
+                    isOdlStopped = hasOption(ServiceOption.ON_DEMAND_LOAD);
                 } else if ((this.context.isUpdateActive || this.context.getActiveCount != 0)) {
                     if (op.isSynchronizeOwner()) {
                         // Synchronization requests are queued in a separate queue
@@ -280,7 +283,7 @@ public class StatefulService implements Service {
                     if (this.context.processingStage == ProcessingStage.PAUSED) {
                         isPaused = true;
                     } else if (this.context.processingStage == ProcessingStage.STOPPED) {
-                        // fall through, request will be cancelled
+                        isOdlStopped = hasOption(ServiceOption.ON_DEMAND_LOAD);
                     } else if (this.context.isUpdateActive) {
                         if (!this.context.operationQueue.offer(op)) {
                             getHost().failRequestLimitExceeded(op);
@@ -293,9 +296,9 @@ public class StatefulService implements Service {
             }
         }
 
-        if (isPaused && !getHost().isStopping()) {
+        if ((isOdlStopped || isPaused) && !getHost().isStopping()) {
             logWarning("Service in stage %s, retrying request", this.context.processingStage);
-            getHost().retryPauseOrOnDemandLoadConflict(op, false);
+            getHost().retryPauseOrOnDemandLoadConflict(op, isOdlStopped);
             return true;
         }
 
