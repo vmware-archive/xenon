@@ -5,6 +5,9 @@
 * LuceneDocumentIndexService's "backup" API now provides access to the
   backup .zip file location in its `BackupResponse`
 
+* Remove xenon-dns module. The DNS service did not make enough progress
+  to be a full featured registry with native DNS, hence the change.
+
 ## 1.1.1
 
 * Reduce memory usage under heavy query load, using single index searcher
