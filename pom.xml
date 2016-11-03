@@ -137,6 +137,20 @@
     </profile>
 
     <profile>
+      <id>performance</id>
+      <modules>
+        <module>xenon-host</module>
+        <module>xenon-samples</module>
+        <module>xenon-websocket-test</module>
+        <module>xenon-client</module>
+      </modules>
+      <properties>
+        <testHeapSizeMb>8192</testHeapSizeMb>
+        <testThreadStackSizeKb>1024</testThreadStackSizeKb>
+      </properties>
+    </profile>
+
+    <profile>
       <id>coverage</id>
       <modules>
         <module>xenon-host</module>
