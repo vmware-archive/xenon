@@ -79,6 +79,20 @@ public class TestSampleServiceWithCustomUi extends BasicReusableHostTestCase {
     }
 
     @Test
+    public void testGetUiWithQueryParams() throws Throwable {
+        String qs = "?hello=world";
+        Operation op = Operation
+                .createGet(UriUtils.buildUri(this.host, THE_SERVICE_URI + "/ui" + qs))
+                .setCompletion(getSafeHandler((o, e) -> {
+                    assertNull(e);
+                    assertEquals("Did not receive temporary redirect", Operation.STATUS_CODE_MOVED_TEMP, o.getStatusCode());
+                    assertTrue("Redirected url did not preserve query params", o.getResponseHeader("location").endsWith("/ui/" + qs));
+                }));
+
+        this.host.sendAndWait(op);
+    }
+
+    @Test
     public void testRootGetForSharedUi() throws Throwable {
         Operation op = Operation
                 .createGet(UriUtils.buildUri(this.host, SampleServiceWithSharedCustomUi.SELF_LINK))
@@ -88,9 +102,7 @@ public class TestSampleServiceWithCustomUi extends BasicReusableHostTestCase {
                     assertTrue("Redirected url does not end with /", o.getResponseHeader(Operation.LOCATION_HEADER).endsWith("/"));
                 }));
 
-        this.host.testStart(1);
-        this.host.send(op);
-        this.host.testWait();
+        this.host.sendAndWait(op);
     }
 
     @Test
@@ -103,9 +115,7 @@ public class TestSampleServiceWithCustomUi extends BasicReusableHostTestCase {
                     assertTrue("Expected content of the index.html", o.getBody(String.class).contains("customUiApp"));
                 }));
 
-        this.host.testStart(1);
-        this.host.send(op);
-        this.host.testWait();
+        this.host.sendAndWait(op);
     }
 
     @Test
@@ -118,9 +128,7 @@ public class TestSampleServiceWithCustomUi extends BasicReusableHostTestCase {
                     assertTrue("Expected content of the index.html", o.getBody(String.class).contains("DOCTYPE"));
                 }));
 
-        this.host.testStart(1);
-        this.host.send(op);
-        this.host.testWait();
+        this.host.sendAndWait(op);
     }
 
     @Test
@@ -134,9 +142,7 @@ public class TestSampleServiceWithCustomUi extends BasicReusableHostTestCase {
                     assertTrue("Expected the contents of the README.txt", o.getBody(String.class).contains("UI_CUSTOM_BASE"));
                 }));
 
-        this.host.testStart(1);
-        this.host.send(op);
-        this.host.testWait();
+        this.host.sendAndWait(op);
     }
 
     @Test
@@ -149,9 +155,7 @@ public class TestSampleServiceWithCustomUi extends BasicReusableHostTestCase {
                     assertTrue("Expected the contents of the README.txt", o.getBody(String.class).contains("unit-test"));
                 }));
 
-        this.host.testStart(1);
-        this.host.send(op);
-        this.host.testWait();
+        this.host.sendAndWait(op);
     }
 
     @Test
@@ -163,8 +167,6 @@ public class TestSampleServiceWithCustomUi extends BasicReusableHostTestCase {
                     assertEquals("Expected 404 NOT FOUND", Operation.STATUS_CODE_NOT_FOUND, o.getStatusCode());
                 }));
 
-        this.host.testStart(1);
-        this.host.send(op);
-        this.host.testWait();
+        this.host.sendAndWait(op);
     }
 }
