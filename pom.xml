@@ -470,8 +470,8 @@
     <pluginManagement>
       <plugins>
         <plugin>
-          <!-- Tell Eclipse not to use the Findbugs plugin during compilation -->
-          <!-- This speeds up Eclipse development, but "mvn compile" will still run Findbugs -->
+          <!-- Ignore the execution of a number of plugins inside Eclipse -->
+          <!-- This speeds up Eclipse development and workarounds any m2e incompatibility errors -->
           <groupId>org.eclipse.m2e</groupId>
           <artifactId>lifecycle-mapping</artifactId>
           <version>1.0.0</version>
@@ -485,6 +485,19 @@
                     <versionRange>[2.10,)</versionRange>
                     <goals>
                       <goal>copy</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore></ignore>
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-pmd-plugin</artifactId>
+                    <versionRange>[3.7,)</versionRange>
+                    <goals>
+                      <goal>check</goal>
                     </goals>
                   </pluginExecutionFilter>
                   <action>
