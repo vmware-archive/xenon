@@ -122,7 +122,7 @@ public final class TransactionServiceHelper {
         QueryTask task = queryTaskBuilder.build();
 
         return Operation
-                .createPost(UriUtils.buildUri(s.getHost(), ServiceUriPaths.CORE_QUERY_TASKS))
+                .createPost(s.getHost(), ServiceUriPaths.CORE_QUERY_TASKS)
                 .setBody(task);
     }
 
@@ -140,7 +140,7 @@ public final class TransactionServiceHelper {
         QueryTask task = queryTaskBuilder.build();
 
         return Operation
-                .createPost(UriUtils.buildUri(s.getHost(), ServiceUriPaths.CORE_QUERY_TASKS))
+                .createPost(s.getHost(), ServiceUriPaths.CORE_QUERY_TASKS)
                 .setBody(task);
     }
 

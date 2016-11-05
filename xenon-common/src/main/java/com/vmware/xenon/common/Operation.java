@@ -586,7 +586,7 @@ public class Operation implements Cloneable {
     private short retryCount;
     private short retriesRemaining;
 
-    public EnumSet<OperationOption> options = EnumSet.noneOf(OperationOption.class);
+    private EnumSet<OperationOption> options = EnumSet.noneOf(OperationOption.class);
 
     public static Operation create(SerializedOperation ctx, ServiceHost host) {
         Operation op = new Operation();
@@ -1407,6 +1407,10 @@ public class Operation implements Cloneable {
 
     public boolean hasOption(OperationOption option) {
         return this.options.contains(option);
+    }
+
+    public EnumSet<OperationOption> getOptions() {
+        return EnumSet.copyOf(this.options);
     }
 
     void setHandlerInvokeTime(long nowMicros) {

@@ -692,7 +692,7 @@ public class TestOperation extends BasicReusableHostTestCase {
         assertEquals(op.getReferer(), sop.referer);
         assertEquals(op.getBodyRaw(), sop.jsonBody);
         assertEquals(op.getStatusCode(), sop.statusCode);
-        assertEquals(op.options, sop.options);
+        assertEquals(op.getOptions(), sop.options);
         assertEquals(op.getContextId(), sop.contextId);
         assertEquals(op.getTransactionId(), sop.transactionId);
         assertEquals(op.getUri().getUserInfo(), sop.userInfo);
