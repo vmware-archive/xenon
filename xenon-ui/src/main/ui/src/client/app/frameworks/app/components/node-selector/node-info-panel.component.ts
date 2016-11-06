@@ -2,6 +2,7 @@
 import { AfterViewInit, ChangeDetectionStrategy, EventEmitter, Input,
     OnChanges, OnDestroy, Output, SimpleChange } from '@angular/core';
 import { Subscription } from 'rxjs/Subscription';
+import * as _ from 'lodash';
 
 // app
 import { BaseComponent } from '../../../core/index';

@@ -1,6 +1,7 @@
 // angular
 import { AfterViewInit, ChangeDetectionStrategy, EventEmitter, Input,
     OnChanges, OnDestroy, Output, SimpleChange } from '@angular/core';
+import * as _ from 'lodash';
 
 // app
 import { BaseComponent } from '../../../core/index';

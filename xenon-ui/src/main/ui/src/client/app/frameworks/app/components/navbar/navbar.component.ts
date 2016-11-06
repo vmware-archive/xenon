@@ -2,6 +2,7 @@
 import { ChangeDetectionStrategy, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs/Subscription';
+import * as _ from 'lodash';
 
 // app
 import { BaseComponent } from '../../../core/index';

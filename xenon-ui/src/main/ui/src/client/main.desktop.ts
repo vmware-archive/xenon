@@ -18,9 +18,9 @@ import { AppConfig } from './app/frameworks/app/services/app-config';
 // Sample
 // You would need a valid `submitURL` to use
 // crashReporter.start({
-//   productName: 'Angular2SeedAdvanced',
+//   productName: 'Xenon UI',
 //   companyName: 'NathanWalker',
-//   submitURL: 'https://github.com/NathanWalker/angular2-seed-advanced',
+//   submitURL: 'https://github.com/vmware/xenon',
 //   autoSubmit: true
 // });
 
@@ -51,7 +51,7 @@ app.on('ready', () => {
         console.log(`Page navigated: ${url}`);
     });
 
-    let appTitle: string = `Xenon`;
+    let appTitle: string = `Xenon UI`;
 
     let langMenu: any = {
         label: 'Language',
@@ -74,39 +74,14 @@ app.on('ready', () => {
         submenu: [{
             label: 'Learn More',
             click: () => {
-                shell.openExternal('https://github.com/NathanWalker/angular2-seed-advanced');
+                shell.openExternal('https://github.com/vmware/xenon/wiki');
             }
         }, {
-                label: 'Issues',
-                click: () => {
-                    shell.openExternal('https://github.com/NathanWalker/angular2-seed-advanced/issues');
-                }
-            }, {
-                label: `My Amazing Parent: Minko Gechev's Angular 2 Seed`,
-                click: () => {
-                    shell.openExternal('https://github.com/mgechev/angular2-seed');
-                }
-            }, {
-                label: 'Angular 2',
-                click: () => {
-                    shell.openExternal('https://angular.io/');
-                }
-            }, {
-                label: 'Electron',
-                click: () => {
-                    shell.openExternal('http://electron.atom.io/');
-                }
-            }, {
-                label: 'Electron Docs',
-                click: () => {
-                    shell.openExternal('https://github.com/atom/electron/tree/master/docs');
-                }
-            }, {
-                label: 'Codeology Visualization',
-                click: () => {
-                    shell.openExternal('http://codeology.braintreepayments.com/nathanwalker/angular2-seed-advanced');
-                }
-            }]
+            label: 'Issues',
+            click: () => {
+                shell.openExternal('https://github.com/vmware/xenon/issues');
+            }
+        }]
     };
 
     if (process.platform === 'darwin') {
@@ -123,7 +98,7 @@ app.on('ready', () => {
                 }, {
                     type: 'separator'
                 }, {
-                    label: 'Hide Angular 2 Seed Advanced',
+                    label: 'Hide Xenon UI',
                     accelerator: 'Command+H',
                     selector: 'hide:'
                 }, {

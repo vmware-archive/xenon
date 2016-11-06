@@ -36,11 +36,16 @@ export class SeedAdvancedConfig extends SeedConfig {
 
         /** Development **/
 
+        this.NPM_DEPENDENCIES = [
+            ...this.NPM_DEPENDENCIES
+        ];
+
         // Fix up package configuration for libs and @ngrx
         this.SYSTEM_CONFIG['packageConfigPaths'] = [
             `${this.APP_BASE}node_modules/*/package.json`,
             `${this.APP_BASE}node_modules/@ngrx/*/package.json`
         ];
+
         if (!this.SYSTEM_CONFIG['packages']) this.SYSTEM_CONFIG['packages'] = {};
         this.SYSTEM_CONFIG['packages']['@ngrx/core'] = {
             main: 'bundles/core.umd.js',
@@ -54,11 +59,21 @@ export class SeedAdvancedConfig extends SeedConfig {
             main: 'bundles/effects.umd.js',
             defaultExtension: 'js'
         };
+        this.SYSTEM_CONFIG['packages']['ng2-translate'] = {
+            main: 'bundles/index.js',
+            defaultExtension: 'js'
+        };
+        this.SYSTEM_CONFIG['packages']['angulartics2'] = {
+            main: 'dist/index.js',
+            defaultExtension: 'js'
+        };
+        this.SYSTEM_CONFIG['packages']['angulartics2/dist/providers'] = {
+            main: 'index.js',
+            defaultExtension: 'js'
+        };
 
         // Fix up paths for libs
         this.SYSTEM_CONFIG.paths[this.BOOTSTRAP_MODULE] = `${this.APP_BASE}${this.BOOTSTRAP_MODULE}`;
-        this.SYSTEM_CONFIG.paths['angulartics2'] = `${this.APP_BASE}node_modules/angulartics2/index`;
-        this.SYSTEM_CONFIG.paths['angulartics2/*'] = `${this.APP_BASE}node_modules/angulartics2/*`;
         this.SYSTEM_CONFIG.paths['angular2-cookie/*'] = `${this.APP_BASE}node_modules/angular2-cookie/*`;
         this.SYSTEM_CONFIG.paths['lodash'] = `${this.APP_BASE}node_modules/lodash/index`;
         this.SYSTEM_CONFIG.paths['moment'] = `${this.APP_BASE}node_modules/moment/moment`;
@@ -70,6 +85,10 @@ export class SeedAdvancedConfig extends SeedConfig {
         /** Production **/
 
         delete this.SYSTEM_BUILDER_CONFIG['packageConfigPaths']; // not all libs are distributed the same
+        this.SYSTEM_BUILDER_CONFIG['packages']['angular2-cookie'] = {
+            main: 'core.js',
+            defaultExtension: 'js'
+        };
         this.SYSTEM_BUILDER_CONFIG['packages']['@ngrx/core'] = {
             main: 'index.js',
             defaultExtension: 'js'
@@ -82,8 +101,16 @@ export class SeedAdvancedConfig extends SeedConfig {
             main: 'index.js',
             defaultExtension: 'js'
         };
-        this.SYSTEM_BUILDER_CONFIG['packages']['angular2-cookie'] = {
-            main: 'core.js',
+        this.SYSTEM_BUILDER_CONFIG['packages']['ng2-translate'] = {
+            main: 'bundles/index.js',
+            defaultExtension: 'js'
+        };
+        this.SYSTEM_BUILDER_CONFIG['packages']['angulartics2'] = {
+            main: 'dist/index.js',
+            defaultExtension: 'js'
+        };
+        this.SYSTEM_BUILDER_CONFIG['packages']['angulartics2/dist/providers'] = {
+            main: 'index.js',
             defaultExtension: 'js'
         };
         this.SYSTEM_BUILDER_CONFIG['packages']['moment'] = {
@@ -94,7 +121,7 @@ export class SeedAdvancedConfig extends SeedConfig {
             main: 'numeral.js',
             defaultExtension: 'js'
         };
-        this.SYSTEM_BUILDER_CONFIG.paths['angulartics2'] = `node_modules/angulartics2/index.js`;
+
         this.SYSTEM_BUILDER_CONFIG.paths['lodash'] = `node_modules/lodash/index.js`;
         this.SYSTEM_BUILDER_CONFIG.paths['@ngrx/core'] = `node_modules/@ngrx/core/index.js`;
         this.SYSTEM_BUILDER_CONFIG.paths['@ngrx/store'] = `node_modules/@ngrx/store/index.js`;

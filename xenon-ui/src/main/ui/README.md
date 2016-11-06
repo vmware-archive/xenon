@@ -86,11 +86,35 @@ npm start
 # api document for the app
 npm run serve.docs
 
+# to start deving with livereload site and coverage as well as continuous testing
+npm run start.deving
+
 # dev build
 npm run build.dev
 # prod build
 npm run build.prod
+# prod build with AoT compilation
+npm run build.prod.exp
 ```
+
+## Special Note About AoT
+
+When using `npm run build.prod.exp` for AoT builds, please consider the following:
+
+Currently you cannot use custom component decorators with AoT compilation. This may change in the future but for now you can use this pattern for when you need to create AoT builds for the web:
+
+```
+import { Component } from '@angular/core';
+import { BaseComponent } from '../frameworks/core/index';
+
+// @BaseComponent({   // just comment this out and use Component from 'angular/core'
+@Component({
+  // etc.
+```
+
+After doing the above, running AoT build via `npm run build.prod.exp` will succeed. :)
+
+`BaseComponent` custom component decorator does the auto `templateUrl` switching to use {N} views when running in the {N} app therefore you don't need it when creating AoT builds for the web. However just note that when going back to run your {N} app, you should comment back in the `BaseComponent`. Again this temporary inconvenience may be unnecessary in the future.
 
 ## NativeScript App
 
@@ -122,6 +146,50 @@ Android (livesync device):    npm run start.livesync.android.device
 
 * Requires an image setup via AVD Manager. [Learn more here](http://developer.android.com/intl/zh-tw/tools/devices/managing-avds.html) and [here](https://github.com/NativeScript/nativescript-cli#the-commands).
 
+OR...
+
+* [GenyMotion Android Emulator](https://www.genymotion.com/)
+
+##### Building with Webpack for release builds
+
+You can greatly reduce the final size of your NativeScript app by the following:
+
+```
+cd nativescript
+npm i nativescript-dev-webpack --save-dev
+```
+Then you will need to modify your components to *not* use `moduleId: module.id` and change `templateUrl` to true relative app, for example:
+
+before:
+
+```
+@BaseComponent({
+  moduleId: module.id,
+  selector: 'sd-home',
+  templateUrl: 'home.component.html',
+  styleUrls: ['home.component.css']
+})
+```
+after:
+
+```
+@BaseComponent({
+  // moduleId: module.id,
+  selector: 'sd-home',
+  templateUrl: './app/components/home/home.component.html',
+  styleUrls: ['./app/components/home/home.component.css']
+})
+```
+
+Then to build:
+
+Ensure you are in the `nativescript` directory when running these commands.
+
+* iOS: `WEBPACK_OPTS="--display-error-details" tns build ios --bundle`
+* Android: `WEBPACK_OPTS="--display-error-details" tns build android --bundle`
+
+Notice your final build will be drastically smaller. In some cases 120 MB -> ~28 MB.
+
 ## Electron App
 
 #### Develop
@@ -148,28 +216,35 @@ Linux:    npm run build.desktop.linux
 ## Testing
 
 ```bash
-npm test
+$ npm test
 
-# Debug - In two different shell windows
-npm run build.test.watch      # 1st window
-npm run karma.start           # 2nd window
+# Development. Your app will be watched by karma
+# on each change all your specs will be executed.
+$ npm run test.watch
+# NB: The command above might fail with a "EMFILE: too many open files" error.
+# Some OS have a small limit of opened file descriptors (256) by default
+# and will result in the EMFILE error.
+# You can raise the maximum of file descriptors by running the command below:
+$ ulimit -n 10480
+
 
 # code coverage (istanbul)
 # auto-generated at the end of `npm test`
 # view coverage report:
-npm run serve.coverage
+$ npm run serve.coverage
 
 # e2e (aka. end-to-end, integration) - In three different shell windows
 # Make sure you don't have a global instance of Protractor
 
+# npm install webdriver-manager <- Install this first for e2e testing
 # npm run webdriver-update <- You will need to run this the first time
-npm run webdriver-start
-npm run serve.e2e
-npm run e2e
+$ npm run webdriver-start
+$ npm run serve.e2e
+$ npm run e2e
 
 # e2e live mode - Protractor interactive mode
 # Instead of last command above, you can use:
-npm run e2e.live
+$ npm run e2e.live
 ```
 You can learn more about [Protractor Interactive Mode here](https://github.com/angular/protractor/blob/master/docs/debugging.md#testing-out-protractor-interactively)
 
@@ -267,17 +342,18 @@ npm start -- --port 8080 --reload-port 4000 --base /my-app/
 This is an [Angular 2](https://angular.io/) application built on top of [Nathan Walker's](https://github.com/NathanWalker) [angular2-seed-advanced](https://github.com/NathanWalker/angular2-seed-advanced).
 
 #### Core Tech Stacks
-- [Angular 2](https://angular.io/) 2.1
+- [Angular 2](https://angular.io/) 2.2
 - [Bootstrap 4](http://v4-alpha.getbootstrap.com/) Alpha 4
 - [jQuery](http://jquery.com/) 3
 - [Chart.js](http://www.chartjs.org/)
 - [D3](https://d3js.org/) 3
 - [CodeMirror](http://codemirror.net/) 5
 - [moment](http://momentjs.com/) 2.14
-- [Font Awesome](http://fontawesome.io/) 4.6
+- [Font Awesome](http://fontawesome.io/) 4.7
 
 #### Integrations
 - [ngrx/store](https://github.com/ngrx/store) RxJS powered state management, inspired by **Redux**
+- [ngrx/effects](https://github.com/ngrx/effects) Side effect model for @ngrx/store
 - [ng2-translate](https://github.com/ocombe/ng2-translate) for i18n
   - Usage is optional but on by default
   - Up to you and your team how you want to utilize it. It can be easily removed if not needed.
@@ -293,7 +369,7 @@ This is an [Angular 2](https://angular.io/) application built on top of [Nathan 
 
 Due to the amount of breaking changes introduced in each Angular 2 release, please be super careful when you decide to sync to the latest changes from the [seed project](https://github.com/NathanWalker/angular2-seed-advanced), which will most likely bump up the Angular version and the underlying dependencies.
 
-Last Change Sync'd: e1f2e4d5ad6e3de93726b7bccc84e7b8ed54812a on 09/28
+Last Change Sync'd: 95cec07683d56ad20865f64300bcac824d4009e7 on 11/06/2016
 
 # Cut a Release
 
