@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.3.1-SNAPSHOT
+
 ## 1.3.0
 
 * Document signature calculation changed to be more efficient while format stays
