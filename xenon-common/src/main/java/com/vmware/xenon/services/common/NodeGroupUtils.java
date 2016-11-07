@@ -193,12 +193,29 @@ public final class NodeGroupUtils {
     private static void checkConvergenceAcrossPeers(ServiceHost host, NodeGroupState ngs,
             Operation parentOp) {
 
-        // send get requests to nodegroup services which are currently available to the supplied host
-        // check uniqueness of membershipUpdateTimes
-
+        // confirm that all available nodes have converged on membership update time
         JoinedCompletionHandler joinedCompletion = (ops, failures) -> {
             if (failures != null) {
-                parentOp.fail(new IllegalStateException("At least one peer failed convergence"));
+                StringBuilder errorRsp = new StringBuilder();
+                try {
+                    for (Operation op : ops.values()) {
+                        if (op.getStatusCode() < Operation.STATUS_CODE_FAILURE_THRESHOLD) {
+                            continue;
+                        }
+                        String error = op.getStatusCode() + "";
+                        if (op.hasBody()) {
+                            ServiceErrorResponse rsp = op.getBody(ServiceErrorResponse.class);
+                            error = rsp.message + ":" + op.getStatusCode();
+                        }
+                        errorRsp.append("node ")
+                                .append(op.getUri())
+                                .append(" failed with:")
+                                .append(error)
+                                .append("\n");
+                    }
+                } catch (Throwable e) {
+                }
+                parentOp.fail(new IllegalStateException("Failures: " + errorRsp.toString()));
                 return;
             }
 

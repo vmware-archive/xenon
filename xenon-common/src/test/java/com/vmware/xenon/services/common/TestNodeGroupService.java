@@ -876,7 +876,15 @@ public class TestNodeGroupService {
     }
 
     @Test
-    public void synchronizationOneByOneWithAbruptNodeShutdown() throws Throwable {
+    public void synchronizationOneByOneWithAbruptNodeStop() throws Throwable {
+        for (int i = 0; i < this.iterationCount; i++) {
+            this.tearDown();
+            setUp();
+            doSynchronizationOneByOneWithAbruptNodeShutdown();
+        }
+    }
+
+    public void doSynchronizationOneByOneWithAbruptNodeShutdown() throws Throwable {
         setUp(this.nodeCount);
 
         this.replicationTargetFactoryLink = PeriodicExampleFactoryService.SELF_LINK;

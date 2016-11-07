@@ -585,8 +585,16 @@ public class ConsistentHashingNodeSelectorService extends StatelessService imple
     private void updateCachedNodeGroupState(NodeGroupState ngs, UpdateQuorumRequest quorumUpdate) {
         if (ngs != null) {
             NodeGroupState currentState = this.cachedGroupState;
-            if (currentState != null && currentState.nodes.size() != ngs.nodes.size()) {
-                logInfo("Node count: %d", ngs.nodes.size());
+            boolean isAvailable = NodeGroupUtils.isNodeGroupAvailable(getHost(), ngs);
+            boolean isCurrentlyAvailable = currentState != null
+                    && NodeGroupUtils.isNodeGroupAvailable(getHost(), currentState);
+            boolean logMsg = isAvailable != isCurrentlyAvailable
+                    || (currentState != null && currentState.nodes.size() != ngs.nodes.size());
+            if (currentState != null && logMsg) {
+                logInfo("Node count: %d, available: %s, update time: %d (%d)",
+                        ngs.nodes.size(),
+                        isAvailable,
+                        ngs.membershipUpdateTimeMicros, ngs.localMembershipUpdateTimeMicros);
             }
         } else {
             logInfo("Quorum update: %d", quorumUpdate.membershipQuorum);
