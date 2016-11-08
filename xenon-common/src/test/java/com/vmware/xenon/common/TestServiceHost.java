@@ -398,6 +398,10 @@ public class TestServiceHost {
             assertEquals(Utils.computeHash(hostId), h.getIdHash());
 
             assertTrue(UriUtils.isHostEqual(h, publicUri));
+            assertTrue(UriUtils.isHostEqual(h, new URI("http://127.0.0.1:" + h.getPort())));
+            assertFalse(UriUtils.isHostEqual(h, new URI("https://somehost.com:" + h.getPort())));
+            assertFalse(UriUtils.isHostEqual(h, new URI("http://somehost.com")));
+            assertFalse(UriUtils.isHostEqual(h, new URI("http://somehost2.com:1234")));
 
             assertEquals(bindAddress, h.getPreferredAddress());
 

@@ -3104,7 +3104,7 @@ public class ServiceHost implements ServiceRequestSender {
         }
 
         if (!ServiceHost.LOCAL_HOST.equals(inboundOp.getUri().getHost())) {
-            if (!UriUtils.isHostEqual(this, inboundOp.getUri())) {
+            if (!isHostEqual(inboundOp.getUri())) {
                 return false;
             }
         }
@@ -5465,5 +5465,46 @@ public class ServiceHost implements ServiceRequestSender {
         } else {
             return isListeningHttp ? HttpScheme.HTTP_ONLY : HttpScheme.HTTPS_ONLY;
         }
+    }
+
+    /**
+     * Returns true if the host name and port in the URI are the same as in the host instance
+     */
+    boolean isHostEqual(URI remoteService) {
+        if (!this.state.isStarted) {
+            throw new IllegalStateException("Host not in valid state");
+        }
+
+        if (getPublicUri().getPort() == remoteService.getPort()
+                && getPublicUri().getHost().equals(remoteService.getHost())
+                && getPublicUri().getScheme().equals(remoteService.getScheme())) {
+            return true;
+        }
+
+        int remotePort = remoteService.getPort();
+        if (remotePort == -1) {
+            if ("https".equals(remoteService.getScheme())) {
+                remotePort = 443;
+            } else if ("http".equals(remoteService.getScheme())) {
+                remotePort = 80;
+            } else {
+                // Only http/s is supported
+                return false;
+            }
+        }
+
+        if (getPort() != remotePort && getSecurePort() != remotePort) {
+            return false;
+        }
+
+        List<String> ipAddresses = this.info.ipAddresses;
+        if (ipAddresses.isEmpty()) {
+            ipAddresses = getSystemInfo().ipAddresses;
+            if (ipAddresses.isEmpty()) {
+                throw new IllegalStateException("No IP addresses found in host:" + toString());
+            }
+        }
+
+        return ipAddresses.contains(remoteService.getHost());
     }
 }

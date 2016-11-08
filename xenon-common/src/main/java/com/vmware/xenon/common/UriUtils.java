@@ -29,7 +29,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.vmware.xenon.common.Service.ServiceOption;
-import com.vmware.xenon.common.ServiceHost.ServiceHostState;
 import com.vmware.xenon.services.common.ServiceUriPaths;
 import com.vmware.xenon.services.common.TransactionResolutionService;
 
@@ -551,33 +550,7 @@ public final class UriUtils {
      * Returns true if the host name and port in the URI are the same as in the host instance
      */
     public static boolean isHostEqual(ServiceHost host, URI remoteService) {
-        ServiceHostState hostState = host.getState();
-        if (hostState == null || !hostState.isStarted) {
-            throw new IllegalStateException("Host not in valid state");
-        }
-
-        if (host.getState().systemInfo.ipAddresses == null
-                || host.getState().systemInfo.ipAddresses.isEmpty()) {
-            throw new IllegalStateException("No IP addresses found in host:" + host.toString());
-        }
-
-        if (host.getPublicUri().getHost().equals(remoteService.getHost())
-                && (host.getPublicUri().getPort() == remoteService.getPort())) {
-            return true;
-        }
-
-        if (host.getPort() != remoteService.getPort()
-                && host.getSecurePort() != remoteService.getPort()) {
-            return false;
-        }
-
-        for (String address : host.getState().systemInfo.ipAddresses) {
-            if (address.equals(remoteService.getHost())) {
-                return true;
-            }
-        }
-
-        return false;
+        return host.isHostEqual(remoteService);
     }
 
     public static String buildPathWithVersion(String link, Long latestVersion) {
