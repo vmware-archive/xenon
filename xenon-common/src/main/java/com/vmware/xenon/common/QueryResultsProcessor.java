@@ -13,8 +13,6 @@
 
 package com.vmware.xenon.common;
 
-import static javafx.scene.input.KeyCode.T;
-
 import java.util.Collections;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -60,14 +58,14 @@ public final class QueryResultsProcessor {
             ServiceDocumentQueryResult qr = (ServiceDocumentQueryResult) rawBody;
             return new QueryResultsProcessor(null, qr);
         } else if (rawBody instanceof String || rawBody instanceof JsonObject) {
-            ServiceDocumentQueryResult maybeResult = op.getBody(ServiceDocumentQueryResult.class);
+            QueryTask maybeTask = op.getBody(QueryTask.class);
 
-            if (Objects.equals(maybeResult.documentKind, ODataFactoryQueryResult.KIND) ||
-                    Objects.equals(maybeResult.documentKind, ServiceDocumentQueryResult.KIND)) {
-                return new QueryResultsProcessor(null, maybeResult);
-            } else if (Objects.equals(maybeResult.documentKind, QueryTask.KIND)) {
-                QueryTask task = op.getBody(QueryTask.class);
-                return new QueryResultsProcessor(task, task.results);
+            if (Objects.equals(maybeTask.documentKind, QueryTask.KIND)) {
+                return new QueryResultsProcessor(maybeTask, maybeTask.results);
+            } else {
+                // coerce result to only thing left that would make sense in this context
+                ServiceDocumentQueryResult results = op.getBody(ServiceDocumentQueryResult.class);
+                return new QueryResultsProcessor(null, results);
             }
         }
 
