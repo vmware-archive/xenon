@@ -84,6 +84,34 @@ public class TestQueryTaskClientHelper extends BasicReusableHostTestCase {
     }
 
     @Test
+    public void testQueryDocumentUsingSendWithService() throws Throwable {
+        this.minimalTestStates = queryDocument("testLink");
+        assertEquals(0, this.minimalTestStates.size());
+
+        MinimalTestServiceState minimalTestState = new MinimalTestServiceState();
+        minimalTestState.id = this.idValue1;
+        minimalTestState = doPost(minimalTestState);
+
+        // Query document using sendWith(service)
+        assertEquals(1, this.services.size());
+
+        this.host.testStart(1);
+        this.queryHelper.setDocumentLink(minimalTestState.documentSelfLink)
+                .setResultHandler(handler())
+                .sendWith(this.services.get(0));
+        this.host.testWait();
+
+        assertEquals(1, this.minimalTestStates.size());
+        assertEquals(minimalTestState.documentSelfLink,
+                this.minimalTestStates.get(0).documentSelfLink);
+        assertEquals(this.idValue1, this.minimalTestStates.get(0).id);
+
+        delete(minimalTestState);
+        this.minimalTestStates = queryDocument(minimalTestState.documentSelfLink);
+        assertEquals(0, this.minimalTestStates.size());
+    }
+
+    @Test
     public void testQueryDocumentWithBaseUri() throws Throwable {
         try {
             this.queryHelper.setBaseUri(null);
@@ -369,7 +397,14 @@ public class TestQueryTaskClientHelper extends BasicReusableHostTestCase {
         }
 
         try {
-            this.queryHelper.sendWith(null);
+            this.queryHelper.sendWith((ServiceHost) null);
+            fail("IllegalArgumentException expected when argument null.");
+        } catch (IllegalArgumentException e) {
+            //expected
+        }
+
+        try {
+            this.queryHelper.sendWith((Service) null);
             fail("IllegalArgumentException expected when argument null.");
         } catch (IllegalArgumentException e) {
             //expected

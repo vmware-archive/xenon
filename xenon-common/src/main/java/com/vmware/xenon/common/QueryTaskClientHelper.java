@@ -82,6 +82,7 @@ public class QueryTaskClientHelper<T extends ServiceDocument> {
 
     private final Class<T> type;
     private ServiceHost host;
+    private ServiceRequestSender serviceRequestSender;
     private QueryTask queryTask;
     private ResultHandler<T> resultHandler;
     private URI baseUri;
@@ -178,10 +179,23 @@ public class QueryTaskClientHelper<T extends ServiceDocument> {
      */
     public QueryTaskClientHelper<T> sendWith(ServiceHost serviceHost) {
         assertNotNull(serviceHost, "'serviceHost' must not be null.");
-        this.host = serviceHost;
-        if (this.baseUri == null) {
-            this.baseUri = serviceHost.getUri();
-        }
+        this.serviceRequestSender = this.host = serviceHost;
+        sendQueryRequest();
+        return this;
+    }
+
+    /**
+     * Set the Service, which will be used to send the request to the Query task
+     * service.
+     *
+     * @param service
+     *
+     * @return QueryTaskClientHelper
+     */
+    public QueryTaskClientHelper<T> sendWith(Service service) {
+        assertNotNull(service, "'service' must not be null.");
+        this.host = service.getHost();
+        this.serviceRequestSender = service;
         sendQueryRequest();
         return this;
     }
@@ -239,7 +253,11 @@ public class QueryTaskClientHelper<T extends ServiceDocument> {
         assertNotNull(this.queryTask, "'queryTask' must be set first.");
         assertNotNull(this.resultHandler, "'resultHandler' must be set first.");
 
-        this.host.sendRequest(Operation
+        if (this.baseUri == null) {
+            this.baseUri = this.host.getUri();
+        }
+
+        this.serviceRequestSender.sendRequest(Operation
                 .createPost(UriUtils.extendUri(this.baseUri, ServiceUriPaths.CORE_QUERY_TASKS))
                 .setBody(this.queryTask)
                 .setReferer(this.host.getUri())
@@ -264,7 +282,7 @@ public class QueryTaskClientHelper<T extends ServiceDocument> {
             return;
         }
 
-        this.host.sendRequest(Operation
+        this.serviceRequestSender.sendRequest(Operation
                 .createGet(UriUtils.extendUri(this.baseUri, q.documentSelfLink))
                 .setReferer(this.host.getUri())
                 .setCompletion((o, e) -> {
@@ -333,7 +351,7 @@ public class QueryTaskClientHelper<T extends ServiceDocument> {
                 return;
             }
 
-            this.host.sendRequest(Operation
+            this.serviceRequestSender.sendRequest(Operation
                     .createGet(UriUtils.extendUri(this.baseUri, nextPageLink))
                     .setReferer(this.host.getUri())
                     .setCompletion((o, e) -> {
@@ -446,7 +464,7 @@ public class QueryTaskClientHelper<T extends ServiceDocument> {
     }
 
     @FunctionalInterface
-    public static interface ResultHandler<T extends ServiceDocument> {
-        public void handle(QueryElementResult<T> queryElementResult, Throwable failure);
+    public interface ResultHandler<T extends ServiceDocument> {
+        void handle(QueryElementResult<T> queryElementResult, Throwable failure);
     }
 }
