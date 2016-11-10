@@ -5,6 +5,8 @@
 * Default logger format now produces UTC-offset, rfc3339 formatted strings,
   for example 2016-11-09T18:55:36.037Z
 
+* Added thread id to log formatter.
+
 ## 1.3.0
 
 * Document signature calculation changed to be more efficient while format stays

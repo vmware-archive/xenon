@@ -21,12 +21,14 @@ import java.util.logging.LogRecord;
 
 public class LogFormatter extends Formatter {
 
-    private static final DateTimeFormatter DEFAULT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    private static final DateTimeFormatter DEFAULT_FORMAT = DateTimeFormatter
+            .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
     public static class LogItem {
         public String l;
         public long id;
         public long t;
+        public int threadId;
         public String m;
         public String method;
         public String classOrUri;
@@ -36,17 +38,28 @@ public class LogFormatter extends Formatter {
             sr.l = source.getLevel().toString();
             sr.t = source.getMillis();
             sr.id = source.getSequenceNumber();
+            sr.threadId = source.getThreadID();
             sr.m = source.getMessage();
             sr.method = source.getSourceMethodName();
             sr.classOrUri = source.getSourceClassName();
             if (sr.classOrUri == null) {
-                return sr;
-            }
-            if (sr.classOrUri.startsWith("http")) {
-                int portIndex = sr.classOrUri.lastIndexOf(":");
+                sr.classOrUri = "";
+            } else if (sr.classOrUri.startsWith("http")) {
+                // Remove leading URI schema & host. Support for ipv6 and path containing
+                // colon (ex, http://[::FFFF:129.144.52.38]:9000/group:department).
+                //
+                // Finding first slash at index 8, calculated based on minimum path starting
+                // location in http/https URIs.
+                // 0123456789
+                // http://a/
+                // https://a/
+                final int findPathFromIndex = 8;
+                int pathIndex = sr.classOrUri.indexOf('/', findPathFromIndex);
+                int portIndex = sr.classOrUri
+                        .lastIndexOf(':', pathIndex == -1 ? Integer.MAX_VALUE : pathIndex);
                 sr.classOrUri = sr.classOrUri.substring(portIndex + 1);
             } else {
-                int simpleNameIndex = sr.classOrUri.lastIndexOf(".");
+                int simpleNameIndex = sr.classOrUri.lastIndexOf('.');
                 if (simpleNameIndex != -1) {
                     sr.classOrUri = sr.classOrUri.substring(simpleNameIndex + 1);
                 }
@@ -56,34 +69,42 @@ public class LogFormatter extends Formatter {
 
         @Override
         public String toString() {
-            StringBuilder sb = new StringBuilder(128 + (this.m == null ? 0 : this.m.length()));
+            int mLen = this.m == null ? 0 : this.m.length();
+            StringBuilder sb = new StringBuilder(128 + mLen);
             sb.append('[').append(this.id).append(']');
             sb.append('[').append(this.l.charAt(0)).append(']');
 
-            sb.append('[').append(formatTimestampMillis(this.t)).append(']');
+            sb.append('[');
+            formatTimestampMillisTo(this.t, sb);
+            sb.append(']');
 
+            sb.append('[').append(this.threadId).append(']');
             sb.append('[').append(this.classOrUri).append(']');
             sb.append('[').append(this.method).append(']');
-            if (this.m != null && !this.m.isEmpty()) {
-                sb.append('[').append(this.m).append(']');
+
+            // Always include the message brackets to keep consistent log structure.
+            sb.append('[');
+            if (mLen > 0) {
+                sb.append(this.m);
             }
+            sb.append(']');
 
             return sb.toString();
         }
     }
 
-    public static String formatTimestampMillis(long millis) {
+    public static void formatTimestampMillisTo(long millis, Appendable appendable) {
         long seconds = millis / 1000;
         int nanos = (int) (millis % 1000) * 1_000_000;
 
-        return DEFAULT_FORMAT.format(LocalDateTime.ofEpochSecond(seconds, nanos, ZoneOffset.UTC));
+        DEFAULT_FORMAT
+                .formatTo(LocalDateTime.ofEpochSecond(seconds, nanos, ZoneOffset.UTC), appendable);
     }
 
     @Override
     public String format(LogRecord record) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(LogItem.create(record).toString());
-        sb.append("\n");
+        StringBuilder sb = new StringBuilder(LogItem.create(record).toString());
+        sb.append('\n');
         return sb.toString();
     }
 }
