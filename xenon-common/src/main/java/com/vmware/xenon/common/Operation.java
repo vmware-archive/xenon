@@ -1347,7 +1347,7 @@ public class Operation implements Cloneable {
     public Operation addPragmaDirective(String directive) {
         allocateRemoteContext();
         directive = directive.toLowerCase();
-        String existingDirectives = getRequestHeader(PRAGMA_HEADER);
+        String existingDirectives = getRequestHeader(PRAGMA_HEADER, false);
         if (existingDirectives != null) {
             if (!existingDirectives.contains(directive)) {
                 directive = existingDirectives + ";" + directive;
@@ -1363,7 +1363,7 @@ public class Operation implements Cloneable {
      * Checks if a directive is present. Lower case strings must be used.
      */
     public boolean hasPragmaDirective(String directive) {
-        String existingDirectives = getRequestHeader(PRAGMA_HEADER);
+        String existingDirectives = getRequestHeader(PRAGMA_HEADER, false);
         if (existingDirectives != null
                 && existingDirectives.contains(directive)) {
             return true;
@@ -1375,7 +1375,7 @@ public class Operation implements Cloneable {
      * Removes a directive. Lower case strings must be used
      */
     public Operation removePragmaDirective(String directive) {
-        String existingDirectives = getRequestHeader(PRAGMA_HEADER);
+        String existingDirectives = getRequestHeader(PRAGMA_HEADER, false);
         if (existingDirectives != null) {
             directive = existingDirectives.replace(directive, "");
             addRequestHeader(PRAGMA_HEADER, directive);
@@ -1514,6 +1514,17 @@ public class Operation implements Cloneable {
     }
 
     public String getRequestHeader(String headerName) {
+        return getRequestHeader(headerName, true);
+    }
+
+    /**
+     * Retrieves header from request headers, skipping normalization
+     */
+    public String getRequestHeaderAsIs(String headerName) {
+        return getRequestHeader(headerName, false);
+    }
+
+    private String getRequestHeader(String headerName, boolean normalize) {
         if (this.remoteCtx == null) {
             return null;
         }
@@ -1521,16 +1532,27 @@ public class Operation implements Cloneable {
             return null;
         }
         String value = this.remoteCtx.requestHeaders.get(headerName);
-        if (value == null) {
+        if (normalize && value == null) {
             value = this.remoteCtx.requestHeaders.get(headerName.toLowerCase());
         }
-        if (value != null) {
+        if (normalize && value != null) {
             value = value.trim().replace(CR_LF, "");
         }
         return value;
     }
 
     public String getResponseHeader(String headerName) {
+        return getResponseHeader(headerName, true);
+    }
+
+    /**
+     * Retrieves header from response headers, skipping normalization
+     */
+    public String getResponseHeaderAsIs(String headerName) {
+        return getResponseHeader(headerName, false);
+    }
+
+    private String getResponseHeader(String headerName, boolean normalize) {
         if (this.remoteCtx == null) {
             return null;
         }
@@ -1538,10 +1560,10 @@ public class Operation implements Cloneable {
             return null;
         }
         String value = this.remoteCtx.responseHeaders.get(headerName);
-        if (value == null) {
+        if (normalize && value == null) {
             value = this.remoteCtx.responseHeaders.get(headerName.toLowerCase());
         }
-        if (value != null) {
+        if (normalize && value != null) {
             value = value.trim().replace(CR_LF, "");
         }
         return value;
@@ -1765,7 +1787,7 @@ public class Operation implements Cloneable {
      * Value indicating whether this operation is a commit phase replication request.
      */
     public boolean isCommit() {
-        String phase = getRequestHeader(Operation.REPLICATION_PHASE_HEADER);
+        String phase = getRequestHeader(Operation.REPLICATION_PHASE_HEADER, false);
         return Operation.REPLICATION_PHASE_COMMIT.equals(phase);
     }
 
