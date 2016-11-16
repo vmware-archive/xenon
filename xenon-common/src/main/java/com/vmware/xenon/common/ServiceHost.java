@@ -3216,7 +3216,7 @@ public class ServiceHost implements ServiceRequestSender {
     private void checkAndPopulateAuthzContext(Service service, Operation inboundOp) {
         if (this.authorizationService != null) {
             inboundOp.nestCompletion(op -> {
-                handleRequestWithAuthContext(null, op);
+                handleRequestWithAuthContext(null, inboundOp);
             });
             queueOrScheduleRequest(this.authorizationService, inboundOp);
         } else {
