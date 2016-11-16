@@ -123,6 +123,8 @@ class ServiceResourceTracker {
 
     private ThreadMXBean threadBean;
 
+    private Service mgmtService;
+
     public static ServiceResourceTracker create(ServiceHost host, Map<String, Service> services,
             Map<String, Service> pendingPauseServices) {
         ServiceResourceTracker srt = new ServiceResourceTracker(host, services,
@@ -182,7 +184,7 @@ class ServiceResourceTracker {
     }
 
     private void createDayTimeSeriesStat(String name, double v) {
-        Service mgmtService = this.host.getManagementService();
+        Service mgmtService = getManagementService();
         ServiceStat st = new ServiceStat();
         st.name = name + ServiceStats.STAT_NAME_SUFFIX_PER_DAY;
         st.timeSeriesStats = new TimeSeriesStats((int) TimeUnit.DAYS.toHours(1),
@@ -192,7 +194,7 @@ class ServiceResourceTracker {
     }
 
     private void createHourTimeSeriesStat(String name, double v) {
-        Service mgmtService = this.host.getManagementService();
+        Service mgmtService = getManagementService();
         ServiceStat st = new ServiceStat();
         st.name = name + ServiceStats.STAT_NAME_SUFFIX_PER_HOUR;
         st.timeSeriesStats = new TimeSeriesStats((int) TimeUnit.HOURS.toMinutes(1),
@@ -202,11 +204,14 @@ class ServiceResourceTracker {
     }
 
     private void updateStats(long now) {
-        SystemHostInfo shi = this.host.updateSystemInfo(false);
-        Service mgmtService = this.host.getManagementService();
+        this.host.updateMemoryAndDiskInfo();
+        ServiceHostState hostState = this.host.getStateNoCloning();
+        SystemHostInfo shi = hostState.systemInfo;
+
+        Service mgmtService = getManagementService();
         checkAndInitializeStats();
         mgmtService.setStat(ServiceHostManagementService.STAT_NAME_SERVICE_COUNT,
-                this.host.getStateNoCloning().serviceCount);
+                hostState.serviceCount);
 
         // The JVM reports free memory in a indirect way, relative to the current "total". But the
         // true free memory is the estimated used memory subtracted from the JVM heap max limit
@@ -289,6 +294,13 @@ class ServiceResourceTracker {
                     ServiceHostManagementService.STAT_NAME_HTTP2_CONNECTION_COUNT_PER_DAY,
                     http2TagInfo.inUseConnectionCount);
         }
+    }
+
+    private Service getManagementService() {
+        if (this.mgmtService == null) {
+            this.mgmtService = this.host.getManagementService();
+        }
+        return this.mgmtService;
     }
 
     public void setServiceStateCaching(boolean enable) {

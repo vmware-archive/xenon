@@ -255,13 +255,13 @@ public class TestNodeGroupService {
                     ServiceHostState.DEFAULT_MAINTENANCE_INTERVAL_MICROS);
         }
 
+        CommandLineArgumentParser.parseFromProperties(this.host);
         this.host.start();
 
         if (this.host.isAuthorizationEnabled()) {
             this.host.setSystemAuthorizationContext();
         }
 
-        CommandLineArgumentParser.parseFromProperties(this.host);
         this.host.setStressTest(this.host.isStressTest);
         this.host.setPeerSynchronizationEnabled(this.isPeerSynchronizationEnabled);
         this.host.setMultiLocationTest(this.isMultiLocationTest);

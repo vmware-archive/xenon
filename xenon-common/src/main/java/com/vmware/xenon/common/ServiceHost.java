@@ -1070,6 +1070,7 @@ public class ServiceHost implements ServiceRequestSender {
     }
 
     ServiceHostState getStateNoCloning() {
+        this.state.systemInfo = this.info;
         return this.state;
     }
 
@@ -4641,27 +4642,12 @@ public class ServiceHost implements ServiceRequestSender {
     }
 
     public SystemHostInfo updateSystemInfo(boolean enumerateNetworkInterfaces) {
-        Runtime r = Runtime.getRuntime();
-        this.info.availableProcessorCount = r.availableProcessors();
-        this.info.freeMemoryByteCount = r.freeMemory();
-        this.info.totalMemoryByteCount = r.totalMemory();
-        this.info.maxMemoryByteCount = r.maxMemory();
 
+        this.info.availableProcessorCount = Runtime.getRuntime().availableProcessors();
         this.info.osName = Utils.getOsName(this.info);
         this.info.osFamily = Utils.determineOsFamily(this.info.osName);
 
-        try {
-            URI sandbox = getStorageSandbox();
-            if (sandbox == null) {
-                throw new RuntimeException("Sandbox not set");
-            }
-            File f = new File(sandbox);
-            this.info.freeDiskByteCount = f.getFreeSpace();
-            this.info.usableDiskByteCount = f.getUsableSpace();
-            this.info.totalDiskByteCount = f.getTotalSpace();
-        } catch (Throwable e) {
-            log(Level.WARNING, "Exception getting disk usage: %s", Utils.toString(e));
-        }
+        updateMemoryAndDiskInfo();
 
         for (Entry<Object, Object> e : System.getProperties().entrySet()) {
             String k = e.getKey().toString();
@@ -4722,6 +4708,27 @@ public class ServiceHost implements ServiceRequestSender {
         }
 
         return Utils.clone(this.info);
+    }
+
+    public void updateMemoryAndDiskInfo() {
+        Runtime r = Runtime.getRuntime();
+
+        this.info.freeMemoryByteCount = r.freeMemory();
+        this.info.totalMemoryByteCount = r.totalMemory();
+        this.info.maxMemoryByteCount = r.maxMemory();
+
+        try {
+            URI sandbox = getStorageSandbox();
+            if (sandbox == null) {
+                throw new RuntimeException("Sandbox not set");
+            }
+            File f = new File(sandbox);
+            this.info.freeDiskByteCount = f.getFreeSpace();
+            this.info.usableDiskByteCount = f.getUsableSpace();
+            this.info.totalDiskByteCount = f.getTotalSpace();
+        } catch (Throwable e) {
+            log(Level.WARNING, "Exception getting disk usage: %s", Utils.toString(e));
+        }
     }
 
     private boolean checkAndSetPreferredAddress(String address) {
