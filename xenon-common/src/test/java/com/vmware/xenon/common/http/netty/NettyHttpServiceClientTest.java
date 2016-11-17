@@ -49,6 +49,7 @@ import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.ServiceClient;
 import com.vmware.xenon.common.ServiceClient.ConnectionPoolMetrics;
 import com.vmware.xenon.common.ServiceDocument;
+import com.vmware.xenon.common.ServiceHost.ServiceHostState;
 import com.vmware.xenon.common.StatefulService;
 import com.vmware.xenon.common.StatelessService;
 import com.vmware.xenon.common.UriUtils;
@@ -248,9 +249,17 @@ public class NettyHttpServiceClientTest {
     }
 
     private void validateTagInfo(String tag) {
-        ConnectionPoolMetrics tagInfo = this.host.getClient().getConnectionPoolMetrics(tag);
-        assertTrue(tagInfo != null);
-        assertTrue(tagInfo.pendingRequestCount == 0);
+        this.host.waitFor("pending requests", () -> {
+            ConnectionPoolMetrics tagInfo = this.host.getClient().getConnectionPoolMetrics(tag);
+            if (tagInfo == null) {
+                return false;
+            }
+            if (tagInfo.pendingRequestCount != 0) {
+                this.host.log("Requests still pending: %s", Utils.toJson(tagInfo));
+                return false;
+            }
+            return true;
+        });
     }
 
     @Test
@@ -350,41 +359,45 @@ public class NettyHttpServiceClientTest {
                 MinimalTestService.class,
                 this.host.buildMinimalTestState(),
                 EnumSet.noneOf(Service.ServiceOption.class), null);
-        this.host.toggleNegativeTestMode(true);
-        this.host.setOperationTimeOutMicros(TimeUnit.MILLISECONDS.toMicros(250));
+        try {
+            this.host.toggleNegativeTestMode(true);
+            this.host.setOperationTimeOutMicros(TimeUnit.MILLISECONDS.toMicros(250));
 
-        // send a request to the MinimalTestService, with a body that makes it NOT complete it
-        MinimalTestServiceState body = new MinimalTestServiceState();
-        body.id = MinimalTestService.STRING_MARKER_TIMEOUT_REQUEST;
+            // send a request to the MinimalTestService, with a body that makes it NOT complete it
+            MinimalTestServiceState body = new MinimalTestServiceState();
+            body.id = MinimalTestService.STRING_MARKER_TIMEOUT_REQUEST;
 
-        this.host.getClient()
-                .setConnectionLimitPerHost(NettyHttpServiceClient.DEFAULT_CONNECTIONS_PER_HOST);
-        int count = NettyHttpServiceClient.DEFAULT_CONNECTIONS_PER_HOST;
+            this.host.getClient()
+                    .setConnectionLimitPerHost(NettyHttpServiceClient.DEFAULT_CONNECTIONS_PER_HOST);
+            int count = NettyHttpServiceClient.DEFAULT_CONNECTIONS_PER_HOST;
 
-        // timeout tracking currently works only for remote requests ...
-        this.host.testStart(count);
-        for (int i = 0; i < count; i++) {
-            Operation request = Operation
-                    .createPatch(services.get(0).getUri())
-                    .forceRemote()
-                    .setBody(body)
-                    .setCompletion((o, e) -> {
-                        if (e != null) {
-                            // timeout occurred, good
-                            this.host.completeIteration();
-                            return;
-                        }
-                        this.host.failIteration(new IllegalStateException(
-                                "Request should have timed out"));
-                    });
+            // timeout tracking currently works only for remote requests ...
+            this.host.testStart(count);
+            for (int i = 0; i < count; i++) {
+                Operation request = Operation
+                        .createPatch(services.get(0).getUri())
+                        .forceRemote()
+                        .setBody(body)
+                        .setCompletion((o, e) -> {
+                            if (e != null) {
+                                // timeout occurred, good
+                                this.host.completeIteration();
+                                return;
+                            }
+                            this.host.failIteration(new IllegalStateException(
+                                    "Request should have timed out"));
+                        });
 
-            request.toggleOption(OperationOption.SEND_WITH_CALLBACK, useCallback);
-            this.host.send(request);
+                request.toggleOption(OperationOption.SEND_WITH_CALLBACK, useCallback);
+                this.host.send(request);
 
+            }
+            this.host.testWait();
+        } finally {
+            this.host.toggleNegativeTestMode(false);
+            this.host.setOperationTimeOutMicros(
+                    TimeUnit.SECONDS.toMicros(ServiceHostState.DEFAULT_OPERATION_TIMEOUT_MICROS));
         }
-        this.host.testWait();
-        this.host.toggleNegativeTestMode(false);
-        this.host.setOperationTimeOutMicros(TimeUnit.SECONDS.toMicros(10));
     }
 
     @Test
