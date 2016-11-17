@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ForkJoinPool;
@@ -2403,12 +2404,40 @@ public class TestLuceneDocumentIndexService {
         q.query = b.build();
         q.options = EnumSet.of(QueryOption.COUNT, QueryOption.INCLUDE_ALL_VERSIONS);
 
-        this.host.waitFor("Version retention failed to remove some documents", () -> {
+        try {
+            this.host.waitFor("Version retention failed to remove some documents", () -> {
+                QueryTask qt = QueryTask.create(q).setDirect(true);
+                this.host.createQueryTaskService(qt, false, true, qt, null);
+                return qt.results.documentCount >= serviceUris.size() * floor
+                        && qt.results.documentCount <= serviceUris.size() * limit;
+            });
+        } catch (Throwable t) {
+            // Get the set of document links which caused the failure
+            q.options = EnumSet.of(QueryOption.INCLUDE_ALL_VERSIONS);
             QueryTask qt = QueryTask.create(q).setDirect(true);
             this.host.createQueryTaskService(qt, false, true, qt, null);
-            return qt.results.documentCount >= serviceUris.size() * floor
-                    && qt.results.documentCount <= serviceUris.size() * limit;
-        });
+            HashMap<String, TreeSet<Integer>> aggregated = new HashMap<>();
+            for (String link : qt.results.documentLinks) {
+                String documentSelfLink = link.split("\\?")[0];
+                TreeSet<Integer> versions = aggregated.get(documentSelfLink);
+                if (versions == null) {
+                    versions = new TreeSet<>();
+                }
+                versions.add(Integer.parseInt(link.split("=")[1]));
+                aggregated.put(documentSelfLink, versions);
+            }
+            aggregated.entrySet().stream()
+                    .filter((entry) -> entry.getValue().size() < floor
+                            || entry.getValue().size() > limit)
+                    .forEach((entry) -> {
+                        String documentSelfLink = entry.getKey();
+                        TreeSet<Integer> versions = entry.getValue();
+                        this.host.log("Failing documentSelfLink:%s, "
+                                        + "lowestVersion:%d, highestVersion:%d, count:%d",
+                                documentSelfLink, versions.first(), versions.last(), versions.size());
+                    });
+            throw t;
+        }
     }
 
     @Test
