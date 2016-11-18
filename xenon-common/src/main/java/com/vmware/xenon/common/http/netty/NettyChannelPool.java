@@ -700,23 +700,37 @@ public class NettyChannelPool {
                 c.close();
             }
 
+            if (group.pendingRequests.isEmpty()) {
+                return;
+            }
+
             // The HTTP client is responsible for failing expired operations and maintains
             // an independent tracking list. As a defense-in-depth check however, warn when
             // operations remain in our pending list AFTER they are expired
             final int searchLimit = 1000;
             int count = 0;
+
             Iterator<Operation> pendingOpIt = group.pendingRequests.iterator();
             while (pendingOpIt.hasNext() && ++count < searchLimit) {
                 Operation pendingOp = pendingOpIt.next();
+
                 if (!Utils.beforeNow(epsilonMicros + pendingOp.getExpirationMicrosUtc())) {
-                    continue;
+                    if (count > 10) {
+                        // We are using a FIFO queue, so if oldest operations have not expired,
+                        // assume no others have. This is not always true, for operations with
+                        // widely different expirations, but this is defense in depth, not a primary
+                        // mechanism for expiration and we want to keep the overhead small
+                        break;
+                    } else {
+                        continue;
+                    }
                 }
                 pendingOpIt.remove();
                 LOGGER.info("Found expired op in pending list: " + pendingOp.toString());
                 Throwable e = new TimeoutException(
                         pendingOp.getUri() + ":" + pendingOp.getExpirationMicrosUtc());
                 pendingOp.setStatusCode(Operation.STATUS_CODE_TIMEOUT);
-                pendingOp.fail(e);
+                this.executor.execute(() -> pendingOp.fail(e));
             }
         }
     }
