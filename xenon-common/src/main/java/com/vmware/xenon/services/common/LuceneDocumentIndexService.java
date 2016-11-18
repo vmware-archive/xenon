@@ -518,7 +518,7 @@ public class LuceneDocumentIndexService extends StatelessService {
         Operation op = Operation.createGet(getUri());
         EnumSet<QueryOption> options = EnumSet.of(QueryOption.INCLUDE_ALL_VERSIONS);
         IndexSearcher s = new IndexSearcher(DirectoryReader.open(this.writer, true, true));
-        queryIndex(op, options, s, tq, null, Integer.MAX_VALUE, 0, null, rsp, null);
+        queryIndexPaginated(op, options, s, tq, null, Integer.MAX_VALUE, 0, null, rsp, null);
     }
 
     private void handleBackup(Operation op) throws Throwable {
@@ -960,7 +960,7 @@ public class LuceneDocumentIndexService extends StatelessService {
         if (tq == null) {
             return false;
         }
-        ServiceDocumentQueryResult result = queryIndex(op, options, s, tq, page,
+        ServiceDocumentQueryResult result = queryIndexPaginated(op, options, s, tq, page,
                 count, expiration, indexLink, rsp, qs);
         result.documentOwner = getHost().getId();
         if (!options.contains(QueryOption.COUNT) && result.documentLinks.isEmpty()) {
@@ -1181,7 +1181,7 @@ public class LuceneDocumentIndexService extends StatelessService {
         op.setBodyNoCloning(rsp).complete();
     }
 
-    private ServiceDocumentQueryResult queryIndex(Operation op,
+    private ServiceDocumentQueryResult queryIndexPaginated(Operation op,
             EnumSet<QueryOption> options,
             IndexSearcher s,
             Query tq,
