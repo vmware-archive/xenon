@@ -543,11 +543,11 @@ public class TestLuceneDocumentIndexService {
 
         long e = System.nanoTime();
         durationNanos += e - s;
-        double thput = (double) (this.serviceCount * this.iterationCount);
+        double thput = this.serviceCount * this.iterationCount;
         thput /= durationNanos;
         thput *= TimeUnit.SECONDS.toNanos(1);
 
-        double qps = (double) this.iterationCount / durationNanos;
+        double qps = this.iterationCount / durationNanos;
         qps *= TimeUnit.SECONDS.toNanos(1);
 
         this.host.log(
@@ -1999,11 +1999,15 @@ public class TestLuceneDocumentIndexService {
             this.host.log("total versions: %f", stAll.latestValue);
         }
 
+        // the more services we start, the more we should wait before we expire them
+        // to avoid expirations occurring during, or before service start.
+        // We give the system a couple of seconds per 500 services, which is about 100x more
+        // than it needs, but CI will sometimes get overloaded and cause false negatives
+        long interval = Math.max(1, this.serviceCount / 500) * TimeUnit.SECONDS.toMicros(1);
         Consumer<Operation> maintExpSetBody = (o) -> {
             ExampleServiceState body = new ExampleServiceState();
             body.name = UUID.randomUUID().toString();
-            body.documentExpirationTimeMicros = Utils.fromNowMicrosUtc(
-                    this.host.getMaintenanceIntervalMicros());
+            body.documentExpirationTimeMicros = Utils.fromNowMicrosUtc(interval);
             o.setBody(body);
         };
 
