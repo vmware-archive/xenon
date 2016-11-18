@@ -1630,6 +1630,7 @@ public class ServiceHost implements ServiceRequestSender {
             return peerList;
         }
 
+        URI publicUri = this.state.publicUri;
         for (String peer : peers) {
             URI peerNodeBaseUri;
             if (!peer.startsWith("http")) {
@@ -1646,6 +1647,14 @@ public class ServiceHost implements ServiceRequestSender {
             int selfPort = getPort();
             if (UriUtils.HTTPS_SCHEME.equals(peerNodeBaseUri.getScheme())) {
                 selfPort = getSecurePort();
+            }
+
+            if (publicUri != null &&
+                    publicUri.getHost().equals(peerNodeBaseUri.getHost()) &&
+                    publicUri.getPort() == peerNodeBaseUri.getPort()) {
+                // self, skip
+                log(Level.INFO, "Skipping peer %s, its us (%s)", peerNodeBaseUri, peerNodeBaseUri.getHost());
+                continue;
             }
 
             if (checkAndSetPreferredAddress(peerNodeBaseUri.getHost())
