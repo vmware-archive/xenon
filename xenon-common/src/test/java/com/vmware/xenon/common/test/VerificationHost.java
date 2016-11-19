@@ -78,7 +78,6 @@ import com.vmware.xenon.common.NodeSelectorState;
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.Operation.AuthorizationContext;
 import com.vmware.xenon.common.Operation.CompletionHandler;
-import com.vmware.xenon.common.Operation.OperationOption;
 import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.Service.Action;
 import com.vmware.xenon.common.Service.ServiceOption;
@@ -1348,9 +1347,6 @@ public class VerificationHost extends ExampleServiceHost {
                     run(() -> {
                         send(putClone);
                     });
-                } else if (properties.contains(TestProperty.CALLBACK_SEND)) {
-                    updateOp.toggleOption(OperationOption.SEND_WITH_CALLBACK, true);
-                    send(updateOp.setBody(b));
                 } else {
                     send(updateOp.setBody(b));
                 }
