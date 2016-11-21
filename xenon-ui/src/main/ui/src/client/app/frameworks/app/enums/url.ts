@@ -10,12 +10,15 @@ export class URL {
     // NOTE: Root need to be POSTed to with body
     // { "kind": "com:vmware:xenon:ui:UiService:QueryRequest" }
     static Root: string = '/core/ui/default';
-    static RootPostBody: any = { kind: 'com:vmware:xenon:ui:UiService:QueryRequest' };
+    static RootPostBody: any = {
+        kind: 'com:vmware:xenon:ui:UiService:QueryRequest'
+    };
 
     static Authentication: string = '/core/authn/basic';
     static CoreManagement: string = '/core/management';
     static NodeGroup: string = '/core/node-groups/';
     static Log: string = '/core/management/process-log';
     static Query: string = '/core/query-tasks';
+    static QueryLocal: string = '/core/local-query-tasks';
     static DocumentIndex: string = '/core/document-index';
 }
