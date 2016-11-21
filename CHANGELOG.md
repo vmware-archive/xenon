@@ -13,6 +13,8 @@
   connections alive because the default Operation options did not have
   OperationOption.KEEP_ALIVE. This is a transparent optimization/fix
 
+* Completed AuthZ Role Policy support to handle DENY option.
+
 * Added methods to NodeSelectorState to support a 'PAUSE' state for the
   NodeSelectorService (ConsistentHashingNodeSelectorService).
 
