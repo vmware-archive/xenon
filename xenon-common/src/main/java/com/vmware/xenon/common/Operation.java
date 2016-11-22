@@ -383,10 +383,6 @@ public class Operation implements Cloneable {
     // Proprietary header definitions
     public static final String HEADER_NAME_PREFIX = "x-xenon-";
     public static final String CONTEXT_ID_HEADER = HEADER_NAME_PREFIX + "ctx-id";
-    public static final String REQUEST_CALLBACK_LOCATION_HEADER = HEADER_NAME_PREFIX
-            + "req-location";
-    public static final String RESPONSE_CALLBACK_STATUS_HEADER = HEADER_NAME_PREFIX
-            + "rsp-status";
     public static final String REQUEST_AUTH_TOKEN_HEADER = HEADER_NAME_PREFIX
             + "auth-token";
     public static final String REPLICATION_PHASE_HEADER = HEADER_NAME_PREFIX
@@ -498,6 +494,7 @@ public class Operation implements Cloneable {
      */
     public static final String PRAGMA_DIRECTIVE_POST_TO_PUT = "xn-post-to-put";
 
+
     public static final String TX_ENSURE_COMMIT = "ensure-commit";
     public static final String TX_COMMIT = "commit";
     public static final String TX_ABORT = "abort";
@@ -567,7 +564,7 @@ public class Operation implements Cloneable {
     private short retryCount;
     private short retriesRemaining;
 
-    public EnumSet<OperationOption> options = EnumSet.noneOf(OperationOption.class);
+    public EnumSet<OperationOption> options = EnumSet.of(OperationOption.KEEP_ALIVE);
 
     public static Operation create(SerializedOperation ctx, ServiceHost host) {
         Operation op = new Operation();
@@ -1601,47 +1598,6 @@ public class Operation implements Cloneable {
      */
     public boolean isForwarded() {
         return this.hasPragmaDirective(PRAGMA_DIRECTIVE_FORWARDED);
-    }
-
-    public String getRequestCallbackLocation() {
-        if (this.remoteCtx == null || this.remoteCtx.requestHeaders == null) {
-            return null;
-        }
-
-        return this.remoteCtx.requestHeaders
-                .get(REQUEST_CALLBACK_LOCATION_HEADER);
-    }
-
-    public String getResponseCallbackStatus() {
-        if (this.remoteCtx == null || this.remoteCtx.responseHeaders == null) {
-            return null;
-        }
-        return this.remoteCtx.requestHeaders
-                .get(RESPONSE_CALLBACK_STATUS_HEADER);
-    }
-
-    public Operation removeRequestCallbackLocation() {
-        if (this.remoteCtx == null || this.remoteCtx.requestHeaders == null) {
-            return null;
-        }
-        this.remoteCtx.requestHeaders.remove(REQUEST_CALLBACK_LOCATION_HEADER);
-        return this;
-    }
-
-    public Operation setRequestCallbackLocation(String location) {
-        allocateRemoteContext();
-        allocateRequestHeaders();
-        this.remoteCtx.requestHeaders.put(REQUEST_CALLBACK_LOCATION_HEADER,
-                location == null ? null : location);
-        return this;
-    }
-
-    public Operation setResponseCallbackStatus(int status) {
-        allocateRemoteContext();
-        allocateRequestHeaders();
-        this.remoteCtx.requestHeaders.put(RESPONSE_CALLBACK_STATUS_HEADER,
-                Integer.toString(status));
-        return this;
     }
 
     /**
