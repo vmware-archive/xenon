@@ -54,11 +54,17 @@ public class QueryTask extends ServiceDocument {
             public transient Object nativeSearcher;
             public transient Object nativeSort;
             public transient QueryFilter filter;
+
             /**
              * Set of document links that should be considered in query execution. Any document not
              * in the list must be discarded. This is an implementation specific hint
              */
             public transient Set<String> documentLinkWhiteList;
+
+            /**
+             * The subject link of the user that created the query task.
+             */
+            public transient String subjectLink;
         }
 
         public enum QueryOption {
