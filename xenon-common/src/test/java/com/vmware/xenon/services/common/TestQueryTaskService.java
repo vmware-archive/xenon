@@ -2862,11 +2862,16 @@ public class TestQueryTaskService {
                 .setTermMatchType(MatchType.PHRASE);
 
         QueryTask task = QueryTask.create(q);
-        task.documentExpirationTimeMicros = Utils.fromNowMicrosUtc(TimeUnit.SECONDS
-                .toMicros(1));
+        task.documentExpirationTimeMicros = Utils.fromNowMicrosUtc(TimeUnit.MILLISECONDS
+                .toMicros(250));
 
         URI taskURI = this.host.createQueryTaskService(task, false, false, task, null);
-        this.host.waitForQueryTaskCompletion(q, 0, 0, taskURI, false, false);
+        this.host.waitFor("task did not expire", () -> {
+            if (this.host.getServiceStage(taskURI.getPath()) != null) {
+                return false;
+            }
+            return true;
+        });
 
         verifyTaskAutoExpiration(taskURI);
         verifyPaginatedIndexSearcherExpiration();
@@ -3543,32 +3548,22 @@ public class TestQueryTaskService {
 
     private void verifyTaskAutoExpiration(URI u) throws Throwable {
         // test task expiration
-        Date exp = this.host.getTestExpiration();
-        while (new Date().before(exp)) {
-            Thread.sleep(100);
+        this.host.waitFor("task never expired", () -> {
             ServiceDocumentQueryResult r = this.host.getServiceState(null,
                     ServiceDocumentQueryResult.class,
                     UriUtils.buildUri(this.host, QueryTaskFactoryService.class));
 
-            if (r.documentLinks != null) {
-                boolean taskExists = false;
-
-                for (String link : r.documentLinks) {
-                    if (u.getPath().equals(link)) {
-                        taskExists = true;
-                        break;
-                    }
-                }
-
-                if (taskExists) {
-                    continue;
-                }
-
-                return;
+            if (r.documentLinks == null) {
+                return true;
             }
-        }
 
-        throw new TimeoutException("Task should have expired");
+            for (String link : r.documentLinks) {
+                if (u.getPath().equals(link)) {
+                    return false;
+                }
+            }
+            return true;
+        });
     }
 
     private void verifyPaginatedIndexSearcherExpiration() throws Throwable {
