@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.3.2-SNAPSHOT
+
 ## 1.3.1
 
 * Remove OperationOption.SEND_WITH_CALLBACK. This was an experimental custom
