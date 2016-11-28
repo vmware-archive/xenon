@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.3.1-SNAPSHOT
+## 1.3.1
 
 * Remove OperationOption.SEND_WITH_CALLBACK. This was an experimental custom
   protocol that allows re-use of the same http connection across multiple
