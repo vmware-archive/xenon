@@ -362,6 +362,8 @@ public class QueryFilter {
 
         // MUST and MUST_NOT makes a set of clauses into a conjunction.
         // Any SHOULD_OCCUR clauses in that set can then be discarded.
+        // Apply DeMorgan's laws in the negation case by converting MUST to SHOULD and vice versa.
+        int mustClauses = 0;
         int shouldClauses = 0;
         for (Query clause : q.booleanClauses) {
             Occurance o = clause.occurance;
@@ -371,12 +373,21 @@ public class QueryFilter {
 
             switch (o) {
             case MUST_OCCUR:
-                createDisjunctiveNormalForm(clause, prefixes, negate);
+                if (!negate) {
+                    createDisjunctiveNormalForm(clause, prefixes, false);
+                }
+                mustClauses++;
                 break;
             case MUST_NOT_OCCUR:
-                createDisjunctiveNormalForm(clause, prefixes, !negate);
+                if (!negate) {
+                    createDisjunctiveNormalForm(clause, prefixes, true);
+                }
+                mustClauses++;
                 break;
             case SHOULD_OCCUR:
+                if (negate) {
+                    createDisjunctiveNormalForm(clause, prefixes, false);
+                }
                 shouldClauses++;
                 break;
             default:
@@ -384,8 +395,10 @@ public class QueryFilter {
             }
         }
 
-        // The set of clauses only is a disjunction IFF ALL of the clauses have SHOULD_OCCUR.
-        if (shouldClauses == q.booleanClauses.size()) {
+        // The set of clauses is a disjunction if and only if all of the clauses are effectively
+        // SHOULD_OCCUR clauses.
+        if ((negate && mustClauses == q.booleanClauses.size())
+                || (!negate && shouldClauses == q.booleanClauses.size())) {
             ArrayList<Conjunction> originalPrefixes = new ArrayList<>(prefixes);
             prefixes.clear();
 
@@ -393,7 +406,8 @@ public class QueryFilter {
             // One for every clause in this disjunction.
             for (Query clause : q.booleanClauses) {
                 ArrayList<Conjunction> clausePrefixes = new ArrayList<>(originalPrefixes);
-                createDisjunctiveNormalForm(clause, clausePrefixes, negate);
+                boolean negateClause = (clause.occurance == Occurance.MUST_NOT_OCCUR) ? false : negate;
+                createDisjunctiveNormalForm(clause, clausePrefixes, negateClause);
                 prefixes.addAll(clausePrefixes);
             }
         }
@@ -498,7 +512,7 @@ public class QueryFilter {
                 }
 
                 if (term.negate) {
-                    if (evaluateString(term, (String)o)) {
+                    if (evaluateString(term, (String) o)) {
                         return false;
                     }
                 } else {
