@@ -2554,20 +2554,25 @@ public class VerificationHost extends ExampleServiceHost {
     }
 
     public void logServiceStats(URI uri) {
-        ServiceStats stats = getServiceState(null, ServiceStats.class, UriUtils.buildStatsUri(uri));
-        if (stats == null || stats.entries == null) {
-            return;
+        try {
+            ServiceStats stats = getServiceState(null, ServiceStats.class,
+                    UriUtils.buildStatsUri(uri));
+            if (stats == null || stats.entries == null) {
+                return;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            sb.append(String.format("Stats for %s%n", uri));
+            sb.append(String.format("\tCount\t\tAvg\t\tTotal\t\t\tName%n"));
+
+            stats.entries.values().stream()
+                    .sorted((s1, s2) -> s1.name.compareTo(s2.name))
+                    .forEach((s) -> logStat(uri, s, sb));
+
+            log(sb.toString());
+        } catch (Throwable e) {
+            log("Failure getting stats: %s", e.getMessage());
         }
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(String.format("Stats for %s%n", uri));
-        sb.append(String.format("\tCount\t\tAvg\t\tTotal\t\t\tName%n"));
-
-        stats.entries.values().stream()
-                .sorted((s1, s2) -> s1.name.compareTo(s2.name))
-                .forEach((s) -> logStat(uri, s, sb));
-
-        log(sb.toString());
     }
 
     private void logStat(URI serviceUri, ServiceStat st, StringBuilder sb) {
