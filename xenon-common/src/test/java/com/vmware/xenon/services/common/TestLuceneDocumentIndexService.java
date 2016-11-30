@@ -1965,6 +1965,8 @@ public class TestLuceneDocumentIndexService {
             for (URI u : servicesFinal.keySet()) {
                 ProcessingStage s = this.host.getServiceStage(u.getPath());
                 if (s != null && s != ProcessingStage.STOPPED) {
+                    this.host.log("Found service %s in unexpected state %s", u.getPath(),
+                            s.toString());
                     isConverged = false;
                 }
             }
@@ -1983,14 +1985,21 @@ public class TestLuceneDocumentIndexService {
                             + ServiceStats.STAT_NAME_SUFFIX_PER_DAY);
 
             // in batch expiration mode, wait till at least first batch completes
-            if (servicesFinal.size() > LuceneDocumentIndexService
-                    .getExpiredDocumentSearchThreshold()
-                    && (expiredDocumentForcedMaintenanceCount == null
-                    || expiredDocumentForcedMaintenanceCount.latestValue < 2)) {
-                return false;
+            if (servicesFinal.size() >
+                    LuceneDocumentIndexService.getExpiredDocumentSearchThreshold()) {
+                if (expiredDocumentForcedMaintenanceCount == null) {
+                    this.host.log("Forced maintenance count was null");
+                    return false;
+                }
+                if (expiredDocumentForcedMaintenanceCount.latestValue < 2) {
+                    this.host.log("Forced maintenance count was %f",
+                            expiredDocumentForcedMaintenanceCount.latestValue);
+                    return false;
+                }
             }
 
             if (deletedCountAfterExpiration == null) {
+                this.host.log("Deleted count after expiration was null");
                 return false;
             }
 
