@@ -2,6 +2,8 @@
 
 ## 1.1.0-CR0-1
 
+* Bug fix related to cancellation of queued operations when using ON_DEMAND_LOAD.
+
 ## 1.1.0
 
 * Remove infrastructure Utils.toDocumentBytes/fromDocumentBytes and related methods,
