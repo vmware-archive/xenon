@@ -184,14 +184,20 @@ public final class TestResults implements TestRule {
         private final transient SortedMap<String, Stat> counters = new ConcurrentSkipListMap<>();
         private final transient Map<String, ServiceStats> rawStats = new ConcurrentSkipListMap<>();
         private final String name;
+        @SuppressWarnings("unused")
         private String javaVersion;
+        @SuppressWarnings("unused")
         private String os;
+        @SuppressWarnings("unused")
         private String timestamp;
+        @SuppressWarnings("unused")
         private String hardwareConfig;
+        @SuppressWarnings("unused")
         private List<String> jvmArgs;
         private String id;
         private Map<String, Double> metrics;
         private Map<String, Map<String, Double>> stats;
+        @SuppressWarnings("unused")
         private Map<String, Object> xenonArgs;
 
         Report(Description description) {
