@@ -2,6 +2,8 @@
 
 ## 1.1.0-CR2
 
+* Bug fix for SEND_WITH_CALLBACK when handling operation failures.
+
 * Bug fix related to self-node identification in the --peerNodes list when using FQDNs.
 
 ## 1.1.0-CR1

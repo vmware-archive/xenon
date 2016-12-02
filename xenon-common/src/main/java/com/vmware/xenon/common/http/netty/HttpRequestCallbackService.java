@@ -107,9 +107,12 @@ public class HttpRequestCallbackService extends StatelessService {
 
             request.transferRequestHeadersToResponseHeadersFrom(o);
             request.setStatusCode(Integer.parseInt(responseStatusValue));
-            // even if the status indicates failure, we just call complete since there is
-            // already an error response body
-            request.complete();
+
+            if (request.getStatusCode() >= Operation.STATUS_CODE_FAILURE_THRESHOLD) {
+                request.fail(new Exception("request failed, see body for details"));
+            } else {
+                request.complete();
+            }
         } catch (Throwable e) {
             logSevere(e);
             if (request != null) {
