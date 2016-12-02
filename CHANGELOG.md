@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.1.0-CR3
+
 ## 1.1.0-CR2
 
 * Bug fix for SEND_WITH_CALLBACK when handling operation failures.
