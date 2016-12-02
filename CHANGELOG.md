@@ -2,6 +2,9 @@
 
 ## 1.1.0-CR3
 
+* Bug fix related to properly loading the state of ON_DEMAND_LOAD services when the
+  services are started by an operation.
+
 * Bug fix related to cancellation of queued operations when using ON_DEMAND_LOAD.
 
 ## 1.1.0-CR2
