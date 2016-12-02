@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.3.2-SNAPSHOT
+## 1.3.2
 
 ## 1.3.1
 
