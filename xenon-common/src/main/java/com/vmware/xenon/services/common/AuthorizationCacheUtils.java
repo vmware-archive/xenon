@@ -60,6 +60,7 @@ public final class AuthorizationCacheUtils {
                 return;
             }
             if (!AuthorizationCacheUtils.isAuthzCacheClearApplicableOperation(op)) {
+                op.complete();
                 return;
             }
             AuthorizationTokenCacheServiceState cacheClearState = new AuthorizationTokenCacheServiceState();
