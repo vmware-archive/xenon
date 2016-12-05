@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.3.4-SNAPSHOT
+
 ## 1.3.3
 
 * Bug fixes in QueryFilter when matching null strings.
