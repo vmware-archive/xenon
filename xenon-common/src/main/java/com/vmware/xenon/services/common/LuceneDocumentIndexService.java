@@ -46,6 +46,7 @@ import com.esotericsoftware.kryo.KryoException;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.SimpleAnalyzer;
 import org.apache.lucene.document.Document;
@@ -1259,12 +1260,12 @@ public class LuceneDocumentIndexService extends StatelessService {
             QuerySpecification qs) throws Throwable {
         ScoreDoc[] hits;
         ScoreDoc after = null;
-        boolean hasIncludeAllVersionsOption = options.contains(QueryOption.INCLUDE_ALL_VERSIONS);
-        boolean hasTopResultsOption = options.contains(QueryOption.TOP_RESULTS);
-        boolean isPaginatedQuery = count != Integer.MAX_VALUE && !hasTopResultsOption;
+        boolean isPaginatedQuery = count != Integer.MAX_VALUE
+                && !options.contains(QueryOption.TOP_RESULTS);
         boolean hasPage = page != null;
         boolean shouldProcessResults = true;
-        boolean useDirectSearch = hasIncludeAllVersionsOption && hasTopResultsOption;
+        boolean useDirectSearch = options.contains(QueryOption.TOP_RESULTS)
+                && options.contains(QueryOption.INCLUDE_ALL_VERSIONS);
         int resultLimit = count;
 
         if (hasPage) {
@@ -1281,7 +1282,7 @@ public class LuceneDocumentIndexService extends StatelessService {
             rsp.documentCount = 1L;
         }
 
-        Sort sort = null;
+        Sort sort = this.versionSort;
         if (qs != null && qs.sortTerm != null) {
             // see if query is part of a task and already has a cached sort
             if (qs.context != null) {
@@ -1291,9 +1292,6 @@ public class LuceneDocumentIndexService extends StatelessService {
             if (sort == null) {
                 sort = LuceneQueryConverter.convertToLuceneSort(qs, false);
             }
-        } else if (hasIncludeAllVersionsOption) {
-            // For backwards compatibility, sort documents by their version.
-            sort = this.versionSort;
         }
 
         TopDocs results = null;
@@ -1339,7 +1337,7 @@ public class LuceneDocumentIndexService extends StatelessService {
                 end = Utils.getNowMicrosUtc();
 
                 if (hasOption(ServiceOption.INSTRUMENTATION)) {
-                    String statName = hasIncludeAllVersionsOption
+                    String statName = options.contains(QueryOption.INCLUDE_ALL_VERSIONS)
                             ? STAT_NAME_QUERY_ALL_VERSIONS_DURATION_MICROS
                             : STAT_NAME_QUERY_DURATION_MICROS;
                     setTimeSeriesHistogramStat(statName, AGGREGATION_TYPE_AVG_MAX, queryTime);
