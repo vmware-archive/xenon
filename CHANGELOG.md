@@ -1,6 +1,10 @@
 # CHANGELOG
 
-## 1.3.3-SNAPSHOT
+## 1.3.3
+
+* Bug fixes in QueryFilter when matching null strings.
+
+* Bug fix when clearing the AuthZ cach for a user.
 
 ## 1.3.2
 
