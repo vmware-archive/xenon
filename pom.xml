@@ -64,6 +64,12 @@
       <organization>VMware</organization>
       <organizationUrl>https://www.vmware.com/</organizationUrl>
     </developer>
+    <developer>
+      <name>Kenneth Jung</name>
+      <email>jungk@vmware.com</email>
+      <organization>VMware</organization>
+      <organizationUrl>https://www.vmware.com/</organizationUrl>
+    </developer>
   </developers>
 
   <scm>
