@@ -92,6 +92,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <testHeapSizeMb>256</testHeapSizeMb>
     <testThreadStackSizeKb>256</testThreadStackSizeKb>
+    <testJvmOpts></testJvmOpts>
     <autoReleaseAfterClose>true</autoReleaseAfterClose>
   </properties>
 
@@ -314,7 +315,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.19.1</version>
         <configuration>
-          <argLine>-Xss${testThreadStackSizeKb}k -Xmx${testHeapSizeMb}m</argLine>
+          <argLine>-Xss${testThreadStackSizeKb}k -Xmx${testHeapSizeMb}m ${testJvmOpts}</argLine>
           <systemPropertyVariables>
             <java.io.tmpdir>${project.basedir}/target</java.io.tmpdir>
           </systemPropertyVariables>
