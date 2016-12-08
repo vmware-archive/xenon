@@ -19,8 +19,8 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -917,12 +917,10 @@ public class NodeGroupService extends StatefulService {
         // but this works for now and is relatively cheap even for groups with thousands of members
         NodeState[] randomizedPeers = new NodeState[localState.nodes.size()];
         localState.nodes.values().toArray(randomizedPeers);
-        int index;
-        NodeState t;
-        Random random = new Random();
+
         for (int i = randomizedPeers.length - 1; i > 0; i--) {
-            index = random.nextInt(i + 1);
-            t = randomizedPeers[index];
+            int index = ThreadLocalRandom.current().nextInt(i + 1);
+            NodeState t = randomizedPeers[index];
             randomizedPeers[index] = randomizedPeers[i];
             randomizedPeers[i] = t;
         }
