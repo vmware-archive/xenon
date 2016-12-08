@@ -91,6 +91,8 @@ public class NettyHttpServiceClient implements ServiceClient {
     static final AsciiString MEDIA_TYPE_KRYO_OCTET_STREAM_ASCII = new AsciiString(
             Operation.MEDIA_TYPE_APPLICATION_KRYO_OCTET_STREAM);
 
+    private static final int MEDIA_TYPE_APPLICATION_PREFIX_LENGTH = 12;
+
     private URI httpProxy;
     private AsciiString userAgentAscii;
 
@@ -550,11 +552,13 @@ public class NettyHttpServiceClient implements ServiceClient {
          * We first check for a specific char at a index in the string, then the hash code to nearly
          * eliminate the false positives from hash code alone.
          */
-        if (contentType.charAt(12) == 'k'
+        if (contentType.length() >= MEDIA_TYPE_APPLICATION_PREFIX_LENGTH
+                && contentType.charAt(MEDIA_TYPE_APPLICATION_PREFIX_LENGTH) == 'k'
                 && Operation.MEDIA_TYPE_APPLICATION_KRYO_OCTET_STREAM.hashCode() == contentType
                         .hashCode()) {
             httpHeaders.add(HttpHeaderNames.CONTENT_TYPE, MEDIA_TYPE_KRYO_OCTET_STREAM_ASCII);
-        } else if (contentType.charAt(12) == 'j'
+        } else if (contentType.length() >= MEDIA_TYPE_APPLICATION_PREFIX_LENGTH
+                && contentType.charAt(MEDIA_TYPE_APPLICATION_PREFIX_LENGTH) == 'j'
                 && Operation.MEDIA_TYPE_APPLICATION_JSON.hashCode() == contentType.hashCode()) {
             httpHeaders.add(HttpHeaderNames.CONTENT_TYPE, MEDIA_TYPE_JSON_ASCII);
         } else {
