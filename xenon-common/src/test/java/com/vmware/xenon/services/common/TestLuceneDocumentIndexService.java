@@ -182,6 +182,12 @@ public class TestLuceneDocumentIndexService {
      */
     public boolean enableInstrumentation = false;
 
+    /**
+     * Parameter that specifies the document expiration time (delta) in
+     * {@link #throughputPostWithExpirationLongRunning}.
+     */
+    public Integer expirationSeconds = null;
+
     private final String EXAMPLES_BODIES_FILE = "example_bodies.json";
     private final String INDEX_DIR_NAME = "lucene510";
 
@@ -527,7 +533,7 @@ public class TestLuceneDocumentIndexService {
     public void immutableServiceLifecycle() throws Throwable {
         setUpHost(false);
         URI factoryUri = createImmutableFactoryService(this.host);
-        doThroughputPost(false, factoryUri);
+        doThroughputPostWithNoQueryResults(false, factoryUri);
         ServiceDocumentQueryResult res = this.host.getFactoryState(factoryUri);
         assertEquals(this.serviceCount, res.documentLinks.size());
 
@@ -580,7 +586,7 @@ public class TestLuceneDocumentIndexService {
     }
 
     private void doThroughputSelfLinkQuery(URI factoryUri) throws Throwable {
-        doThroughputPost(false, factoryUri);
+        doThroughputPostWithNoQueryResults(false, factoryUri);
 
         double durationNanos = 0;
         long s = System.nanoTime();
@@ -717,7 +723,7 @@ public class TestLuceneDocumentIndexService {
 
     private void verifyInitialStatePost(VerificationHost h) throws Throwable {
         URI factoryUri = createImmutableFactoryService(h);
-        doThroughputPost(false, factoryUri);
+        doThroughputPostWithNoQueryResults(false, factoryUri);
         ServiceDocumentQueryResult r = this.host.getFactoryState(factoryUri);
         assertEquals(this.serviceCount, (long) r.documentCount);
         TestContext ctx = h.testCreate(this.serviceCount);
@@ -1406,6 +1412,78 @@ public class TestLuceneDocumentIndexService {
         doThroughputPost(false);
     }
 
+    @Test
+    public void throughputPostWithExpirationLongRunning() throws Throwable {
+        if (this.serviceCacheClearIntervalSeconds == 0) {
+            // effectively disable ODL stop/start behavior while running throughput tests
+            this.serviceCacheClearIntervalSeconds = TimeUnit.MICROSECONDS.toSeconds(
+                    ServiceHostState.DEFAULT_OPERATION_TIMEOUT_MICROS);
+        }
+
+        // Set the document expiration limit to something high enough that we won't allow the index
+        // to grow in unbounded fashion.
+        LuceneDocumentIndexService.setExpiredDocumentSearchThreshold(100000);
+
+        // This code path is designed to simulate POST and query throughput under heavy load,
+        // processing queries which match many results.
+        QueryTask queryTask = QueryTask.Builder.createDirectTask()
+                .setQuery(QueryTask.Query.Builder.create()
+                        .addKindFieldClause(ExampleServiceState.class)
+                        .build())
+                .build();
+
+        setUpHost(false);
+        URI factoryUri = createImmutableFactoryService(this.host);
+        this.indexService.toggleOption(ServiceOption.INSTRUMENTATION, true);
+        this.host.log("Starting throughout POST, expiration: %d", this.expirationSeconds);
+
+        Long expirationMicros = null;
+        if (this.expirationSeconds != null) {
+            expirationMicros = TimeUnit.SECONDS.toMicros(this.expirationSeconds);
+        }
+
+        long testExpiration = Utils.getSystemNowMicrosUtc()
+                + TimeUnit.SECONDS.toMicros(this.testDurationSeconds);
+        do {
+            this.host.log("Starting POST test to %s, count:%d", factoryUri, this.serviceCount);
+            doThroughputPost(true, factoryUri, expirationMicros, queryTask);
+            logQuerySingleStat();
+        } while (this.testDurationSeconds > 0 && Utils.getSystemNowMicrosUtc() < testExpiration);
+
+        Map<String, ServiceStat> indexServiceStats = this.host.getServiceStats(
+                this.host.getDocumentIndexServiceUri());
+        logServiceStatHistogram(indexServiceStats,
+                LuceneDocumentIndexService.STAT_NAME_COMMIT_DURATION_MICROS);
+        logServiceStatHistogram(indexServiceStats,
+                LuceneDocumentIndexService.STAT_NAME_MAINTENANCE_DOCUMENT_EXPIRATION_DURATION_MICROS);
+        logServiceStatHistogram(indexServiceStats,
+                LuceneDocumentIndexService.STAT_NAME_QUERY_DURATION_MICROS);
+        logServiceStatHistogram(indexServiceStats,
+                LuceneDocumentIndexService.STAT_NAME_RESULT_PROCESSING_DURATION_MICROS);
+    }
+
+    private void logServiceStatHistogram(Map<String, ServiceStat> serviceStats, String statName) {
+        ServiceStat stat = serviceStats.get(statName + ServiceStats.STAT_NAME_SUFFIX_PER_HOUR);
+        if (stat == null) {
+            return;
+        }
+        ServiceStats.ServiceStatLogHistogram logHistogram = stat.logHistogram;
+        if (logHistogram == null) {
+            return;
+        }
+
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append(String.format("Stat name: %s\n", statName));
+        for (int i = 0; i < 15; i++) {
+            stringBuilder.append(String.format("%15d: %8d (%.2f percent)\n",
+                    (long) Math.pow(10.0, i),
+                    logHistogram.bins[i],
+                    (float) logHistogram.bins[i] * 100.0 / stat.version));
+        }
+
+        this.host.log(stringBuilder.toString());
+    }
+
     private void doThroughputPost(boolean interleaveQueries) throws Throwable {
         if (this.serviceCacheClearIntervalSeconds == 0) {
             // effectively disable ODL stop/start behavior while running throughput tests
@@ -1434,7 +1512,7 @@ public class TestLuceneDocumentIndexService {
                 factoryUri);
         long serviceCountCached = this.serviceCount;
         this.serviceCount = this.documentCountAtStart;
-        doThroughputPost(false, factoryUri);
+        doThroughputPostWithNoQueryResults(false, factoryUri);
         this.serviceCount = serviceCountCached;
     }
 
@@ -1515,7 +1593,7 @@ public class TestLuceneDocumentIndexService {
             this.host.log("(%d) Starting POST test to %s, count:%d",
                     ic, factoryUri, this.serviceCount);
 
-            doThroughputPost(interleaveQueries, factoryUri);
+            doThroughputPostWithNoQueryResults(interleaveQueries, factoryUri);
             this.host.deleteOrStopAllChildServices(factoryUri, true);
             logQuerySingleStat();
         }
@@ -1541,7 +1619,7 @@ public class TestLuceneDocumentIndexService {
                     0,
                     OperationContext.getAuthorizationContext().getClaims().getSubject(),
                     this.serviceCount);
-            doThroughputPost(false, factoryUri);
+            doThroughputPostWithNoQueryResults(false, factoryUri);
             this.host.deleteAllChildServices(factoryUri);
         }
 
@@ -1559,7 +1637,7 @@ public class TestLuceneDocumentIndexService {
                             OperationContext.getAuthorizationContext().getClaims().getSubject(),
                             this.serviceCount);
                     long start = System.nanoTime();
-                    doThroughputPost(false, factoryUri);
+                    doThroughputPostWithNoQueryResults(false, factoryUri);
                     long end = System.nanoTime();
                     durationPerSubject.put(userLink, end - start);
                     ctx.complete();
@@ -1625,9 +1703,21 @@ public class TestLuceneDocumentIndexService {
         this.host.resetAuthorizationContext();
     }
 
-    private void doThroughputPost(boolean interleaveQueries,
-            URI factoryUri)
+    private void doThroughputPostWithNoQueryResults(boolean interleaveQueries, URI factoryUri)
             throws Throwable {
+        // Create a query which will match no documents. This code path is designed to simulate
+        // the cost of queries on the index without incurring the cost of processing results.
+        QueryTask queryTask = QueryTask.Builder.createDirectTask()
+                .setQuery(Query.Builder.create()
+                        .addFieldClause(ExampleServiceState.FIELD_NAME_ID, "saffsdfs")
+                        .build())
+                .build();
+
+        doThroughputPost(interleaveQueries, factoryUri, null, queryTask);
+    }
+
+    private void doThroughputPost(boolean interleaveQueries, URI factoryUri, Long expirationMicros,
+            QueryTask queryTask) throws Throwable {
         long startTimeMicros = System.nanoTime() / 1000;
         int queryCount = 0;
         AtomicLong queryResultCount = new AtomicLong();
@@ -1642,6 +1732,10 @@ public class TestLuceneDocumentIndexService {
             body.name = i + "";
             body.id = i + "";
             body.counter = (long) i;
+            if (expirationMicros != null) {
+                body.documentExpirationTimeMicros = Utils.fromNowMicrosUtc(expirationMicros);
+            }
+
             createPost.setBody(body);
 
             // create a start service POST with an initial state
@@ -1656,15 +1750,9 @@ public class TestLuceneDocumentIndexService {
             }
 
             queryCount++;
-            Query q = Query.Builder.create()
-                    .addFieldClause(ExampleServiceState.FIELD_NAME_ID,
-                            "saffsdfs")
-                    .build();
-            QueryTask qt = QueryTask.Builder.createDirectTask()
-                    .setQuery(q)
-                    .build();
             Operation createQuery = Operation.createPost(this.host,
-                    ServiceUriPaths.CORE_LOCAL_QUERY_TASKS).setBody(qt)
+                    ServiceUriPaths.CORE_LOCAL_QUERY_TASKS)
+                    .setBody(queryTask)
                     .setCompletion((o, e) -> {
                         if (e != null) {
                             queryCtx.fail(e);
