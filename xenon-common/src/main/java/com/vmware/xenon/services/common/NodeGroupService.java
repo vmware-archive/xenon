@@ -918,8 +918,9 @@ public class NodeGroupService extends StatefulService {
         NodeState[] randomizedPeers = new NodeState[localState.nodes.size()];
         localState.nodes.values().toArray(randomizedPeers);
 
+        ThreadLocalRandom random = ThreadLocalRandom.current();
         for (int i = randomizedPeers.length - 1; i > 0; i--) {
-            int index = ThreadLocalRandom.current().nextInt(i + 1);
+            int index = random.nextInt(i + 1);
             NodeState t = randomizedPeers[index];
             randomizedPeers[index] = randomizedPeers[i];
             randomizedPeers[i] = t;
