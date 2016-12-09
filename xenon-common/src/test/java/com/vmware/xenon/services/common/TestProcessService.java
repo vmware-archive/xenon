@@ -142,13 +142,22 @@ public class TestProcessService extends BasicTestCase {
     private void waitForProcess(String commandToExecute, boolean exists) throws Throwable {
         this.host.waitFor("Process state did not change", () -> {
             ProcessBuilder pb = new ProcessBuilder("sh", "-c", commandToExecute);
+            this.host.log("Running %s", commandToExecute);
             Process process = pb.start();
+            this.host.log("waiting");
+            int exitValue = process.waitFor();
+            this.host.log("Run %s, status: %d", commandToExecute, exitValue);
             BufferedReader bReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            Integer outputState = Integer.valueOf(bReader.readLine().trim());
-            if (outputState.equals(exists ? 1 : 0)) {
-                return true;
-            }
-            return false;
+            boolean[] isReady = new boolean[1];
+            bReader.lines().forEach((line) -> {
+                this.host.log("read: %s", line);
+                Integer outputState = Integer.valueOf(line.trim());
+                if (outputState.equals(exists ? 1 : 0)) {
+                    isReady[0] = true;
+                }
+            });
+
+            return isReady[0];
         });
     }
 
