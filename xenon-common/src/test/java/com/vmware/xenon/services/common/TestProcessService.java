@@ -38,6 +38,7 @@ import com.vmware.xenon.common.test.VerificationHost;
 
 public class TestProcessService extends BasicTestCase {
 
+    @Override
     public void beforeHostStart(VerificationHost host) {
         host.setMaintenanceIntervalMicros(TimeUnit.MILLISECONDS
                 .toMicros(VerificationHost.FAST_MAINT_INTERVAL_MILLIS));
@@ -151,8 +152,12 @@ public class TestProcessService extends BasicTestCase {
             boolean[] isReady = new boolean[1];
             bReader.lines().forEach((line) -> {
                 this.host.log("read: %s", line);
-                Integer outputState = Integer.valueOf(line.trim());
-                if (outputState.equals(exists ? 1 : 0)) {
+                int outputState = Integer.valueOf(line.trim());
+                // other sleep processes might be active, so the tests below, and this whole method is
+                // unreliable. In the future, we should look for specific PID of the process we start
+                if (exists && outputState >= 1) {
+                    isReady[0] = true;
+                } else if (!exists && outputState < 1) {
                     isReady[0] = true;
                 }
             });
