@@ -138,7 +138,13 @@ class ServiceSynchronizationTracker {
                     .setExpiration(
                             Utils.getNowMicrosUtc() + NodeGroupService.PEER_REQUEST_TIMEOUT_MICROS)
                     .setCompletion((synchOp, t) -> {
-                        start.fail(startEx);
+                        if (t != null) {
+                            this.host.log(Level.SEVERE, "Synch failed for %s. Exception: %s",
+                                    service.getSelfLink(), t.toString());
+                        }
+                        // It's important that we fail the original POST request with the same
+                        // failure, statusCode and body.
+                        start.fail(startRsp.getStatusCode(), startEx, startRsp.getBodyRaw());
                         this.host.processPendingServiceAvailableOperations(
                                 service, startEx, !start.isFailureLoggingDisabled());
                     });
@@ -146,7 +152,7 @@ class ServiceSynchronizationTracker {
             return;
         }
 
-        start.fail(startEx);
+        start.fail(startRsp.getStatusCode(), startEx, startRsp.getBodyRaw());
         this.host.processPendingServiceAvailableOperations(
                 service, startEx, !start.isFailureLoggingDisabled());
     }
