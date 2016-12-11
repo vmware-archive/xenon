@@ -249,6 +249,10 @@ public class TestNodeGroupService {
             return;
         }
 
+        LuceneDocumentIndexService
+                .setImplicitQueryResultLimit(
+                        (int) (this.serviceCount * this.updateCount * this.iterationCount * 10));
+
         if (this.waitDurationBeforeStartSeconds > 0) {
             Thread.sleep(TimeUnit.SECONDS.toMillis(this.waitDurationBeforeStartSeconds));
         }
@@ -381,6 +385,8 @@ public class TestNodeGroupService {
         this.expectFailure = false;
         Utils.registerKind(ExampleServiceState.class,
                 Utils.toDocumentKind(ExampleServiceState.class));
+        LuceneDocumentIndexService
+                .setImplicitQueryResultLimit(LuceneDocumentIndexService.DEFAULT_QUERY_RESULT_LIMIT);
         if (this.host == null) {
             return;
         }
