@@ -151,54 +151,54 @@ public class LuceneDocumentIndexService extends StatelessService {
 
     private String indexDirectory;
 
-    private static int EXPIRED_DOCUMENT_SEARCH_THRESHOLD = 1000;
+    private static int expiredDocumentSearchThreshold = 1000;
 
-    private static int INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH = DEFAULT_INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH;
+    private static int indexFileCountThresholdForWriterRefresh = DEFAULT_INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH;
 
-    private static int VERSION_RETENTION_BULK_CLEANUP_THRESHOLD = 10000;
+    private static int versionRetentionBulkCleanupThreshold = 10000;
 
-    private static int VERSION_RETENTION_SERVICE_THRESHOLD = 100;
+    private static int versionRetentionServiceThreshold = 100;
 
-    private static int QUERY_RESULT_LIMIT = DEFAULT_QUERY_RESULT_LIMIT;
+    private static int queryResultLimit = DEFAULT_QUERY_RESULT_LIMIT;
 
     public static void setImplicitQueryResultLimit(int limit) {
-        QUERY_RESULT_LIMIT = limit;
+        queryResultLimit = limit;
     }
 
     public static int getImplicitQueryResultLimit() {
-        return QUERY_RESULT_LIMIT;
+        return queryResultLimit;
     }
 
     public static void setIndexFileCountThresholdForWriterRefresh(int count) {
-        INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH = count;
+        indexFileCountThresholdForWriterRefresh = count;
     }
 
     public static int getIndexFileCountThresholdForWriterRefresh() {
-        return INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH;
+        return indexFileCountThresholdForWriterRefresh;
     }
 
     public static void setExpiredDocumentSearchThreshold(int count) {
-        EXPIRED_DOCUMENT_SEARCH_THRESHOLD = count;
+        expiredDocumentSearchThreshold = count;
     }
 
     public static int getExpiredDocumentSearchThreshold() {
-        return EXPIRED_DOCUMENT_SEARCH_THRESHOLD;
+        return expiredDocumentSearchThreshold;
     }
 
     public static void setVersionRetentionBulkCleanupThreshold(int count) {
-        VERSION_RETENTION_BULK_CLEANUP_THRESHOLD = count;
+        versionRetentionBulkCleanupThreshold = count;
     }
 
     public static int getVersionRetentionBulkCleanupThreshold() {
-        return VERSION_RETENTION_BULK_CLEANUP_THRESHOLD;
+        return versionRetentionBulkCleanupThreshold;
     }
 
     public static void setVersionRetentionServiceThreshold(int count) {
-        VERSION_RETENTION_SERVICE_THRESHOLD = count;
+        versionRetentionServiceThreshold = count;
     }
 
     public static int getVersionRetentionServiceThreshold() {
-        return VERSION_RETENTION_SERVICE_THRESHOLD;
+        return versionRetentionServiceThreshold;
     }
 
     private static final String LUCENE_FIELD_NAME_BINARY_SERIALIZED_STATE = "binarySerializedState";
@@ -1307,7 +1307,7 @@ public class LuceneDocumentIndexService extends StatelessService {
             // The query does not have a explicit limit set. We still use a limit, to avoid out of memory
             // exceptions, since lucene will use the limit to allocated a score / sorted values array!
             // If the number of hits returned by lucene is higher than the default limit, we will fail the query
-            resultLimit = QUERY_RESULT_LIMIT;
+            resultLimit = queryResultLimit;
         }
 
         Sort sort = this.versionSort;
@@ -2499,7 +2499,7 @@ public class LuceneDocumentIndexService extends StatelessService {
         try {
             stream = Files.list(directory.toPath());
             count = stream.count();
-            if (!force && count < INDEX_FILE_COUNT_THRESHOLD_FOR_WRITER_REFRESH) {
+            if (!force && count < indexFileCountThresholdForWriterRefresh) {
                 return;
             }
         } catch (IOException e1) {
@@ -2567,12 +2567,12 @@ public class LuceneDocumentIndexService extends StatelessService {
         int count = 0;
         synchronized (this.documentRetentionInfo) {
             int size = this.documentRetentionInfo.size();
-            if (size > VERSION_RETENTION_BULK_CLEANUP_THRESHOLD) {
+            if (size > versionRetentionBulkCleanupThreshold) {
                 links.putAll(this.documentRetentionInfo);
                 this.documentRetentionInfo.clear();
             } else {
                 it = this.documentRetentionInfo.entrySet().iterator();
-                while (it.hasNext() && count < VERSION_RETENTION_SERVICE_THRESHOLD) {
+                while (it.hasNext() && count < versionRetentionServiceThreshold) {
                     Entry<String, Long> e = it.next();
                     links.put(e.getKey(), e.getValue());
                     it.remove();
@@ -2681,12 +2681,12 @@ public class LuceneDocumentIndexService extends StatelessService {
         Query versionQuery = LongPoint.newRangeQuery(
                 ServiceDocument.FIELD_NAME_EXPIRATION_TIME_MICROS, 1L, expirationUpperBound);
 
-        TopDocs results = s.search(versionQuery, EXPIRED_DOCUMENT_SEARCH_THRESHOLD);
+        TopDocs results = s.search(versionQuery, expiredDocumentSearchThreshold);
         if (results.totalHits == 0) {
             return;
         }
 
-        if (results.totalHits > EXPIRED_DOCUMENT_SEARCH_THRESHOLD) {
+        if (results.totalHits > expiredDocumentSearchThreshold) {
             adjustTimeSeriesStat(STAT_NAME_DOCUMENT_EXPIRATION_FORCED_MAINTENANCE_COUNT,
                     AGGREGATION_TYPE_SUM, 1);
         }
