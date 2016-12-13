@@ -103,6 +103,7 @@ import com.vmware.xenon.services.common.NodeGroupService.NodeGroupState;
 import com.vmware.xenon.services.common.NodeState.NodeOption;
 import com.vmware.xenon.services.common.QueryTask.Query;
 import com.vmware.xenon.services.common.QueryTask.Query.Builder;
+import com.vmware.xenon.services.common.QueryTask.QuerySpecification.QueryOption;
 import com.vmware.xenon.services.common.QueryTask.QueryTerm.MatchType;
 import com.vmware.xenon.services.common.ReplicationTestService.ReplicationTestServiceErrorResponse;
 import com.vmware.xenon.services.common.ReplicationTestService.ReplicationTestServiceState;
@@ -2652,6 +2653,12 @@ public class TestNodeGroupService {
         q.query.setTermPropertyName(ServiceDocument.FIELD_NAME_KIND).setTermMatchValue(
                 Utils.buildKind(ExampleServiceState.class));
         QueryTask task = QueryTask.create(q).setDirect(true);
+        if (this.host.isStressTest()) {
+            // set large result limit to avoid errors due to the low implicit query result limit
+            task.querySpec.resultLimit = 10000000;
+            task.querySpec.options = EnumSet.of(QueryOption.TOP_RESULTS);
+        }
+
         URI queryTaskFactoryUri = UriUtils
                 .buildUri(nodeUri, ServiceUriPaths.CORE_LOCAL_QUERY_TASKS);
 
@@ -4473,7 +4480,20 @@ public class TestNodeGroupService {
             TestContext testContext = this.host.testCreate(factories.size());
             Map<URI, ServiceDocumentQueryResult> childServicesPerNode = new HashMap<>();
             for (URI remoteFactory : factories.values()) {
-                URI factoryUriWithExpand = UriUtils.buildExpandLinksQueryUri(remoteFactory);
+                URI factoryUriWithExpand = UriUtils.extendUriWithQuery(remoteFactory,
+                        UriUtils.URI_PARAM_ODATA_EXPAND,
+                        ServiceDocumentQueryResult.FIELD_NAME_DOCUMENT_LINKS);
+                if (this.host.isStressTest()) {
+                    // set an arbitrary, but very high result limit on GET, to avoid query failure
+                    // during long running replication tests
+                    final int resultLimit = 10000000;
+                    factoryUriWithExpand = UriUtils.extendUriWithQuery(remoteFactory,
+                            UriUtils.URI_PARAM_ODATA_EXPAND,
+                            ServiceDocumentQueryResult.FIELD_NAME_DOCUMENT_LINKS,
+                            UriUtils.URI_PARAM_ODATA_TOP,
+                            "" + resultLimit);
+                }
+
                 Operation get = Operation.createGet(factoryUriWithExpand)
                         .setCompletion(
                                 (o, e) -> {
@@ -4494,7 +4514,7 @@ public class TestNodeGroupService {
                                 });
                 this.host.send(get);
             }
-            testContext.await();
+            this.host.testWait(testContext);
 
             long expectedNodeCountPerLinkMax = factories.size();
             long expectedNodeCountPerLinkMin = expectedNodeCountPerLinkMax;
