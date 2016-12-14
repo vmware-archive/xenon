@@ -2,6 +2,11 @@
 
 ## 1.3.5-SNAPSHOT
 
+* Implement version lookup cache inside the document index service. This is
+  a significant optimization for general queries that return lots of results
+  over documents with multiple versions. This change is transparent to clients
+  and does not change the document query API
+
 ## 1.3.4
 
 * Enforce implicit query result limits. All queries
