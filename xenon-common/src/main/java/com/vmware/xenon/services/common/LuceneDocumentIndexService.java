@@ -1438,6 +1438,7 @@ public class LuceneDocumentIndexService extends StatelessService {
         return rsp;
     }
 
+
     /**
      * Checks next page exists or not.
      *

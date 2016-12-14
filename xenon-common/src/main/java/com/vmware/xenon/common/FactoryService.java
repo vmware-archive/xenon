@@ -27,6 +27,7 @@ import com.vmware.xenon.common.UriUtils.ForwardingTarget;
 import com.vmware.xenon.services.common.NodeGroupBroadcastResponse;
 import com.vmware.xenon.services.common.QueryTask;
 import com.vmware.xenon.services.common.QueryTask.QuerySpecification.QueryOption;
+import com.vmware.xenon.services.common.QueryTask.QueryTerm.MatchType;
 import com.vmware.xenon.services.common.QueryTaskUtils;
 import com.vmware.xenon.services.common.ServiceUriPaths;
 
@@ -526,11 +527,17 @@ public abstract class FactoryService extends StatelessService {
         }
         task.setDirect(true);
 
+        // restrict results to same kind and self link prefix as factory children
         String kind = Utils.buildKind(getStateType());
         QueryTask.Query kindClause = new QueryTask.Query()
                 .setTermPropertyName(ServiceDocument.FIELD_NAME_KIND)
                 .setTermMatchValue(kind);
         task.querySpec.query.addBooleanClause(kindClause);
+        QueryTask.Query selfLinkPrefixClause = new QueryTask.Query()
+                .setTermPropertyName(ServiceDocument.FIELD_NAME_SELF_LINK)
+                .setTermMatchType(MatchType.PREFIX)
+                .setTermMatchValue(getSelfLink());
+        task.querySpec.query.addBooleanClause(selfLinkPrefixClause);
 
         if (task.querySpec.sortTerm != null) {
             String propertyName = task.querySpec.sortTerm.propertyName;

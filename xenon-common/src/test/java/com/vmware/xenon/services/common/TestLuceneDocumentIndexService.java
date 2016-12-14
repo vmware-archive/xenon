@@ -599,13 +599,16 @@ public class TestLuceneDocumentIndexService {
     public void throughputSelfLinkQuery() throws Throwable {
         setUpHost(false);
         URI factoryUri = createImmutableFactoryService(this.host);
-        doThroughputSelfLinkQuery(factoryUri);
+        doThroughputSelfLinkQuery(factoryUri, null);
         factoryUri = UriUtils.buildUri(this.host, ExampleService.FACTORY_LINK);
-        doThroughputSelfLinkQuery(factoryUri);
+        doThroughputSelfLinkQuery(factoryUri, this.updateCount);
     }
 
-    private void doThroughputSelfLinkQuery(URI factoryUri) throws Throwable {
+    private void doThroughputSelfLinkQuery(URI factoryUri, Integer updateCount) throws Throwable {
         doThroughputPostWithNoQueryResults(false, factoryUri);
+        if (updateCount != null && updateCount > 0) {
+            doUpdates(factoryUri, updateCount);
+        }
 
         double durationNanos = 0;
         long s = System.nanoTime();
@@ -618,6 +621,10 @@ public class TestLuceneDocumentIndexService {
         long e = System.nanoTime();
         durationNanos += e - s;
         double thput = this.serviceCount * this.iterationCount;
+        if (updateCount != null) {
+            // self link processing has to filter out old versions, so include that overhead
+            thput *= updateCount;
+        }
         thput /= durationNanos;
         thput *= TimeUnit.SECONDS.toNanos(1);
 
@@ -632,6 +639,25 @@ public class TestLuceneDocumentIndexService {
                 qps,
                 thput);
         this.testResults.getReport().all("selflinks/sec", thput);
+    }
+
+    private void doUpdates(URI factoryUri, Integer updateCount) {
+        factoryUri = UriUtils.extendUriWithQuery(factoryUri,
+                UriUtils.URI_PARAM_ODATA_TOP,
+                this.serviceCount * 10 + "");
+        ServiceDocumentQueryResult res = this.host.getFactoryState(factoryUri);
+        assertEquals(this.serviceCount, (long) res.documentCount);
+        TestContext ctx = this.host.testCreate(this.serviceCount * updateCount);
+        for (String link : res.documentLinks) {
+            for (int i = 0; i < updateCount; i++) {
+                ExampleServiceState st = new ExampleServiceState();
+                st.name = i + "";
+                Operation patch = Operation.createPatch(this.host, link).setBody(st)
+                        .setCompletion(ctx.getCompletion());
+                this.host.send(patch);
+            }
+        }
+        this.host.testWait(ctx);
     }
 
     @Test
