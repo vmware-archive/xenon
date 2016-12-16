@@ -27,6 +27,9 @@
 
 * Add builders for UserGroupState, RoleState, ResourceGroupState
 
+* The method `ServiceHost.nextUUID()` is now the preferred way to generate IDs.
+  `ServiceHost.getNodeIdHash()` has been removed.
+
 ## 1.3.3
 
 * Bug fixes in QueryFilter when matching null strings.
