@@ -2,6 +2,11 @@
 
 ## 1.3.5-SNAPSHOT
 
+* Enable HTTP/2 over TLS. Xenon consumers can enable this behavior by including
+  a netty-tcnative jar (for OpenSSL) or a jetty-alpn jar (for JDK support) in
+  their classpath. Otherwise, the default behavior of using HTTP1.1 for all
+  HTTPS operations is maintained.
+
 * Implement version lookup cache inside the document index service. This is
   a significant optimization for general queries that return lots of results
   over documents with multiple versions. This change is transparent to clients
