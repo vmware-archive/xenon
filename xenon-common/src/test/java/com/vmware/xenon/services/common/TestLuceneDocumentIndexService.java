@@ -311,6 +311,9 @@ public class TestLuceneDocumentIndexService {
             // Restart host with the same storage sandbox. If host does not throw, we are good.
             this.indexService.toggleOption(ServiceOption.INSTRUMENTATION, true);
             this.host.start();
+        } catch (java.nio.file.AccessDeniedException e) {
+            // see next catch {} clause for explanation
+            return;
         } catch (org.apache.lucene.store.LockObtainFailedException e) {
             // The process of corrupting files (deleting them) or stopping the host and committing
             // the index, might leave the index lock file under use. The attempt to restart might
