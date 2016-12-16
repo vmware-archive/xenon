@@ -1242,37 +1242,70 @@ public class TestServiceHost {
         assertTrue(serviceCount != null);
         assertTrue(serviceCount.latestValue > 2);
 
-        ServiceStat freeMemDaily = hostMgmtStats
-                .get(ServiceHostManagementService.STAT_NAME_AVAILABLE_MEMORY_BYTES_PER_DAY);
-        ServiceStat freeMemHourly = hostMgmtStats
-                .get(ServiceHostManagementService.STAT_NAME_AVAILABLE_MEMORY_BYTES_PER_HOUR);
-        ServiceStat freeDiskDaily = hostMgmtStats
-                .get(ServiceHostManagementService.STAT_NAME_AVAILABLE_DISK_BYTES_PER_DAY);
-        ServiceStat freeDiskHourly = hostMgmtStats
-                .get(ServiceHostManagementService.STAT_NAME_AVAILABLE_DISK_BYTES_PER_HOUR);
-        ServiceStat cpuUsageDaily = hostMgmtStats
-                .get(ServiceHostManagementService.STAT_NAME_CPU_USAGE_PCT_PER_DAY);
-        ServiceStat cpuUsageHourly = hostMgmtStats
-                .get(ServiceHostManagementService.STAT_NAME_CPU_USAGE_PCT_PER_HOUR);
-        ServiceStat threadCountDaily = hostMgmtStats
-                .get(ServiceHostManagementService.STAT_NAME_THREAD_COUNT_PER_DAY);
-        ServiceStat threadCountHourly = hostMgmtStats
-                .get(ServiceHostManagementService.STAT_NAME_THREAD_COUNT_PER_HOUR);
-        ServiceStat http1PendingCount = hostMgmtStats
-                .get(ServiceHostManagementService.STAT_NAME_HTTP11_PENDING_OP_COUNT);
-        assertTrue(http1PendingCount != null);
-        ServiceStat http2PendingCount = hostMgmtStats
-                .get(ServiceHostManagementService.STAT_NAME_HTTP2_PENDING_OP_COUNT);
-        assertTrue(http2PendingCount != null);
+        this.host.waitFor("stats never populated", () -> {
+            ServiceStat freeMemDaily = hostMgmtStats
+                    .get(ServiceHostManagementService.STAT_NAME_AVAILABLE_MEMORY_BYTES_PER_DAY);
+            if (!isTimeSeriesStatReady(freeMemDaily)) {
+                return false;
+            }
+            ServiceStat freeMemHourly = hostMgmtStats
+                    .get(ServiceHostManagementService.STAT_NAME_AVAILABLE_MEMORY_BYTES_PER_HOUR);
+            if (!isTimeSeriesStatReady(freeMemHourly)) {
+                return false;
+            }
+            ServiceStat freeDiskDaily = hostMgmtStats
+                    .get(ServiceHostManagementService.STAT_NAME_AVAILABLE_DISK_BYTES_PER_DAY);
+            if (!isTimeSeriesStatReady(freeDiskDaily)) {
+                return false;
+            }
+            ServiceStat freeDiskHourly = hostMgmtStats
+                    .get(ServiceHostManagementService.STAT_NAME_AVAILABLE_DISK_BYTES_PER_HOUR);
+            if (!isTimeSeriesStatReady(freeDiskHourly)) {
+                return false;
+            }
+            ServiceStat cpuUsageDaily = hostMgmtStats
+                    .get(ServiceHostManagementService.STAT_NAME_CPU_USAGE_PCT_PER_DAY);
+            if (!isTimeSeriesStatReady(cpuUsageDaily)) {
+                return false;
+            }
+            ServiceStat cpuUsageHourly = hostMgmtStats
+                    .get(ServiceHostManagementService.STAT_NAME_CPU_USAGE_PCT_PER_HOUR);
+            if (!isTimeSeriesStatReady(cpuUsageHourly)) {
+                return false;
+            }
+            ServiceStat threadCountDaily = hostMgmtStats
+                    .get(ServiceHostManagementService.STAT_NAME_THREAD_COUNT_PER_DAY);
+            if (!isTimeSeriesStatReady(threadCountDaily)) {
+                return false;
+            }
+            ServiceStat threadCountHourly = hostMgmtStats
+                    .get(ServiceHostManagementService.STAT_NAME_THREAD_COUNT_PER_HOUR);
+            if (!isTimeSeriesStatReady(threadCountHourly)) {
+                return false;
+            }
 
-        TestUtilityService.validateTimeSeriesStat(freeMemDaily, TimeUnit.HOURS.toMillis(1));
-        TestUtilityService.validateTimeSeriesStat(freeMemHourly, TimeUnit.MINUTES.toMillis(1));
-        TestUtilityService.validateTimeSeriesStat(freeDiskDaily, TimeUnit.HOURS.toMillis(1));
-        TestUtilityService.validateTimeSeriesStat(freeDiskHourly, TimeUnit.MINUTES.toMillis(1));
-        TestUtilityService.validateTimeSeriesStat(cpuUsageDaily, TimeUnit.HOURS.toMillis(1));
-        TestUtilityService.validateTimeSeriesStat(cpuUsageHourly, TimeUnit.MINUTES.toMillis(1));
-        TestUtilityService.validateTimeSeriesStat(threadCountDaily, TimeUnit.HOURS.toMillis(1));
-        TestUtilityService.validateTimeSeriesStat(threadCountHourly, TimeUnit.MINUTES.toMillis(1));
+            ServiceStat http1PendingCount = hostMgmtStats
+                    .get(ServiceHostManagementService.STAT_NAME_HTTP11_PENDING_OP_COUNT);
+            assertTrue(http1PendingCount != null);
+            ServiceStat http2PendingCount = hostMgmtStats
+                    .get(ServiceHostManagementService.STAT_NAME_HTTP2_PENDING_OP_COUNT);
+            assertTrue(http2PendingCount != null);
+
+            TestUtilityService.validateTimeSeriesStat(freeMemDaily, TimeUnit.HOURS.toMillis(1));
+            TestUtilityService.validateTimeSeriesStat(freeMemHourly, TimeUnit.MINUTES.toMillis(1));
+            TestUtilityService.validateTimeSeriesStat(freeDiskDaily, TimeUnit.HOURS.toMillis(1));
+            TestUtilityService.validateTimeSeriesStat(freeDiskHourly, TimeUnit.MINUTES.toMillis(1));
+            TestUtilityService.validateTimeSeriesStat(cpuUsageDaily, TimeUnit.HOURS.toMillis(1));
+            TestUtilityService.validateTimeSeriesStat(cpuUsageHourly, TimeUnit.MINUTES.toMillis(1));
+            TestUtilityService.validateTimeSeriesStat(threadCountDaily, TimeUnit.HOURS.toMillis(1));
+            TestUtilityService.validateTimeSeriesStat(threadCountHourly,
+                    TimeUnit.MINUTES.toMillis(1));
+            return true;
+        });
+    }
+
+    private boolean isTimeSeriesStatReady(ServiceStat st) {
+        return st != null && st.timeSeriesStats != null;
     }
 
     private void verifyMaintenanceDelayStat(long intervalMicros) throws Throwable {
