@@ -15,10 +15,6 @@ package com.vmware.xenon.samples;
 
 import java.util.logging.Level;
 
-import io.swagger.models.Contact;
-import io.swagger.models.Info;
-import io.swagger.models.License;
-
 import com.vmware.xenon.common.ServiceHost;
 import com.vmware.xenon.services.common.ExampleService;
 import com.vmware.xenon.services.common.ExampleTaskService;
@@ -27,7 +23,6 @@ import com.vmware.xenon.services.samples.SampleFactoryServiceWithCustomUi;
 import com.vmware.xenon.services.samples.SamplePreviousEchoService;
 import com.vmware.xenon.services.samples.SampleServiceWithSharedCustomUi;
 import com.vmware.xenon.services.samples.SampleSimpleEchoService;
-import com.vmware.xenon.swagger.SwaggerDescriptorService;
 import com.vmware.xenon.ui.UiService;
 
 /**
@@ -79,29 +74,6 @@ public class SampleHost extends ServiceHost {
         // Start UI service
         super.startService(new UiService());
 
-        startSwaggerDescriptorService();
-
         return this;
-    }
-
-    private void startSwaggerDescriptorService() {
-        // Serve Swagger 2.0 compatible API description
-        SwaggerDescriptorService swagger = new SwaggerDescriptorService();
-
-        // exclude some core services
-        swagger.setExcludedPrefixes(
-                "/core/transactions",
-                "/core/node-groups");
-
-        // Provide API metainfo
-        Info apiInfo = new Info();
-        apiInfo.setVersion("1.0.0");
-        apiInfo.setTitle("Xenon SampleHost");
-        apiInfo.setLicense(new License().name("Apache 2.0").url("https://github.com/vmware/xenon/blob/master/LICENSE"));
-        apiInfo.setContact(new Contact().url("https://github.com/vmware/xenon"));
-        swagger.setInfo(apiInfo);
-
-        // Serve swagger on default uri
-        super.startService(swagger);
     }
 }
