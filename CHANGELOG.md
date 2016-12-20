@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.3.4-SNAPSHOT
+## 1.3.4
 
 * Enforce implicit query result limits. All queries
   that do not specify a resultLimit, including GETs to factory services, will
