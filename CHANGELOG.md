@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.3.5-SNAPSHOT
+
 ## 1.3.4
 
 * Enforce implicit query result limits. All queries
