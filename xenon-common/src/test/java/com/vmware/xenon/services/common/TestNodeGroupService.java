@@ -427,7 +427,7 @@ public class TestNodeGroupService {
 
         VerificationHost peer = this.host.getPeerHost();
         List<URI> exampleUris = new ArrayList<>();
-        this.host.createExampleServices(peer, this.serviceCount * 3, exampleUris, null);
+        this.host.createExampleServices(peer, this.serviceCount * 5, exampleUris, null);
 
         List<ServiceHost> inMemoryHosts = new ArrayList<>();
         this.host.getInProcessHostMap().values().forEach(h -> inMemoryHosts.add(h));
@@ -464,6 +464,14 @@ public class TestNodeGroupService {
         List<URI> filteredUris = exampleUris.stream()
                 .filter(u -> newHost.isOwner(u.getPath(), this.replicationNodeSelector))
                 .collect(Collectors.toList());
+
+        if (filteredUris.size() == 0) {
+            // Consistent hashing is un-predictable. Despite that we create
+            // serviceCount * 5 services, it is still possible that the fourth
+            // host added does not own any of the services.
+            this.host.log("New host does not own any service.");
+            return;
+        }
 
         // Patch the documents that are owned by the new host. Since none of these
         // documents exist on the new-host on-demand synch should kick-in and PATCHes
