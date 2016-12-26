@@ -1374,7 +1374,8 @@ public class TestLuceneDocumentIndexService {
         // prefix query, while at the same time issuing updates to the existing services and
         // creating new services. Verify that that the results from the query are always the
         // same
-        long endTime = Utils.getSystemNowMicrosUtc() + TimeUnit.SECONDS.toMicros(1);
+        int expSeconds = this.expirationSeconds == null ? 1 : this.expirationSeconds;
+        long endTime = Utils.getSystemNowMicrosUtc() + TimeUnit.SECONDS.toMicros(expSeconds);
         Throwable[] failure = new Throwable[1];
 
         AtomicInteger inFlightRequests = new AtomicInteger();
@@ -1456,7 +1457,11 @@ public class TestLuceneDocumentIndexService {
             Thread.sleep(50);
         } while (endTime > Utils.getSystemNowMicrosUtc());
 
-        Date exp = this.host.getTestExpiration();
+        Date exp = new Date(TimeUnit.MICROSECONDS.toMillis(Utils.getSystemNowMicrosUtc())
+                + TimeUnit.SECONDS.toMillis(expSeconds));
+        if (exp.before(this.host.getTestExpiration())) {
+            exp = this.host.getTestExpiration();
+        }
         while (inFlightRequests.get() > 0) {
             Thread.sleep(100);
             if (failure[0] != null) {
@@ -1509,8 +1514,17 @@ public class TestLuceneDocumentIndexService {
 
     @Test
     public void throughputPost() throws Throwable {
-        doThroughputPost(true);
-        doThroughputPost(false);
+        if (this.serviceCacheClearIntervalSeconds == 0) {
+            // effectively disable ODL stop/start behavior while running throughput tests
+            this.serviceCacheClearIntervalSeconds = TimeUnit.MICROSECONDS.toSeconds(
+                    ServiceHostState.DEFAULT_OPERATION_TIMEOUT_MICROS);
+        }
+        setUpHost(false);
+        URI factoryUri = createImmutableFactoryService(this.host);
+        prePopulateIndexWithServiceDocuments(factoryUri);
+        verifyImmutableEagerServiceStop(factoryUri, this.documentCountAtStart);
+        doThroughputPost(true, factoryUri);
+        doThroughputPost(false, factoryUri);
     }
 
     @Test
@@ -1585,19 +1599,10 @@ public class TestLuceneDocumentIndexService {
         this.host.log(stringBuilder.toString());
     }
 
-    private void doThroughputPost(boolean interleaveQueries) throws Throwable {
-        if (this.serviceCacheClearIntervalSeconds == 0) {
-            // effectively disable ODL stop/start behavior while running throughput tests
-            this.serviceCacheClearIntervalSeconds = TimeUnit.MICROSECONDS.toSeconds(
-                    ServiceHostState.DEFAULT_OPERATION_TIMEOUT_MICROS);
-        }
-        setUpHost(false);
-        double initialPauseCount = getHostPauseCount();
+    private void doThroughputPost(boolean interleaveQueries, URI factoryUri) throws Throwable {
         this.host.log("Starting throughput POST, query interleaving: %s", interleaveQueries);
-        URI factoryUri = createImmutableFactoryService(this.host);
-        prePopulateIndexWithServiceDocuments(factoryUri);
-        verifyImmutableEagerServiceStop(factoryUri, this.documentCountAtStart);
 
+        double initialPauseCount = getHostPauseCount();
         doMultipleIterationsThroughputPost(interleaveQueries, this.iterationCount, factoryUri);
         factoryUri = UriUtils.buildFactoryUri(this.host, ExampleService.class);
         doMultipleIterationsThroughputPost(interleaveQueries, this.iterationCount, factoryUri);
@@ -1649,7 +1654,7 @@ public class TestLuceneDocumentIndexService {
     URI createImmutableFactoryService(VerificationHost h) throws Throwable {
         Service immutableFactory = ImmutableExampleService.createFactory();
         immutableFactory = h.startServiceAndWait(immutableFactory,
-                "immutable-" + Utils.getNowMicrosUtc(), null);
+                "immutable-examples", null);
 
         URI factoryUri = immutableFactory.getUri();
         return factoryUri;
