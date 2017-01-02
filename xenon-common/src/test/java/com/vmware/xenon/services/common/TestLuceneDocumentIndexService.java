@@ -2635,7 +2635,7 @@ public class TestLuceneDocumentIndexService {
             }
             this.host.testWait();
             long floor = ExampleServiceState.VERSION_RETENTION_FLOOR;
-            verifyVersionRetention(serviceUrisWithStandardRetention, floor, floor + offset);
+            verifyVersionRetention(serviceUrisWithStandardRetention, floor, floor + updateCount);
 
             // Set the update count for the next iteration so that we'll stay within the retention
             // window of the persisted documents
@@ -2643,8 +2643,9 @@ public class TestLuceneDocumentIndexService {
                     - ExampleServiceState.VERSION_RETENTION_FLOOR;
 
             // Verify that services with a low version limit of 1 are honored.
-            this.host.testStart(10 * this.serviceCount);
-            for (int i = 0; i < 10; i++) {
+            int lowLimitUpdateCount = 10;
+            this.host.testStart(lowLimitUpdateCount * this.serviceCount);
+            for (int i = 0; i < lowLimitUpdateCount; i++) {
                 for (URI u : serviceUrisWithCustomRetention) {
                     this.host.send(Operation.createPut(u)
                             .setBody(this.host.buildMinimalTestState())
@@ -2652,7 +2653,8 @@ public class TestLuceneDocumentIndexService {
                 }
             }
             this.host.testWait();
-            verifyVersionRetention(serviceUrisWithCustomRetention, 1, 1);
+            verifyVersionRetention(serviceUrisWithCustomRetention, 1,
+                    lowLimitUpdateCount / 2);
 
             // Delete the services which are specific to this iteration.
             this.host.testStart(this.serviceCount);
@@ -2693,6 +2695,7 @@ public class TestLuceneDocumentIndexService {
                         && qt.results.documentCount <= serviceUris.size() * limit;
             });
         } catch (Throwable t) {
+            long upperBound = serviceUris.size() * limit;
             // Get the set of document links which caused the failure
             q.options = EnumSet.of(QueryOption.INCLUDE_ALL_VERSIONS);
             QueryTask qt = QueryTask.create(q).setDirect(true);
@@ -2714,8 +2717,9 @@ public class TestLuceneDocumentIndexService {
                         String documentSelfLink = entry.getKey();
                         TreeSet<Integer> versions = entry.getValue();
                         this.host.log("Failing documentSelfLink:%s, "
-                                        + "lowestVersion:%d, highestVersion:%d, count:%d",
-                                documentSelfLink, versions.first(), versions.last(), versions.size());
+                                + "lowestVersion:%d, highestVersion:%d, count:%d, expected count (ceil): %d",
+                                documentSelfLink, versions.first(), versions.last(),
+                                versions.size(), upperBound);
                     });
             throw t;
         }
