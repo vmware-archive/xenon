@@ -298,17 +298,26 @@ public class NettyHttp2Test {
         initialState.id = "";
         initialState.stringValue = UUID.randomUUID().toString();
         this.host.startServiceAndWait(service, UUID.randomUUID().toString(), initialState);
+
+        // force single connection
+        this.host.getClient().setConnectionLimitPerHost(1);
+        this.host.connectionTag = ServiceClient.CONNECTION_TAG_HTTP2_DEFAULT;
+        this.host.getClient().setConnectionLimitPerTag(this.host.connectionTag, 1);
+
+        // do an initial GET to force the establishment of the HTTP/2 connection, so that the
+        // subsequent requests are not cancelled by the host before the connection is set up.
+        URI serviceUri = service.getUri();
+        this.host.getServiceState(
+                EnumSet.of(TestProperty.FORCE_REMOTE, TestProperty.HTTP2),
+                MinimalTestServiceState.class, serviceUri);
+
+        // now toggle negative test mode and set the timeout value to something low.
         this.host.toggleNegativeTestMode(true);
         this.host.setOperationTimeOutMicros(TimeUnit.MILLISECONDS.toMicros(250));
 
         // send a request to the MinimalTestService, with a body that makes it NOT complete it
         MinimalTestServiceState body = new MinimalTestServiceState();
         body.id = MinimalTestService.STRING_MARKER_TIMEOUT_REQUEST;
-
-        // force single connection
-        this.host.getClient().setConnectionLimitPerHost(1);
-        this.host.connectionTag = ServiceClient.CONNECTION_TAG_HTTP2_DEFAULT;
-        this.host.getClient().setConnectionLimitPerTag(this.host.connectionTag, 1);
 
         int count = 10;
         this.host.testStart(count);
@@ -341,23 +350,18 @@ public class NettyHttp2Test {
         // completion handlers to be invoked) before the stream is ready and the HTTP/2 settings
         // have been negotiated, so it's necessary to wait here for the stream to be ready.
         NettyHttpServiceClient client = (NettyHttpServiceClient) this.host.getClient();
-        this.host.waitFor("Channel context failed to become ready", () -> {
-            NettyChannelContext context;
-            if (useHttps) {
-                context = client.getInUseHttp2SslContext(this.host.connectionTag,
-                        ServiceHost.LOCAL_HOST, this.host.getSecurePort());
-            } else {
-                context = client.getInUseHttp2Context(this.host.connectionTag,
-                        ServiceHost.LOCAL_HOST, this.host.getPort());
-            }
+        NettyChannelContext context;
+        if (useHttps) {
+            context = client.getInUseHttp2SslContext(this.host.connectionTag,
+                    ServiceHost.LOCAL_HOST, this.host.getSecurePort());
+        } else {
+            context = client.getInUseHttp2Context(this.host.connectionTag, ServiceHost.LOCAL_HOST,
+                    this.host.getPort());
+        }
 
-            if (context == null) {
-                return false;
-            }
-            int largestStreamId = context.getLargestStreamId();
-            this.host.log("Largest stream ID: %d", largestStreamId);
-            return (largestStreamId > 20);
-        });
+        assertTrue(context != null);
+        this.host.log("Largest stream ID: %d", context.getLargestStreamId());
+        assertTrue(context.getLargestStreamId() > 22);
     }
 
     /**
