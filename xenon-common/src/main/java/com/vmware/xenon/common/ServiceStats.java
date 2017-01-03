@@ -18,7 +18,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -70,12 +70,12 @@ public class ServiceStats extends ServiceDocument {
                 EnumSet<AggregationType> aggregationType) {
             this.numBins = numBins;
             this.binDurationMillis = binDurationMillis;
-            this.bins = new TreeMap<>();
+            this.bins = new ConcurrentSkipListMap<>();
             this.aggregationType = aggregationType;
         }
 
         public void add(long timestampMicros, double value, double delta) {
-            synchronized (this.bins) {
+            synchronized (this) {
                 long binId = normalizeTimestamp(timestampMicros, this.binDurationMillis);
                 TimeBin dataBin = null;
                 if (this.bins.containsKey(binId)) {
