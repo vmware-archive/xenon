@@ -225,6 +225,8 @@ public class NettyHttp2Test {
 
         // we must set connection limit to 1, to ensure a single http2 connection
         this.host.getClient().setConnectionLimitPerHost(1);
+        this.host.connectionTag = ServiceClient.CONNECTION_TAG_HTTP2_DEFAULT;
+        this.host.getClient().setConnectionLimitPerTag(this.host.connectionTag, 1);
 
         // We do an initial GET, which opens the connection. We don't get multiplexing
         // until after the connection has been opened.
@@ -269,8 +271,6 @@ public class NettyHttp2Test {
         assertTrue(tagInfo != null);
         assertTrue(tagInfo.inUseConnectionCount > 0);
         assertTrue(tagInfo.pendingRequestCount == 0);
-
-        this.host.log("Test passed: validateHttp2Multiplexing");
     }
 
     @Test
