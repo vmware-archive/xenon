@@ -10,11 +10,13 @@ import { TranslateModule, TranslateStaticLoader } from 'ng2-translate';
 
 // app
 import { Config } from '../core/index';
-import { MultilingualService } from './services/multilingual.service';
+
+// module
+import { MultilingualService } from './services/index';
 
 // for AoT compilation
 export function translateFactory(http: Http) {
-    return new TranslateStaticLoader(http, `${Config.IS_MOBILE_NATIVE() ? '/' : ''}assets/i18n`, '.json');
+  return new TranslateStaticLoader(http, `${Config.IS_MOBILE_NATIVE() ? '/' : ''}assets/i18n`, '.json');
 };
 
 /**
@@ -22,35 +24,36 @@ export function translateFactory(http: Http) {
  */
 
 @NgModule({
-    imports: [
-        CommonModule,
-        RouterModule,
-        FormsModule,
-        HttpModule,
-        TranslateModule.forRoot()
-    ],
-    declarations: [],
-    exports: [
-        TranslateModule
-    ],
-    providers: [
-        MultilingualService
-    ]
+  imports: [
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    HttpModule,
+    TranslateModule.forRoot()
+  ],
+  declarations: [
+  ],
+  exports: [
+    TranslateModule
+  ],
+  providers: [
+    MultilingualService
+  ]
 })
 export class MultilingualModule {
 
-    // optional usage
-    // ideally we could use this to override TranslateModule, but it requires the static above at moment
-    static forRoot(configuredProviders: Array<any>): ModuleWithProviders {
-        return {
-            ngModule: MultilingualModule,
-            providers: configuredProviders
-        };
-    }
+  // optional usage
+  // ideally we could use this to override TranslateModule, but it requires the static above at moment
+  static forRoot(configuredProviders: Array<any>): ModuleWithProviders {
+    return {
+      ngModule: MultilingualModule,
+      providers: configuredProviders
+    };
+  }
 
-    constructor( @Optional() @SkipSelf() parentModule: MultilingualModule) {
-        if (parentModule) {
-            throw new Error('MultilingualModule already loaded; Import in root module only.');
-        }
+  constructor(@Optional() @SkipSelf() parentModule: MultilingualModule) {
+    if (parentModule) {
+      throw new Error('MultilingualModule already loaded; Import in root module only.');
     }
+  }
 }

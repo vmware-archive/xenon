@@ -5,7 +5,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 
 // libs
-import { StoreModule } from '@ngrx/store';
 import { CookieService } from 'angular2-cookie/core';
 
 // app
@@ -17,7 +16,7 @@ import { AuthenticationGuard, AuthenticationService, BASE_SERVICE_PROVIDERS,
     NodeSelectorService, NotificationService } from './services/index';
 
 import { MultilingualModule } from '../i18n/multilingual.module';
-import { multilingualReducer, IMultilingualState } from '../i18n/index';
+import { IMultilingualState } from '../i18n/index';
 
 // state
 export interface AppStoreI {
@@ -34,10 +33,7 @@ export interface AppStoreI {
         CommonModule,
         FormsModule,
         RouterModule,
-        MultilingualModule,
-        StoreModule.provideStore({
-            i18n: multilingualReducer
-        })
+        MultilingualModule
     ],
     declarations: [
         AlertComponent,
@@ -51,6 +47,8 @@ export interface AppStoreI {
         FilterByNamePipe
     ],
     exports: [
+        MultilingualModule,
+
         AlertComponent,
         CodeEditorComponent,
         NavbarComponent,

@@ -369,7 +369,7 @@ This is an [Angular 2](https://angular.io/) application built on top of [Nathan 
 
 Due to the amount of breaking changes introduced in each Angular 2 release, please be super careful when you decide to sync to the latest changes from the [seed project](https://github.com/NathanWalker/angular2-seed-advanced), which will most likely bump up the Angular version and the underlying dependencies.
 
-Last Change Sync'd: 95cec07683d56ad20865f64300bcac824d4009e7 on 11/06/2016
+Last Change Sync'd: 7a412db93af0606b23267b0aca4b8fca62738ce2 on 12/23/2016
 
 # Cut a Release
 

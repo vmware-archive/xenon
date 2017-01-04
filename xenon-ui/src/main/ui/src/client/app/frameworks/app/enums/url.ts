@@ -1,4 +1,4 @@
-const API_PREFIX: string = String('<%= ENV %>') === 'prod' ? '' : '/api';
+const API_PREFIX: string = String('<%= BUILD_TYPE %>') === 'prod' ? '' : '/api';
 
 export class URL {
     static WEB_SOCKET: string = 'ws://';

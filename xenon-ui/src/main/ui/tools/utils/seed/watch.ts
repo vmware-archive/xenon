@@ -12,19 +12,27 @@ const plugins = <any>gulpLoadPlugins();
  * Watches the task with the given taskname.
  * @param {string} taskname - The name of the task.
  */
-export function watch(taskname: string) {
+export function watch(taskname: string, root: string = Config.APP_SRC) {
   return function () {
-    let paths:string[]=[
-      join(Config.APP_SRC,'**')
-    ].concat(Config.TEMP_FILES.map((p) => { return '!'+p; }));
+    let paths: string[] = [
+      join(root, '**')
+    ].concat(Config.TEMP_FILES.map((p) => { return '!' + p; }));
 
     plugins.watch(paths, (e: any) => {
       changeFileManager.addFile(e.path);
 
-      runSequence(taskname, () => {
-	changeFileManager.clear();
-	notifyLiveReload(e);
-      });
+
+      // Resolves issue in IntelliJ and other IDEs/text editors which
+      // save multiple files at once.
+      // https://github.com/mgechev/angular-seed/issues/1615 for more details.
+      setTimeout(() => {
+
+        runSequence(taskname, () => {
+          changeFileManager.clear();
+          notifyLiveReload(e);
+        });
+
+      }, 100);
     });
   };
 }

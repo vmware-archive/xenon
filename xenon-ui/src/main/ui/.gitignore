@@ -14,6 +14,9 @@ lib-cov
 coverage
 coverage_js
 
+# ignore documentation
+documentation
+
 # Grunt intermediate storage (http://gruntjs.com/creating-plugins#storing-task-files)
 .grunt
 
@@ -25,6 +28,7 @@ build/Release
 # https://www.npmjs.org/doc/misc/npm-faq.html#should-i-check-my-node_modules-folder-into-git-
 node_modules
 typings
+ts-node
 
 # Users Environment Variables
 .lock-wscript
@@ -34,6 +38,7 @@ typings
 #IDE configuration files
 .idea
 *.iml
+.vscode/angulardoc.json
 
 dist
 dev
@@ -46,7 +51,6 @@ src/**/*.js
 src/**/*.js.map
 !src/sw.js
 !src/client/app/frameworks/test
-nativescript/app/css
 nativescript/hooks
 nativescript/node_modules
 nativescript/platforms

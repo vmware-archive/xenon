@@ -1,11 +1,14 @@
+// angular
 import { TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 
 // libs
-import { Angulartics2 } from 'angulartics2';
-import { Angulartics2Segment } from 'angulartics2/dist/providers';
+import { Angulartics2, Angulartics2Segment} from 'angulartics2';
 
+// app
 import { t } from '../../test/index';
+
+// module
 import { AnalyticsService, Analytics } from '../index';
 
 const testModuleConfig = () => {

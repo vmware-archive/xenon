@@ -5,16 +5,22 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { HttpModule } from '@angular/http';
 
-// app
-import { PlatformDirective } from './directives/platform.directive';
-import { ConsoleService } from './services/console.service';
-import { LogService } from './services/log.service';
-import { RouterExtensions } from './services/router-extensions';
-import { WindowService } from './services/window.service';
+// libs
+import { ConfigLoader, ConfigStaticLoader, ConfigModule, ConfigService } from 'ng2-config';
+
+// module
+import { CORE_DIRECTIVES } from './directives/index';
+import { CORE_PROVIDERS } from './services/index';
+import { Config } from './utils/index';
 
 interface ICoreModuleOptions {
   window?: any;
   console?: any;
+}
+
+// for AoT compilation
+export function configFactory(): ConfigLoader {
+  return new ConfigStaticLoader(`${Config.IS_MOBILE_NATIVE() ? '/' : ''}assets/app.config.json`);
 }
 
 /**
@@ -25,23 +31,21 @@ interface ICoreModuleOptions {
   imports: [
     CommonModule,
     RouterModule,
-    HttpModule
+    HttpModule,
+    ConfigModule.forRoot(),
   ],
   declarations: [
-    PlatformDirective
+    CORE_DIRECTIVES
   ],
   exports: [
     CommonModule,
     FormsModule,
     RouterModule,
     HttpModule,
-    PlatformDirective
+    CORE_DIRECTIVES
   ],
   providers: [
-    ConsoleService,
-    LogService,
-    RouterExtensions,
-    WindowService
+    CORE_PROVIDERS
   ]
 })
 export class CoreModule {

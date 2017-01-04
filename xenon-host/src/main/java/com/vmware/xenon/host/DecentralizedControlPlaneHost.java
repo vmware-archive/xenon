@@ -15,6 +15,7 @@ package com.vmware.xenon.host;
 
 import java.util.logging.Level;
 
+import com.vmware.xenon.common.AuthorizationSetupHelper;
 import com.vmware.xenon.common.ServiceHost;
 import com.vmware.xenon.services.common.ExampleService;
 import com.vmware.xenon.services.common.RootNamespaceService;
@@ -51,6 +52,13 @@ public class DecentralizedControlPlaneHost extends ServiceHost {
 
         // Start UI service
         super.startService(new UiService());
+
+        AuthorizationSetupHelper.create()
+                .setHost(this)
+                .setUserEmail("admin@localhost")
+                .setUserPassword("changeme")
+                .setIsAdmin(true)
+                .start();
 
         setAuthorizationContext(null);
 
