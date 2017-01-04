@@ -331,6 +331,7 @@ public class TestGraphQueryTaskService extends BasicTestCase {
             // since the last stage contains a single result, and each parent points to N children,
             // with no two parents pointing to the same children, filtering should have
             // pruned the results in stages 1 and 0 to just a single result each.
+            boolean converged = true;
             for (int i = 0; i < finalState.stages.size(); i++) {
                 QueryTask stage = finalState.stages.get(i);
                 this.host.log(
@@ -342,24 +343,24 @@ public class TestGraphQueryTaskService extends BasicTestCase {
                         stage.results.selectedLinks.size());
 
                 if (1 != (long) stage.results.documentCount) {
-                    return false;
-                }
-                if (1 != stage.results.documentLinks.size()) {
-                    return false;
-                }
-                if (1 != stage.results.selectedLinksPerDocument.size()) {
-                    return false;
-                }
-
-                // the last stage might have multiple selected links since stage filtering
-                // does not prune the last stage
-                if (i < (finalState.stages.size() - 1)
+                    converged = false;
+                } else if (1 != stage.results.documentLinks.size()) {
+                    converged = false;
+                } else if (1 != stage.results.selectedLinksPerDocument.size()) {
+                    converged = false;
+                } else if (i < (finalState.stages.size() - 1)
                         && (1 != stage.results.selectedLinks.size())) {
-                    return false;
+                    // the last stage might have multiple selected links since stage filtering
+                    // does not prune the last stage
+                    converged = false;
                 }
             }
 
-            return true;
+            if (!converged) {
+                this.host.log("Not converged, graph results: %s", Utils.toJsonHtml(finalState));
+            }
+
+            return converged;
         });
     }
 
