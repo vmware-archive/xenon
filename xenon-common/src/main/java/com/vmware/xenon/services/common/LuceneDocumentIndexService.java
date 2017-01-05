@@ -46,6 +46,7 @@ import com.esotericsoftware.kryo.KryoException;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.SimpleAnalyzer;
 import org.apache.lucene.document.Document;
@@ -1774,7 +1775,8 @@ public class LuceneDocumentIndexService extends StatelessService {
                 d = s.doc(docId, this.fieldsToLoadWithExpand);
                 state = getStateFromLuceneDocument(d, link);
                 if (state == null) {
-                    logWarning("Skipping link %s, can not find serialized state", link);
+                    logWarning("Skipping link term %s for %s, can not find serialized state",
+                            qt.propertyName, link);
                     continue;
                 }
             }
@@ -1782,7 +1784,8 @@ public class LuceneDocumentIndexService extends StatelessService {
             java.lang.reflect.Field linkCollectionField = ReflectionUtils.getField(
                     state.getClass(), qt.propertyName);
             if (linkCollectionField == null) {
-                logWarning("Skipping link %s, can not find field", link);
+                logWarning("Skipping link term %s for %s, can not find field", qt.propertyName,
+                        link);
                 continue;
             }
             Object fieldValue = linkCollectionField.get(state);
@@ -1790,7 +1793,8 @@ public class LuceneDocumentIndexService extends StatelessService {
                 continue;
             }
             if (!(fieldValue instanceof Collection<?>)) {
-                logWarning("Skipping link %s, field is not a collection", link);
+                logWarning("Skipping link term %s for %s, field is not a collection",
+                        qt.propertyName, link);
                 continue;
             }
             @SuppressWarnings("unchecked")
