@@ -334,13 +334,17 @@ public class TestGraphQueryTaskService extends BasicTestCase {
             boolean converged = true;
             for (int i = 0; i < finalState.stages.size(); i++) {
                 QueryTask stage = finalState.stages.get(i);
+                int selectedLinksPerDoc = stage.results.selectedLinksPerDocument != null
+                        ? stage.results.selectedLinksPerDocument.size() : 0;
+                int selectedLinkCount = stage.results.selectedLinks != null
+                        ? stage.results.selectedLinks.size() : 0;
                 this.host.log(
                         "Stage %d, results: %d (%d), selectedLinksPerDoc: %d, selectedLinks: %d",
                         i,
                         stage.results.documentLinks.size(),
                         stage.results.documentCount,
-                        stage.results.selectedLinksPerDocument.size(),
-                        stage.results.selectedLinks.size());
+                        selectedLinksPerDoc,
+                        selectedLinkCount);
 
                 if (1 != (long) stage.results.documentCount) {
                     converged = false;
