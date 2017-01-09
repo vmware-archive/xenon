@@ -1420,6 +1420,21 @@ public class ServiceHost implements ServiceRequestSender {
         coreServices.add(new ProcessFactoryService());
         coreServices.add(new ODataQueryService());
 
+        // start AuthN service before factories since its invoked in the IO path on every
+        // request
+        if (this.authenticationService != null) {
+            if (!(this.authenticationService instanceof BasicAuthenticationService)) {
+                addPrivilegedService(this.authenticationService.getClass());
+                startCoreServicesSynchronously(this.authenticationService);
+            } else {
+                // if the authenticationService is set as BasicAuthenticationService use it
+                setBasicAuthenticationService(this.authenticationService);
+            }
+        }
+
+        // start the BasicAuthenticationService anyways
+        coreServices.add(this.basicAuthenticationService);
+
         // Start persisted factories here, after document index is added
         coreServices.add(AuthCredentialsService.createFactory());
         Service userGroupFactory = UserGroupService.createFactory();
@@ -1437,19 +1452,6 @@ public class ServiceHost implements ServiceRequestSender {
         coreServices.add(TenantService.createFactory());
         coreServices.add(new SystemUserService());
         coreServices.add(new GuestUserService());
-
-        if (this.authenticationService != null ) {
-            if (!(this.authenticationService instanceof BasicAuthenticationService)) {
-                addPrivilegedService(this.authenticationService.getClass());
-                startCoreServicesSynchronously(this.authenticationService);
-            } else {
-                // if the authenticationService is set as BasicAuthenticationService use it
-                setBasicAuthenticationService(this.authenticationService);
-            }
-        }
-
-        // start the BasicAuthenticationService anyways
-        coreServices.add(this.basicAuthenticationService);
 
         Service transactionFactoryService = new TransactionFactoryService();
         coreServices.add(transactionFactoryService);
