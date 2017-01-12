@@ -510,6 +510,8 @@ public class MigrationTaskService extends StatefulService {
 
     private void computeFirstCurrentPageLinks(State currentState, List<URI> sourceURIs, List<URI> destinationURIs) {
         QueryTask queryTask = QueryTask.create(currentState.querySpec).setDirect(true);
+        long documentExpirationTimeMicros = currentState.documentExpirationTimeMicros;
+        queryTask.documentExpirationTimeMicros = documentExpirationTimeMicros;
         Collection<Operation> queryOps = sourceURIs.stream()
                 .map(uri -> {
                     return Operation.createPost(UriUtils.buildUri(uri, ServiceUriPaths.CORE_LOCAL_QUERY_TASKS))
@@ -521,6 +523,7 @@ public class MigrationTaskService extends StatefulService {
                 .addOption(QueryOption.COUNT)
                 .setQuery(buildFieldClause(currentState))
                 .build();
+        resultCountQuery.documentExpirationTimeMicros = documentExpirationTimeMicros;
         Operation resultCountOperation = Operation.createPost(
                 UriUtils.buildUri(
                         selectRandomUri(sourceURIs),
