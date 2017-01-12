@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.3.5-SNAPSHOT
+## 1.3.5
 * Add a new GatewayService to facilitate with blue/green upgrades of xenon
   node-groups. The GatewayService can be used during upgrades to pause incoming
   traffic while data is being migrated to the new node-group. Once data has
