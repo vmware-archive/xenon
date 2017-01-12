@@ -91,7 +91,6 @@
     <module>xenon-ui</module>
     <module>xenon-swagger</module>
     <module>xenon-loader-test</module>
-    <module>xenon-gateway</module>
   </modules>
 
   <properties>
@@ -144,6 +143,7 @@
         <module>xenon-samples</module>
         <module>xenon-websocket-test</module>
         <module>xenon-quickstart</module>
+        <module>xenon-gateway</module>
       </modules>
       <activation>
         <activeByDefault>true</activeByDefault>
@@ -157,6 +157,7 @@
         <module>xenon-samples</module>
         <module>xenon-websocket-test</module>
         <module>xenon-quickstart</module>
+        <module>xenon-gateway</module>
       </modules>
       <properties>
         <testHeapSizeMb>8192</testHeapSizeMb>
@@ -171,6 +172,7 @@
         <module>xenon-samples</module>
         <module>xenon-websocket-test</module>
         <module>xenon-quickstart</module>
+        <module>xenon-gateway</module>
       </modules>
       <build>
         <plugins>
