@@ -24,6 +24,7 @@ import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.OperationJoin;
 import com.vmware.xenon.common.ServiceDocumentDescription.PropertyUsageOption;
 import com.vmware.xenon.common.ServiceHost;
+import com.vmware.xenon.common.TaskState;
 import com.vmware.xenon.common.TaskState.TaskStage;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.Utils;
@@ -126,12 +127,30 @@ public class ExampleTaskService
     }
 
     /**
+     * Validate and initialize task state on creation
+     */
+    @Override
+    public void handleStart(Operation post) {
+        ExampleTaskServiceState initialState = validateStartPost(post);
+        if (initialState == null) {
+            return;
+        }
+        initializeState(initialState, post);
+
+        // complete creation POST
+        post.setStatusCode(Operation.STATUS_CODE_ACCEPTED).complete();
+        // self patch to start state machine
+        sendSelfPatch(initialState, TaskStage.STARTED, null);
+    }
+
+    /**
      * Ensure that the input task is valid.
      *
      * Technically we don't need to require a body since there are no parameters. However,
      * non-example tasks will normally have parameters, so this is an example of how they
      * could be validated.
      */
+    @Override
     protected ExampleTaskServiceState validateStartPost(Operation taskOperation) {
         ExampleTaskServiceState task = super.validateStartPost(taskOperation);
         if (task == null) {
@@ -152,6 +171,15 @@ public class ExampleTaskService
                                 "Do not specify exampleQueryTask: internal use only"));
                 return null;
             }
+        } else {
+            // This is a infrastructure start POST, not a client POST.
+            // A persisted task might already be finished, but due to node restart
+            // ownership changes, the service is started with previously indexed state.
+            // We check if the task is in terminal state, so we dont restart it
+            if (!TaskState.isInProgress(task.taskInfo)) {
+                taskOperation.complete();
+                return null;
+            }
         }
 
         if (task.taskLifetime != null && task.taskLifetime <= 0) {
@@ -170,6 +198,7 @@ public class ExampleTaskService
      * If your task does significant initialization, you may prefer to do it in the
      * CREATED state.
      */
+    @Override
     protected void initializeState(ExampleTaskServiceState task, Operation taskOperation) {
         task.subStage = SubStage.QUERY_EXAMPLES;
 
@@ -245,6 +274,7 @@ public class ExampleTaskService
     /**
      * Validate that the PATCH we got requests reasonanble changes to our state
      */
+    @Override
     protected boolean validateTransition(Operation patch, ExampleTaskServiceState currentTask,
             ExampleTaskServiceState patchBody) {
         super.validateTransition(patch, currentTask, patchBody);
