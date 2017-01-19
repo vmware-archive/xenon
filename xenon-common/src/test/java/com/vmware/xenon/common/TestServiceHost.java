@@ -919,6 +919,19 @@ public class TestServiceHost {
         this.host.testWait();
     }
 
+    @Test
+    public void startServiceSelfLinkWithStar() throws Throwable {
+        setUp(false);
+        MinimalTestServiceState initialState = new MinimalTestServiceState();
+        initialState.id = this.host.nextUUID();
+        TestContext ctx = this.host.testCreate(1);
+        Operation startPost = Operation
+                .createPost(UriUtils.buildUri(this.host, this.host.nextUUID() + "*"))
+                .setBody(initialState).setCompletion(ctx.getExpectedFailureCompletion());
+        this.host.startService(startPost, new MinimalTestService());
+        this.host.testWait(ctx);
+    }
+
     public static class StopOrderTestService extends StatefulService {
 
         public int stopOrder;

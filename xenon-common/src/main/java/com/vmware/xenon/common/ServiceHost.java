@@ -2195,6 +2195,12 @@ public class ServiceHost implements ServiceRequestSender {
 
         URI serviceUri = post.getUri().normalize();
         String servicePath = UriUtils.normalizeUriPath(serviceUri.getPath());
+
+        if (servicePath.endsWith(UriUtils.URI_WILDCARD_CHAR)) {
+            post.fail(new IllegalArgumentException(
+                    "service path must not end in wild card character: " + servicePath));
+            return this;
+        }
         if (service.getSelfLink() == null) {
             service.setSelfLink(servicePath);
         }
