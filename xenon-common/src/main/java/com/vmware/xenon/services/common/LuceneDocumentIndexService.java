@@ -1290,6 +1290,13 @@ public class LuceneDocumentIndexService extends StatelessService {
         int resultLimit = queryResultLimit;
         if (querySpec.resultLimit != null && querySpec.resultLimit != Integer.MAX_VALUE) {
             resultLimit = querySpec.resultLimit;
+            if (querySpec.resultLimit < DEFAULT_QUERY_RESULT_LIMIT) {
+                logWarning("\n*****\n"
+                        + "resultLimit value is too low, query will take much longer on large result sets."
+                        + "Do not set this value for COUNT queries, or set it above default of "
+                        + DEFAULT_QUERY_RESULT_LIMIT
+                        + "\n*****\n");
+            }
         }
         do {
             results = searcher.searchAfter(after, termQuery, resultLimit);
