@@ -1286,15 +1286,16 @@ public class TestServiceHost {
         });
 
 
-        // confirm host global time series stats have been created / updated
-        Map<String, ServiceStat> hostMgmtStats = this.host.getServiceStats(serviceHostMgmtURI);
-
-        ServiceStat serviceCount = hostMgmtStats
-                .get(ServiceHostManagementService.STAT_NAME_SERVICE_COUNT);
-        assertTrue(serviceCount != null);
-        assertTrue(serviceCount.latestValue > 2);
-
         this.host.waitFor("stats never populated", () -> {
+            // confirm host global time series stats have been created / updated
+            Map<String, ServiceStat> hostMgmtStats = this.host.getServiceStats(serviceHostMgmtURI);
+
+            ServiceStat serviceCount = hostMgmtStats
+                    .get(ServiceHostManagementService.STAT_NAME_SERVICE_COUNT);
+            if (serviceCount == null || serviceCount.latestValue < 2) {
+                return false;
+            }
+
             ServiceStat freeMemDaily = hostMgmtStats
                     .get(ServiceHostManagementService.STAT_NAME_AVAILABLE_MEMORY_BYTES_PER_DAY);
             if (!isTimeSeriesStatReady(freeMemDaily)) {
@@ -1338,10 +1339,16 @@ public class TestServiceHost {
 
             ServiceStat http1PendingCount = hostMgmtStats
                     .get(ServiceHostManagementService.STAT_NAME_HTTP11_PENDING_OP_COUNT);
-            assertTrue(http1PendingCount != null);
+            if (http1PendingCount == null) {
+                this.host.log("http1 pending op stats not present");
+                return false;
+            }
             ServiceStat http2PendingCount = hostMgmtStats
                     .get(ServiceHostManagementService.STAT_NAME_HTTP2_PENDING_OP_COUNT);
-            assertTrue(http2PendingCount != null);
+            if (http2PendingCount == null) {
+                this.host.log("http2 pending op stats not present");
+                return false;
+            }
 
             TestUtilityService.validateTimeSeriesStat(freeMemDaily, TimeUnit.HOURS.toMillis(1));
             TestUtilityService.validateTimeSeriesStat(freeMemHourly, TimeUnit.MINUTES.toMillis(1));
