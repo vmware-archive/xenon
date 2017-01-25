@@ -121,7 +121,6 @@ public class GatewayService extends StatelessService {
 
         // Check if the Gateway has been PAUSED. If so, queue the operation.
         if (this.cache.getGatewayStatus() == GatewayStatus.PAUSED) {
-            // TODO - Implement request queuing.
             failOperation(op, Operation.STATUS_CODE_UNAVAILABLE,
                     "Gateway is currently PAUSED. Please retry later.");
             return;

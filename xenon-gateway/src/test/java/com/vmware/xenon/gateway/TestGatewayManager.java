@@ -155,17 +155,17 @@ public class TestGatewayManager {
             }
 
             GatewayCache.CachedState cache = rspOp.getBody(GatewayCache.CachedState.class);
-            if ((this.configState == null && cache.status != GatewayStatus.UNAVAILABLE) ||
-                    (this.configState != null && cache.status != this.configState.status)) {
+            if ((this.configState == null && cache.configState.status != GatewayStatus.UNAVAILABLE) ||
+                    (this.configState != null && cache.configState.status != this.configState.status)) {
                 host.log(Level.INFO, "Unexpected gateway Status. Cached Status:%s, Expected:%s",
-                        cache.status, this.configState != null ? this.configState.status : "Unknown");
+                        cache.configState.status, this.configState != null ? this.configState.status : "Unknown");
                 return false;
             }
             if (this.configState != null) {
-                if ((this.configState.forwardingUri == null && this.configState.forwardingUri != cache.forwardingUri) ||
-                        (this.configState.forwardingUri != null && !this.configState.forwardingUri.equals(cache.forwardingUri)) ||
-                        (this.configState.filterRequests == null && !cache.filterRequests) ||
-                        (this.configState.filterRequests != null && cache.filterRequests != this.configState.filterRequests)) {
+                if ((this.configState.forwardingUri == null && this.configState.forwardingUri != cache.configState.forwardingUri) ||
+                        (this.configState.forwardingUri != null && !this.configState.forwardingUri.equals(cache.configState.forwardingUri)) ||
+                        (this.configState.filterRequests == null && !cache.configState.filterRequests) ||
+                        (this.configState.filterRequests != null && cache.configState.filterRequests != this.configState.filterRequests)) {
                     host.log(Level.INFO, "Unexpected gateway Config");
                     return false;
                 }
@@ -176,12 +176,13 @@ public class TestGatewayManager {
                 return false;
             }
             for (GatewayPathService.State pathState : this.paths.values()) {
-                Set<Action> actions = cache.paths.get(pathState.path);
-                if (actions == null) {
+                GatewayPathService.State state = cache.paths.get(pathState.path);
+                if (state == null || state.actions == null) {
                     host.log(Level.INFO,
                             "Cached path state contain zero registered actions. Path %s", pathState.path);
                     return false;
                 }
+                EnumSet<Action> actions = state.actions;
                 EnumSet<Action> srcActions = pathState.actions;
                 if (srcActions == null || srcActions.isEmpty()) {
                     srcActions = EnumSet.allOf(Action.class);

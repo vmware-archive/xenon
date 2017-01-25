@@ -42,10 +42,8 @@ public class GatewayCache {
     private static final EnumSet<Action> ALL_ACTIONS = EnumSet.allOf(Action.class);
 
     public static final class CachedState {
-        public GatewayStatus status = GatewayStatus.UNAVAILABLE;
-        public URI forwardingUri;
-        public boolean filterRequests;
-        public Map<String, EnumSet<Service.Action>> paths = new HashMap<>();
+        public GatewayConfigService.State configState;
+        public Map<String, GatewayPathService.State> paths = new HashMap<>();
     }
 
     private ServiceHost host;
@@ -59,6 +57,7 @@ public class GatewayCache {
         this.configHostUri = configHostUri;
         this.configSelfLink = configSelfLink;
         this.cachedState = new CachedState();
+        this.cachedState.configState = createSeedConfig();
     }
 
     /**
@@ -85,7 +84,11 @@ public class GatewayCache {
      */
     public EnumSet<Action> getSupportedActions(String path) {
         synchronized (this.cachedState) {
-            return this.cachedState.paths.get(path);
+            GatewayPathService.State state = this.cachedState.paths.get(path);
+            if (state == null) {
+                return null;
+            }
+            return state.actions;
         }
     }
 
@@ -94,7 +97,7 @@ public class GatewayCache {
      */
     public GatewayStatus getGatewayStatus() {
         synchronized (this.cachedState) {
-            return this.cachedState.status;
+            return this.cachedState.configState.status;
         }
     }
 
@@ -103,7 +106,7 @@ public class GatewayCache {
      */
     public URI getForwardingUri() {
         synchronized (this.cachedState) {
-            return this.cachedState.forwardingUri;
+            return this.cachedState.configState.forwardingUri;
         }
     }
 
@@ -114,7 +117,7 @@ public class GatewayCache {
      */
     public boolean filterRequests() {
         synchronized (this.cachedState) {
-            return this.cachedState.filterRequests;
+            return this.cachedState.configState.filterRequests;
         }
     }
 
@@ -244,18 +247,26 @@ public class GatewayCache {
         }
         if (config.documentUpdateAction.equals(Service.Action.DELETE.toString())) {
             synchronized (this.cachedState) {
-                this.cachedState.status = GatewayStatus.UNAVAILABLE;
-                this.cachedState.filterRequests = true;
-                this.cachedState.forwardingUri = null;
+                if (this.cachedState.configState.documentVersion >= config.documentVersion) {
+                    // This is an out-dated notification, ignore it.
+                    return;
+                }
+                this.cachedState.configState = createSeedConfig();
+                this.cachedState.configState.documentVersion = config.documentVersion;
             }
             this.host.log(Level.SEVERE,
                     "Gateway config was deleted. Gateway status updated to %s",
                     GatewayStatus.UNAVAILABLE);
         } else {
             synchronized (this.cachedState) {
-                this.cachedState.status = config.status != null ? config.status : GatewayStatus.UNAVAILABLE;
-                this.cachedState.filterRequests = config.filterRequests != null ? config.filterRequests : true;
-                this.cachedState.forwardingUri = config.forwardingUri;
+                if (this.cachedState.configState.documentVersion >= config.documentVersion) {
+                    // This is an out-dated notification, ignore it.
+                    return;
+                }
+                this.cachedState.configState.status = config.status != null ? config.status : GatewayStatus.UNAVAILABLE;
+                this.cachedState.configState.filterRequests = config.filterRequests != null ? config.filterRequests : true;
+                this.cachedState.configState.forwardingUri = config.forwardingUri;
+                this.cachedState.configState.documentVersion = config.documentVersion;
             }
             this.host.log(Level.INFO, "Gateway status updated to %s", config.status + "/" + config.forwardingUri);
         }
@@ -264,6 +275,12 @@ public class GatewayCache {
     private void handlePathUpdate(GatewayPathService.State path) {
         if (path.documentUpdateAction.equals(Service.Action.DELETE.toString())) {
             synchronized (this.cachedState) {
+                GatewayPathService.State state = this.cachedState.paths.get(path.path);
+                if (state == null || state.documentVersion >= path.documentVersion) {
+                    // This is an out-dated notification or we never knew about this path.
+                    // Either way, ignore it.
+                    return;
+                }
                 this.cachedState.paths.remove(path.path);
             }
             this.host.log(Level.INFO, "Path %s removed", path.path);
@@ -271,10 +288,29 @@ public class GatewayCache {
             EnumSet<Action> actions = (path.actions == null || path.actions.isEmpty())
                     ? ALL_ACTIONS : path.actions;
             synchronized (this.cachedState) {
-                this.cachedState.paths.put(path.path, actions);
+                GatewayPathService.State state = this.cachedState.paths.get(path.path);
+                if (state != null && state.documentVersion >= path.documentVersion) {
+                    // This is an out-dated notification, ignore it.
+                    return;
+                }
+                state = new GatewayPathService.State();
+                state.actions = actions;
+                state.documentVersion = path.documentVersion;
+                this.cachedState.paths.put(path.path, state);
             }
             this.host.log(Level.INFO, "Path %s added/updated with allowed actions: %s",
                     path.path, actions);
         }
+    }
+
+    private static GatewayConfigService.State createSeedConfig() {
+        GatewayConfigService.State state = new GatewayConfigService.State();
+        state.filterRequests = true;
+        state.forwardingUri = null;
+        state.status = GatewayStatus.UNAVAILABLE;
+        state.documentVersion = -1L; // document versions start from 0. Setting to -1 so that we don't
+                                     // miss the first documentVersion.
+
+        return state;
     }
 }
