@@ -20,6 +20,7 @@ import static org.junit.Assert.assertTrue;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -31,6 +32,7 @@ import com.vmware.xenon.common.BasicReusableHostTestCase;
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.ServiceDocument;
 import com.vmware.xenon.common.ServiceDocumentQueryResult;
+import com.vmware.xenon.common.ServiceStats.ServiceStat;
 import com.vmware.xenon.common.TaskState;
 import com.vmware.xenon.common.TaskState.TaskStage;
 import com.vmware.xenon.common.UriUtils;
@@ -39,6 +41,7 @@ import com.vmware.xenon.common.test.TestRequestSender.FailureResponse;
 import com.vmware.xenon.common.test.VerificationHost;
 import com.vmware.xenon.services.common.ExampleService.ExampleServiceState;
 import com.vmware.xenon.services.common.ExampleTaskService.ExampleTaskServiceState;
+import com.vmware.xenon.services.common.QueryTask.Query;
 
 /**
  * Validate that the ExampleTaskService works.
@@ -118,14 +121,46 @@ public class TestExampleTaskService extends BasicReusableHostTestCase {
     public void testDirectTask() {
         createExampleServices();
 
-        ExampleTaskServiceState state = new ExampleTaskServiceState();
-        state.taskInfo = TaskState.createDirect();
+        List<Operation> posts = new ArrayList<>();
+        for (int i = 0; i < this.serviceCount; i++) {
+            ExampleTaskServiceState state = new ExampleTaskServiceState();
+            state.taskInfo = TaskState.createDirect();
+            // specialize each task to only delete a service with the specific id;
+            state.customQueryClause = Query.Builder.create()
+                    .addFieldClause(ExampleServiceState.FIELD_NAME_ID, i + "").build();
+            Operation post = Operation.createPost(this.host, ExampleTaskService.FACTORY_LINK)
+                    .setBody(state);
+            posts.add(post);
+        }
 
-        Operation post = Operation.createPost(this.host, ExampleTaskService.FACTORY_LINK).setBody(state);
-        ExampleTaskServiceState result = this.sender.sendAndWait(post, ExampleTaskServiceState.class);
+        Map<String, ServiceStat> factoryStatsBefore = this.host
+                .getServiceStats(posts.get(0).getUri());
+        ServiceStat subCountStatBefore = factoryStatsBefore
+                .get(TaskFactoryService.STAT_NAME_ACTIVE_SUBSCRIPTION_COUNT);
+        if (subCountStatBefore == null) {
+            subCountStatBefore = new ServiceStat();
+        }
 
-        assertNotNull(result.taskInfo);
-        assertEquals(TaskStage.FINISHED, result.taskInfo.stage);
+        List<ExampleTaskServiceState> results = this.sender.sendAndWait(posts,
+                ExampleTaskServiceState.class);
+
+        for (ExampleTaskServiceState result : results) {
+            assertNotNull(result.taskInfo);
+            assertEquals(TaskStage.FINISHED, result.taskInfo.stage);
+        }
+
+        ServiceStat beforeStat = subCountStatBefore;
+        this.host.waitFor("subscriptions never stopped", () -> {
+            Map<String, ServiceStat> factoryStatsAfter = this.host
+                    .getServiceStats(posts.get(0).getUri());
+
+            ServiceStat subCountStat = factoryStatsAfter
+                    .get(TaskFactoryService.STAT_NAME_ACTIVE_SUBSCRIPTION_COUNT);
+            if (subCountStat == null || subCountStat.latestValue > beforeStat.latestValue) {
+                return false;
+            }
+            return true;
+        });
     }
 
     private void verifyExpectedHandleStartError(ExampleTaskServiceState badState, String expectedMessage) {
@@ -150,6 +185,7 @@ public class TestExampleTaskService extends BasicReusableHostTestCase {
         for (int i = 0; i < this.serviceCount; i++) {
             ExampleServiceState example = new ExampleServiceState();
             example.name = String.format("example-%s", i);
+            example.id = i + "";
             ops.add(Operation.createPost(exampleFactoryUri).setBody(example));
         }
         this.sender.sendAndWait(ops);

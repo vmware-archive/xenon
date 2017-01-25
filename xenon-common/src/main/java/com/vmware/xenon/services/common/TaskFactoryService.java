@@ -15,11 +15,13 @@ package com.vmware.xenon.services.common;
 
 import java.net.URI;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import com.vmware.xenon.common.FactoryService;
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.Service;
+import com.vmware.xenon.common.ServiceStats.ServiceStat;
 import com.vmware.xenon.common.ServiceSubscriptionState.ServiceSubscriber;
 import com.vmware.xenon.common.TaskState;
 import com.vmware.xenon.common.TaskState.TaskStage;
@@ -34,6 +36,8 @@ import com.vmware.xenon.services.common.TaskService.TaskServiceState;
  * state
  */
 public class TaskFactoryService extends FactoryService {
+
+    public static final String STAT_NAME_ACTIVE_SUBSCRIPTION_COUNT = "subscriptionCount";
 
     public TaskFactoryService(Class<? extends TaskService.TaskServiceState> stateClass) {
         super(stateClass);
@@ -119,11 +123,20 @@ public class TaskFactoryService extends FactoryService {
     }
 
     private void subscribeToChildTask(Operation o, Operation post) {
+
+        // Its possible to unsubscribe multiple times given multiple notifications from a task
+        // in a terminal state. We need to fix up our *approximate* accounting of active subscriptions
+        ServiceStat st = getStat(STAT_NAME_ACTIVE_SUBSCRIPTION_COUNT);
+        if (st != null && st.latestValue < 0) {
+            setStat(STAT_NAME_ACTIVE_SUBSCRIPTION_COUNT, 0);
+        }
+
         TaskServiceState initState = (TaskServiceState) o.getBody(super.getStateType());
         Operation subscribe = Operation.createPost(this, initState.documentSelfLink)
                 .transferRefererFrom(post)
                 .setCompletion((so, e) -> {
                     if (e == null) {
+                        adjustStat(STAT_NAME_ACTIVE_SUBSCRIPTION_COUNT, 1);
                         return;
                     }
 
@@ -132,8 +145,11 @@ public class TaskFactoryService extends FactoryService {
                             .fail(e);
                 });
 
+        AtomicBoolean taskComplete = new AtomicBoolean();
         long expiration = initState.documentExpirationTimeMicros;
-        ServiceSubscriber sr = ServiceSubscriber.create(true).setUsePublicUri(true);
+        ServiceSubscriber sr = ServiceSubscriber.create(true).setUsePublicUri(true)
+                .setReplayState(true)
+                .setExpiration(expiration);
         Consumer<Operation> notifyC = (nOp) -> {
             nOp.complete();
             switch (nOp.getAction()) {
@@ -143,9 +159,11 @@ public class TaskFactoryService extends FactoryService {
                 if (task.taskInfo == null || TaskState.isInProgress(task.taskInfo)) {
                     return;
                 }
-                // task is in final state (failed, or completed), complete original post
-                post.setBodyNoCloning(task).complete();
-                stopInDirectTaskSubscription(subscribe, nOp.getUri());
+                if (taskComplete.compareAndSet(false, true)) {
+                    // task is in final state (failed, or completed), complete original post
+                    post.setBodyNoCloning(task).complete();
+                    stopInDirectTaskSubscription(subscribe, nOp.getUri());
+                }
                 return;
             case DELETE:
                 if (Utils.getSystemNowMicrosUtc() >= expiration) {
@@ -166,6 +184,7 @@ public class TaskFactoryService extends FactoryService {
             }
         };
 
+
         // Only if this is an owner-selected service, we create a reliable subscription.
         // Otherwise for non-replicated services, we just create a normal subscription.
         if (this.hasChildOption(ServiceOption.OWNER_SELECTION)) {
@@ -178,8 +197,13 @@ public class TaskFactoryService extends FactoryService {
     }
 
     private void stopInDirectTaskSubscription(Operation sub, URI notificationTarget) {
-        getHost().stopSubscriptionService(sub.clone().setAction(Action.DELETE),
-                notificationTarget);
+        getHost().stopSubscriptionService(
+                sub.clone().setAction(Action.DELETE).setCompletion((o, e) -> {
+                    if (e != null) {
+                        return;
+                    }
+                    adjustStat(STAT_NAME_ACTIVE_SUBSCRIPTION_COUNT, -1);
+                }), notificationTarget);
     }
 
     @Override
