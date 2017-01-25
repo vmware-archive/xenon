@@ -42,8 +42,22 @@ import com.esotericsoftware.kryo.serializers.VersionFieldSerializer;
 import org.objenesis.strategy.StdInstantiatorStrategy;
 
 import com.vmware.xenon.common.ServiceDocument;
+import com.vmware.xenon.common.Utils;
 
 public final class KryoSerializers {
+    private static final String PROPERTY_KRYO_HANDLE_BUILTIN_COLLECTIONS
+            = Utils.PROPERTY_NAME_PREFIX + "kryo.handleBuiltInCollections";
+
+    private static boolean KRYO_HANDLE_BUILTIN_COLLECTIONS = true;
+
+    static {
+        String v = System.getProperty(PROPERTY_KRYO_HANDLE_BUILTIN_COLLECTIONS);
+        if (v != null) {
+            KRYO_HANDLE_BUILTIN_COLLECTIONS = Boolean.valueOf(v);
+        }
+    }
+
+
     /**
      * Binary serialization thread local instances that track object references
      */
@@ -92,7 +106,10 @@ public final class KryoSerializers {
         k.addDefaultSerializer(URI.class, URISerializer.INSTANCE);
 
         k.addDefaultSerializer(ByteBuffer.class, ByteBufferSerializer.INSTANCE);
-        configureJdkCollections(k);
+
+        if (KRYO_HANDLE_BUILTIN_COLLECTIONS) {
+            configureJdkCollections(k);
+        }
 
         if (!isObjectSerializer) {
             // For performance reasons, and to avoid memory use, assume documents do not
