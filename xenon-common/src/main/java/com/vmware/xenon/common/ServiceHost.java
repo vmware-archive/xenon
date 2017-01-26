@@ -1429,6 +1429,21 @@ public class ServiceHost implements ServiceRequestSender {
             startCoreServicesSynchronously(this.authorizationService, new AuthorizationTokenCacheService());
         }
 
+        // start AuthN service before factories since its invoked in the IO path on every
+        // request
+        if (this.authenticationService != null) {
+            if (!(this.authenticationService instanceof BasicAuthenticationService)) {
+                addPrivilegedService(this.authenticationService.getClass());
+                startCoreServicesSynchronously(this.authenticationService);
+            } else {
+                // if the authenticationService is set as BasicAuthenticationService use it
+                setBasicAuthenticationService(this.authenticationService);
+            }
+        }
+
+        // start the BasicAuthenticationService anyways
+        startCoreServicesSynchronously(this.basicAuthenticationService);
+
         // Normalize peer list and find our external address
         // This must be done BEFORE node group starts.
         List<URI> peers = getInitialPeerHosts();
@@ -1457,21 +1472,6 @@ public class ServiceHost implements ServiceRequestSender {
         coreServices.add(this.managementService);
         coreServices.add(new ProcessFactoryService());
         coreServices.add(new ODataQueryService());
-
-        // start AuthN service before factories since its invoked in the IO path on every
-        // request
-        if (this.authenticationService != null) {
-            if (!(this.authenticationService instanceof BasicAuthenticationService)) {
-                addPrivilegedService(this.authenticationService.getClass());
-                startCoreServicesSynchronously(this.authenticationService);
-            } else {
-                // if the authenticationService is set as BasicAuthenticationService use it
-                setBasicAuthenticationService(this.authenticationService);
-            }
-        }
-
-        // start the BasicAuthenticationService anyways
-        coreServices.add(this.basicAuthenticationService);
 
         // Start persisted factories here, after document index is added
         coreServices.add(AuthCredentialsService.createFactory());
