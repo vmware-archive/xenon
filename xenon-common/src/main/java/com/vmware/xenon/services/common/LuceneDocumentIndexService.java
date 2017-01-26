@@ -472,7 +472,7 @@ public class LuceneDocumentIndexService extends StatelessService {
             cacheSizeMB = Math.max(1, cacheSizeMB);
             iwc.setRAMBufferSizeMB(cacheSizeMB);
             // reserve 1% of service memory budget for version cache
-            this.updateMapMemoryLimitMB = totalMBs / 100;
+            this.updateMapMemoryLimitMB = Math.max(1, totalMBs / 100);
         }
 
         Directory dir = MMapDirectory.open(directory.toPath());
