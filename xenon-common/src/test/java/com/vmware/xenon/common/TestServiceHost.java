@@ -1295,47 +1295,56 @@ public class TestServiceHost {
             ServiceStat serviceCount = hostMgmtStats
                     .get(ServiceHostManagementService.STAT_NAME_SERVICE_COUNT);
             if (serviceCount == null || serviceCount.latestValue < 2) {
+                this.host.log("not ready: %s", Utils.toJson(serviceCount));
                 return false;
             }
 
             ServiceStat freeMemDaily = hostMgmtStats
                     .get(ServiceHostManagementService.STAT_NAME_AVAILABLE_MEMORY_BYTES_PER_DAY);
             if (!isTimeSeriesStatReady(freeMemDaily)) {
+                this.host.log("not ready: %s", Utils.toJson(freeMemDaily));
                 return false;
             }
             ServiceStat freeMemHourly = hostMgmtStats
                     .get(ServiceHostManagementService.STAT_NAME_AVAILABLE_MEMORY_BYTES_PER_HOUR);
             if (!isTimeSeriesStatReady(freeMemHourly)) {
+                this.host.log("not ready: %s", Utils.toJson(freeMemHourly));
                 return false;
             }
             ServiceStat freeDiskDaily = hostMgmtStats
                     .get(ServiceHostManagementService.STAT_NAME_AVAILABLE_DISK_BYTES_PER_DAY);
             if (!isTimeSeriesStatReady(freeDiskDaily)) {
+                this.host.log("not ready: %s", Utils.toJson(freeDiskDaily));
                 return false;
             }
             ServiceStat freeDiskHourly = hostMgmtStats
                     .get(ServiceHostManagementService.STAT_NAME_AVAILABLE_DISK_BYTES_PER_HOUR);
             if (!isTimeSeriesStatReady(freeDiskHourly)) {
+                this.host.log("not ready: %s", Utils.toJson(freeDiskHourly));
                 return false;
             }
             ServiceStat cpuUsageDaily = hostMgmtStats
                     .get(ServiceHostManagementService.STAT_NAME_CPU_USAGE_PCT_PER_DAY);
             if (!isTimeSeriesStatReady(cpuUsageDaily)) {
+                this.host.log("not ready: %s", Utils.toJson(cpuUsageDaily));
                 return false;
             }
             ServiceStat cpuUsageHourly = hostMgmtStats
                     .get(ServiceHostManagementService.STAT_NAME_CPU_USAGE_PCT_PER_HOUR);
             if (!isTimeSeriesStatReady(cpuUsageHourly)) {
+                this.host.log("not ready: %s", Utils.toJson(cpuUsageHourly));
                 return false;
             }
             ServiceStat threadCountDaily = hostMgmtStats
                     .get(ServiceHostManagementService.STAT_NAME_THREAD_COUNT_PER_DAY);
             if (!isTimeSeriesStatReady(threadCountDaily)) {
+                this.host.log("not ready: %s", Utils.toJson(threadCountDaily));
                 return false;
             }
             ServiceStat threadCountHourly = hostMgmtStats
                     .get(ServiceHostManagementService.STAT_NAME_THREAD_COUNT_PER_HOUR);
             if (!isTimeSeriesStatReady(threadCountHourly)) {
+                this.host.log("not ready: %s", Utils.toJson(threadCountHourly));
                 return false;
             }
 
