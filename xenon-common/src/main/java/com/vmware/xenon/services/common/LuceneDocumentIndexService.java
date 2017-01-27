@@ -437,6 +437,9 @@ public class LuceneDocumentIndexService extends StatelessService {
     }
 
     private void setTimeSeriesStat(String name, EnumSet<AggregationType> type, double v) {
+        if (!this.hasOption(ServiceOption.INSTRUMENTATION)) {
+            return;
+        }
         ServiceStat dayStat = getTimeSeriesStat(name + ServiceStats.STAT_NAME_SUFFIX_PER_DAY,
                 (int) TimeUnit.DAYS.toHours(1), TimeUnit.HOURS.toMillis(1), type);
         this.setStat(dayStat, v);
@@ -446,6 +449,9 @@ public class LuceneDocumentIndexService extends StatelessService {
     }
 
     private void adjustTimeSeriesStat(String name, EnumSet<AggregationType> type, double delta) {
+        if (!this.hasOption(ServiceOption.INSTRUMENTATION)) {
+            return;
+        }
         ServiceStat dayStat = getTimeSeriesStat(name + ServiceStats.STAT_NAME_SUFFIX_PER_DAY,
                 (int) TimeUnit.DAYS.toHours(1), TimeUnit.HOURS.toMillis(1), type);
         this.adjustStat(dayStat, delta);
@@ -455,6 +461,9 @@ public class LuceneDocumentIndexService extends StatelessService {
     }
 
     private void setTimeSeriesHistogramStat(String name, EnumSet<AggregationType> type, double v) {
+        if (!this.hasOption(ServiceOption.INSTRUMENTATION)) {
+            return;
+        }
         ServiceStat dayStat = getTimeSeriesHistogramStat(name + ServiceStats.STAT_NAME_SUFFIX_PER_DAY,
                 (int) TimeUnit.DAYS.toHours(1), TimeUnit.HOURS.toMillis(1), type);
         this.setStat(dayStat, v);
@@ -2362,8 +2371,11 @@ public class LuceneDocumentIndexService extends StatelessService {
                     AGGREGATION_TYPE_AVG_MAX,
                     TimeUnit.NANOSECONDS.toMicros(endNanos - startNanos));
 
-            op.complete();
+            if (this.hasOption(ServiceOption.INSTRUMENTATION)) {
+                setStat(LuceneDocumentIndexService.STAT_NAME_INDEXED_DOCUMENT_COUNT, w.numDocs());
+            }
 
+            op.complete();
         } catch (Throwable e) {
             if (this.getHost().isStopping()) {
                 op.fail(new CancellationException());
