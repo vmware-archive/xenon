@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.3.7-SNAPSHOT
+
 ## 1.3.6
 
 * Integrations with 3rd party libraries are migrated to a [new repository](https://github.com/vmware/xenon-utils)
