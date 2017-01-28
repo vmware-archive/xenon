@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.3.6-SNAPSHOT
+## 1.3.6
 
 * Integrations with 3rd party libraries are migrated to a [new repository](https://github.com/vmware/xenon-utils)
   and now have their own release cycle. There are no API changes but the Maven coordinates are different. Update
