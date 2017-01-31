@@ -2,6 +2,13 @@
 
 ## 1.3.7-SNAPSHOT
 
+* Added support for simple ODATA filtering on service stats, using URI query parameters.
+  For example:
+  GET /core/document-index/stats?$filter name eq indexedDocumentCount
+  GET /core/document-index/stats?$filter name eq indexedDocument*
+  GET /core/document-index/stats?$filter name eq *PerDay
+  GET /core/document-index/stats?$filter name eq *PerDay and latestValue ge 1000.0
+
 * Added support for QueryOption#TIME_SNAPSHOT. The new query option will return results that contain
   latest versions of documents as on a given time. QuerySpecification#timeSnapshotBoundaryMicros
   will allow specifying the time.

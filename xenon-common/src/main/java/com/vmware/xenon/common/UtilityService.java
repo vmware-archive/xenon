@@ -469,7 +469,7 @@ public class UtilityService implements Service {
                     rsp = Utils.clone(rsp);
                 }
 
-                if (handleStatsGetWithODATARequest(op, rsp)) {
+                if (handleStatsGetWithODataRequest(op, rsp)) {
                     return;
                 }
 
@@ -487,7 +487,7 @@ public class UtilityService implements Service {
     /**
      * Selects statistics entries that satisfy a simple sub set of ODATA filter expressions
      */
-    private boolean handleStatsGetWithODATARequest(Operation op, ServiceStats rsp) {
+    private boolean handleStatsGetWithODataRequest(Operation op, ServiceStats rsp) {
         if (UriUtils.getODataCountParamValue(op.getUri())) {
             op.fail(new IllegalArgumentException(
                     UriUtils.URI_PARAM_ODATA_COUNT + " is not supported"));
@@ -530,10 +530,10 @@ public class UtilityService implements Service {
             clauses.add(task.querySpec.query);
         }
 
-        return processStatsODATAQueryClauses(op, rsp, clauses);
+        return processStatsODataQueryClauses(op, rsp, clauses);
     }
 
-    private boolean processStatsODATAQueryClauses(Operation op, ServiceStats rsp,
+    private boolean processStatsODataQueryClauses(Operation op, ServiceStats rsp,
             List<Query> clauses) {
         for (Query q : clauses) {
             if (!Occurance.MUST_OCCUR.equals(q.occurance)) {
@@ -544,7 +544,7 @@ public class UtilityService implements Service {
             QueryTerm term = q.term;
 
             if (term == null) {
-                return processStatsODATAQueryClauses(op, rsp, q.booleanClauses);
+                return processStatsODataQueryClauses(op, rsp, q.booleanClauses);
             }
 
             // prune entries using the filter match value and property

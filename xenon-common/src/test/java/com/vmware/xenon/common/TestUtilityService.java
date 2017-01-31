@@ -301,13 +301,13 @@ public class TestUtilityService extends BasicReusableHostTestCase {
         assertTrue(retStatEntry.latestValue == 225);
         assertTrue(retStatEntry.version == 2);
 
-        verifyGetWithODATAOnStats(exampleServiceState);
+        verifyGetWithODataOnStats(exampleServiceState);
 
         verifyStatCreationAttemptAfterGet();
 
     }
 
-    private void verifyGetWithODATAOnStats(ExampleServiceState exampleServiceState) {
+    private void verifyGetWithODataOnStats(ExampleServiceState exampleServiceState) {
         URI exampleStatsUri = UriUtils.buildStatsUri(this.host,
                 exampleServiceState.documentSelfLink);
         // bulk PUT to set stats to a known state
