@@ -263,6 +263,8 @@ public class LuceneDocumentIndexService extends StatelessService {
 
     public static final String STAT_NAME_DOCUMENT_KIND_QUERY_COUNT_FORMAT = "documentKindQueryCount-%s";
 
+    public static final String STAT_NAME_SINGLE_QUERY_BY_FACTORY_COUNT_FORMAT = "singleQueryByFactoryCount-%s";
+
     private static final String STAT_NAME_MAINTENANCE_MEMORY_LIMIT_DURATION_MICROS =
             "maintenanceMemoryLimitDurationMicros";
 
@@ -1100,6 +1102,13 @@ public class LuceneDocumentIndexService extends StatelessService {
         setTimeSeriesHistogramStat(STAT_NAME_QUERY_SINGLE_DURATION_MICROS,
                 AGGREGATION_TYPE_AVG_MAX, TimeUnit.NANOSECONDS.toMicros(durationNanos));
 
+        if (hasOption(ServiceOption.INSTRUMENTATION)) {
+            String factoryLink = UriUtils.getParentPath(selfLink);
+            if (factoryLink != null) {
+                String statKey = String.format(STAT_NAME_SINGLE_QUERY_BY_FACTORY_COUNT_FORMAT, factoryLink);
+                adjustStat(statKey, 1);
+            }
+        }
         if (hits.totalHits == 0) {
             op.complete();
             return;

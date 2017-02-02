@@ -296,6 +296,36 @@ public class TestLuceneDocumentIndexService {
     }
 
     @Test
+    public void documentGetStats() throws Throwable {
+        setUpHost(false);
+        List<String> docLinks = new ArrayList<String>();
+        MinimalFactoryTestService f = new MinimalFactoryTestService();
+        MinimalFactoryTestService factoryService = (MinimalFactoryTestService) this.host
+                .startServiceAndWait(f, UUID.randomUUID().toString(), null);
+        factoryService.setChildServiceCaps(
+                EnumSet.of(ServiceOption.PERSISTENCE));
+        for (int i = 0; i < this.serviceCount; i++) {
+            MinimalTestServiceState initialState = new MinimalTestServiceState();
+            initialState.documentSelfLink = initialState.id = UUID.randomUUID().toString();
+            this.host.sendAndWaitExpectSuccess(
+                    Operation.createPost(factoryService.getUri()).setBody(initialState));
+            docLinks.add(initialState.documentSelfLink);
+        }
+        for (String selfLink: docLinks) {
+            this.host.sendAndWaitExpectSuccess(Operation.createGet(this.host,
+                    UriUtils.buildUriPath(factoryService.getUri().getPath(), selfLink)));
+        }
+
+        Map<String, ServiceStat> stats = this.host.getServiceStats(this.host.getDocumentIndexServiceUri());
+        String statKey = String.format(
+                LuceneDocumentIndexService.STAT_NAME_SINGLE_QUERY_BY_FACTORY_COUNT_FORMAT,
+                factoryService.getUri().getPath());
+        ServiceStat kindStat = stats.get(statKey);
+        assertNotNull(kindStat);
+        assertEquals(this.serviceCount, kindStat.latestValue, 0);
+    }
+
+    @Test
     public void corruptedIndexRecovery() throws Throwable {
         setUpHost(false);
         this.doDurableServiceUpdate(Action.PUT, 100, 2, null);
