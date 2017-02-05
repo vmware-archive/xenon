@@ -27,7 +27,6 @@ import io.netty.handler.codec.http2.HttpConversionUtil;
 import io.netty.handler.codec.http2.HttpToHttp2ConnectionHandler;
 
 import com.vmware.xenon.common.Operation;
-import com.vmware.xenon.common.ReflectionUtils;
 import com.vmware.xenon.common.ServiceErrorResponse;
 import com.vmware.xenon.common.Utils;
 
@@ -38,6 +37,19 @@ import com.vmware.xenon.common.Utils;
  * operation, so we can properly handle responses.
  */
 public class NettyHttpToHttp2Handler extends HttpToHttp2ConnectionHandler {
+
+    private static final Field field;
+
+    static {
+        try {
+            field = NettyHttpToHttp2Handler.class.getClassLoader()
+                    .loadClass("io.netty.handler.codec.http2.DefaultHttp2Connection$DefaultEndpoint")
+                    .getDeclaredField("nextReservationStreamId");
+            field.setAccessible(true);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
 
     public NettyHttpToHttp2Handler(Http2ConnectionDecoder decoder,
             Http2ConnectionEncoder encoder,
@@ -134,11 +146,9 @@ public class NettyHttpToHttp2Handler extends HttpToHttp2ConnectionHandler {
      */
     private int getDefaultStreamId() {
         Endpoint<Http2LocalFlowController> endpoint = connection().local();
+
         // unfortunately, need to retrieve value via reflection
-        Field field = ReflectionUtils.getField(endpoint.getClass(), "nextReservationStreamId");
-
         try {
-
             int nextReservationStreamId = field.getInt(endpoint);
             return nextReservationStreamId >= 0 ?
                     nextReservationStreamId + 2 :
