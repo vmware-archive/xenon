@@ -1001,7 +1001,8 @@ public class StatefulService implements Service {
 
             ServiceDocument latestState = op.getLinkedState();
             long delta = latestState.documentUpdateTimeMicros - this.context.lastCommitTimeMicros;
-            if (delta < getHost().getMaintenanceIntervalMicros()) {
+            // for delete, services on replica only stop by commit op. thus skipping the delta check.
+            if (op.getAction() != Action.DELETE && delta < getHost().getMaintenanceIntervalMicros()) {
                 return;
             }
 
