@@ -63,8 +63,6 @@ public final class ServiceUriPaths {
     public static final String CORE_OPERATION_INDEX = ServiceUriPaths.CORE + "/operation-index";
     public static final String CORE_SERVICE_CONTEXT_INDEX = ServiceUriPaths.CORE
             + "/service-context-index";
-    public static final String CORE_BLOB_INDEX = UriUtils.buildUriPath(ServiceUriPaths.CORE,
-            "blob-index");
 
     public static final String CORE_QUERY_TASKS = UriUtils.buildUriPath(ServiceUriPaths.CORE,
             "query-tasks");

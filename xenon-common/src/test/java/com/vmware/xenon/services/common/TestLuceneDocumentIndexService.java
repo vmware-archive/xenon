@@ -389,7 +389,7 @@ public class TestLuceneDocumentIndexService {
                     return 1;
                 }).reduce(0, Integer::sum);
 
-        final int expectedDirectoryPathsWithLuceneInName = 3;
+        final int expectedDirectoryPathsWithLuceneInName = 2;
         assertEquals(expectedDirectoryPathsWithLuceneInName, total);
     }
 

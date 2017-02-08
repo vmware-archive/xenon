@@ -99,7 +99,6 @@ import com.vmware.xenon.services.common.FileContentService;
 import com.vmware.xenon.services.common.GraphQueryTaskService;
 import com.vmware.xenon.services.common.GuestUserService;
 import com.vmware.xenon.services.common.LocalQueryTaskFactoryService;
-import com.vmware.xenon.services.common.LuceneBlobIndexService;
 import com.vmware.xenon.services.common.LuceneDocumentIndexService;
 import com.vmware.xenon.services.common.NodeGroupFactoryService;
 import com.vmware.xenon.services.common.NodeGroupService.JoinPeerRequest;
@@ -285,7 +284,6 @@ public class ServiceHost implements ServiceRequestSender {
 
     public static final Double DEFAULT_PCT_MEMORY_LIMIT = 0.49;
     public static final Double DEFAULT_PCT_MEMORY_LIMIT_DOCUMENT_INDEX = 0.45;
-    public static final Double DEFAULT_PCT_MEMORY_LIMIT_BLOB_INDEX = 0.01;
     public static final Double DEFAULT_PCT_MEMORY_LIMIT_SERVICE_CONTEXT_INDEX = 0.01;
 
     public static final String LOOPBACK_ADDRESS = "127.0.0.1";
@@ -701,11 +699,6 @@ public class ServiceHost implements ServiceRequestSender {
                 MemoryLimitType.EXACT) == null) {
             setServiceMemoryLimit(ServiceUriPaths.CORE_DOCUMENT_INDEX,
                     DEFAULT_PCT_MEMORY_LIMIT_DOCUMENT_INDEX);
-        }
-        if (getServiceMemoryLimitMB(ServiceUriPaths.CORE_BLOB_INDEX,
-                MemoryLimitType.EXACT) == null) {
-            setServiceMemoryLimit(ServiceUriPaths.CORE_BLOB_INDEX,
-                    DEFAULT_PCT_MEMORY_LIMIT_BLOB_INDEX);
         }
         if (getServiceMemoryLimitMB(ServiceUriPaths.CORE_SERVICE_CONTEXT_INDEX,
                 MemoryLimitType.EXACT) == null) {
@@ -1415,7 +1408,6 @@ public class ServiceHost implements ServiceRequestSender {
 
         addPrivilegedService(this.managementService.getClass());
         addPrivilegedService(OperationIndexService.class);
-        addPrivilegedService(LuceneBlobIndexService.class);
         addPrivilegedService(BasicAuthenticationService.class);
 
         // Capture authorization context; this function executes as the system user
@@ -1458,7 +1450,6 @@ public class ServiceHost implements ServiceRequestSender {
             if (this.documentIndexService instanceof LuceneDocumentIndexService) {
                 Service[] queryServiceArray = new Service[] {
                         this.documentIndexService,
-                        new LuceneBlobIndexService(),
                         new ServiceContextIndexService(),
                         new QueryTaskFactoryService(),
                         new LocalQueryTaskFactoryService(),
