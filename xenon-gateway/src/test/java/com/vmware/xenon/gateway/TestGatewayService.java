@@ -13,6 +13,7 @@
 
 package com.vmware.xenon.gateway;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.Array;
@@ -41,6 +42,7 @@ import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.Utils;
 import com.vmware.xenon.common.test.MinimalTestServiceState;
 import com.vmware.xenon.common.test.TestContext;
+import com.vmware.xenon.common.test.TestRequestSender;
 import com.vmware.xenon.common.test.VerificationHost;
 import com.vmware.xenon.gateway.hosts.GatewayHost;
 import com.vmware.xenon.services.common.ExampleService;
@@ -55,6 +57,7 @@ public class TestGatewayService {
     private VerificationHost backendHost;
 
     private VerificationHost host;
+    private TestRequestSender sender;
     private TestGatewayHost gatewayHost;
 
     public int serviceCount = 10;
@@ -76,9 +79,11 @@ public class TestGatewayService {
             this.host.start();
         }
 
+        this.sender = this.host.getTestRequestSender();
+
         ServiceHost configHost = this.gatewayHost.getConfigHost();
         waitForReplicatedFactoryServiceAvailable(configHost, GatewayConfigService.FACTORY_LINK);
-        waitForReplicatedFactoryServiceAvailable(configHost, GatewayPathService.FACTORY_LINK);
+        waitForReplicatedFactoryServiceAvailable(configHost, GatewayPathFactoryService.SELF_LINK);
 
         if (this.gatewayMgr == null) {
             this.gatewayMgr = new TestGatewayManager(this.host, this.gatewayHost);
@@ -110,6 +115,11 @@ public class TestGatewayService {
     @After
     public void tearDown() {
         this.gatewayMgr = null;
+        this.sender = null;
+        if (this.host != null) {
+            this.host.tearDown();
+            this.host = null;
+        }
         if (this.gatewayHost != null) {
             this.gatewayHost.stop();
             this.gatewayHost = null;
@@ -154,7 +164,7 @@ public class TestGatewayService {
         URI factoryUri = UriUtils.buildUri(dispatchHost, ExampleService.FACTORY_LINK);
         URI expandedUri = UriUtils.buildExpandLinksQueryUri(factoryUri);
         ServiceDocumentQueryResult result = this.host.getFactoryState(expandedUri);
-        assertTrue(result.documents.size() == examples.size());
+        assertEquals(examples.size(), result.documents.size());
         for (ExampleServiceState example : examples.values()) {
             assertTrue(result.documentLinks.contains(example.documentSelfLink));
             String jsonDocument = (String)result.documents.get(example.documentSelfLink);
@@ -188,13 +198,13 @@ public class TestGatewayService {
         ServiceErrorResponse rsp = makeRequest(Action.POST,
                 getDispatchUri(ExampleService.FACTORY_LINK), state,
                 ServiceErrorResponse.class, Operation.STATUS_CODE_BAD_REQUEST);
-        assertTrue(rsp.statusCode == Operation.STATUS_CODE_BAD_REQUEST);
+        assertEquals(Operation.STATUS_CODE_BAD_REQUEST, rsp.statusCode);
 
         // 404 - NOT-FOUND
         rsp = makeRequest(Action.GET,
                 getDispatchUri(ExampleService.FACTORY_LINK + "/does-not-exist"),
                 null, ServiceErrorResponse.class, Operation.STATUS_CODE_NOT_FOUND);
-        assertTrue(rsp.statusCode == Operation.STATUS_CODE_NOT_FOUND);
+        assertEquals(Operation.STATUS_CODE_NOT_FOUND, rsp.statusCode);
 
         // 409 - CONFLICT
         String documentSelfLink = examples.values().iterator().next().documentSelfLink;
@@ -203,7 +213,7 @@ public class TestGatewayService {
         state.documentSelfLink = documentSelfLink;
         rsp = makeRequest(Action.POST, getDispatchUri(ExampleService.FACTORY_LINK),
                 state, ServiceErrorResponse.class, Operation.STATUS_CODE_CONFLICT);
-        assertTrue(rsp.statusCode == Operation.STATUS_CODE_CONFLICT);
+        assertEquals(Operation.STATUS_CODE_CONFLICT, rsp.statusCode);
 
         // Verify requests with Custom Request/Response headers
         TestContext ctx = this.host.testCreate(1);
@@ -242,7 +252,7 @@ public class TestGatewayService {
         ServiceErrorResponse rsp = makeRequest(
                 Action.GET, getDispatchUri(ExampleService.FACTORY_LINK), null,
                 ServiceErrorResponse.class, Operation.STATUS_CODE_UNAVAILABLE);
-        assertTrue(rsp.statusCode == Operation.STATUS_CODE_UNAVAILABLE);
+        assertEquals(Operation.STATUS_CODE_UNAVAILABLE, rsp.statusCode);
 
         // Set the gateway state to PAUSED and retry the same request. It
         // should now fail with http 404, since path is not registered yet.
@@ -252,7 +262,7 @@ public class TestGatewayService {
         rsp = makeRequest(
                 Action.GET, getDispatchUri(ExampleService.FACTORY_LINK), null,
                 ServiceErrorResponse.class, Operation.STATUS_CODE_NOT_FOUND);
-        assertTrue(rsp.statusCode == Operation.STATUS_CODE_NOT_FOUND);
+        assertEquals(Operation.STATUS_CODE_NOT_FOUND, rsp.statusCode);
 
         // Add the path with POST verb. It should now fail with
         // http 405, since GET ver is not yet registered.
@@ -262,7 +272,7 @@ public class TestGatewayService {
         rsp = makeRequest(
                 Action.GET, getDispatchUri(ExampleService.FACTORY_LINK), null,
                 ServiceErrorResponse.class, Operation.STATUS_CODE_BAD_METHOD);
-        assertTrue(rsp.statusCode == Operation.STATUS_CODE_BAD_METHOD);
+        assertEquals(Operation.STATUS_CODE_BAD_METHOD, rsp.statusCode);
 
         // Add the GET verb now. The request should still fail
         // with UNAVAILABLE error code since gateway is PAUSED.
@@ -271,7 +281,7 @@ public class TestGatewayService {
         rsp = makeRequest(
                 Action.GET, getDispatchUri(ExampleService.FACTORY_LINK), null,
                 ServiceErrorResponse.class, Operation.STATUS_CODE_UNAVAILABLE);
-        assertTrue(rsp.statusCode == Operation.STATUS_CODE_UNAVAILABLE);
+        assertEquals(Operation.STATUS_CODE_UNAVAILABLE, rsp.statusCode);
 
         // Change gateway state to AVAILABLE. The request should still
         // fail since there are no AVAILABLE nodes
@@ -280,7 +290,7 @@ public class TestGatewayService {
         rsp = makeRequest(
                 Action.GET, getDispatchUri(ExampleService.FACTORY_LINK), null,
                 ServiceErrorResponse.class, Operation.STATUS_CODE_UNAVAILABLE);
-        assertTrue(rsp.statusCode == Operation.STATUS_CODE_UNAVAILABLE);
+        assertEquals(Operation.STATUS_CODE_UNAVAILABLE, rsp.statusCode);
 
         // Register a forwardingURI. This time it should succeed!
         setupBackendHost();
@@ -384,6 +394,75 @@ public class TestGatewayService {
                 .setCompletion(ctx.getCompletion())
                 .sendWith(this.host);
         ctx.await();
+    }
+
+    /**
+     * This test validates negative cases for the GatewayPathService.
+     */
+    @Test
+    public void testPathServiceValidation() throws Throwable {
+        // Register a path
+        String factoryPath = "/core/factoryA";
+        this.gatewayMgr.addPaths(factoryPath, 1, EnumSet.of(Action.POST));
+
+        // Try to register the same path again. It should fail with CONFLICT error.
+        GatewayPathService.State state = new GatewayPathService.State();
+        state.path = factoryPath;
+        state.actions = EnumSet.allOf(Action.class);
+
+        URI factoryUri = UriUtils.buildUri(
+                this.gatewayHost.getConfigHost(), GatewayPathFactoryService.SELF_LINK);
+        Operation postOp = Operation
+                .createPost(factoryUri)
+                .setBody(state);
+
+        TestRequestSender.FailureResponse response = this.sender.sendAndWaitFailure(postOp);
+        assertEquals(Operation.STATUS_CODE_CONFLICT, response.op.getStatusCode());
+
+        // Try to change the path
+        String link = GatewayPathFactoryService.createSelfLinkFromState(state);
+        state = new GatewayPathService.State();
+        state.path = "/core/path1/facdtoryA";
+        Operation patchOp = Operation
+                .createPatch(UriUtils.buildUri(this.gatewayHost.getConfigHost(), link))
+                .setBody(state);
+
+        response = this.sender.sendAndWaitFailure(patchOp);
+        assertEquals(Operation.STATUS_CODE_BAD_REQUEST, response.op.getStatusCode());
+
+        Operation putOp = Operation
+                .createPut(UriUtils.buildUri(this.gatewayHost.getConfigHost(), link))
+                .setBody(state);
+
+        response = this.sender.sendAndWaitFailure(putOp);
+        assertEquals(Operation.STATUS_CODE_BAD_REQUEST, response.op.getStatusCode());
+
+        // Try to create a PathService with empty path
+        state = new GatewayPathService.State();
+        state.actions = EnumSet.allOf(Action.class);
+        postOp = Operation
+                .createPost(factoryUri)
+                .setBody(state);
+
+        response = this.sender.sendAndWaitFailure(postOp);
+        assertEquals(Operation.STATUS_CODE_BAD_REQUEST, response.op.getStatusCode());
+    }
+
+    /**
+     * This test validates negative cases for the GatewayConfigService.
+     */
+    @Test
+    public void testConfigServiceValidation() throws Throwable {
+        GatewayConfigService.State state = new GatewayConfigService.State();
+        state.forwardingUri = new URI("http://127.0.0.1:8001");
+        URI factoryUri = UriUtils.buildUri(
+                this.gatewayHost.getConfigHost(), GatewayConfigService.FACTORY_LINK);
+        Operation postOp = Operation
+                .createPost(factoryUri)
+                .setBody(state);
+
+        TestRequestSender.FailureResponse response = this.sender.sendAndWaitFailure(postOp);
+        assertEquals(Operation.STATUS_CODE_BAD_REQUEST, response.op.getStatusCode());
     }
 
     @SuppressWarnings("unchecked")

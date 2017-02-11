@@ -78,13 +78,13 @@ public class GatewayConfigService extends StatefulService {
 
     private State validateStartState(Operation start) {
         if (!start.hasBody()) {
-            start.fail(new IllegalStateException("Body is required"));
+            start.fail(new IllegalArgumentException("body is required"));
             return null;
         }
 
         State state = getBody(start);
         if (state.status == null) {
-            start.fail(new IllegalStateException("status is missing"));
+            start.fail(new IllegalArgumentException("status is required"));
             return null;
         }
 
@@ -120,7 +120,7 @@ public class GatewayConfigService extends StatefulService {
 
     private State validateUpdateState(Operation update) {
         if (!update.hasBody()) {
-            update.fail(new IllegalStateException("Body is required"));
+            update.fail(new IllegalStateException("body is required"));
             return null;
         }
         return getBody(update);
