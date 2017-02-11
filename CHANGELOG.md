@@ -2,6 +2,11 @@
 
 ## 1.3.7-SNAPSHOT
 
+* Add TestRequestSender sendStatsGetAndWait helper method
+
+* Add convenience method Operation.getErrorResponseBody() that retrieves
+  a type ServiceErrorResponse if its present in the operation body.
+
 * Remove LuceneBlobIndexService. The service was originally used for binary
   serializing service context in pause / resume, which now uses a custom
   file based service (since 1.2.0)

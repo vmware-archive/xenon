@@ -1040,8 +1040,7 @@ public class VerificationHost extends ExampleServiceHost {
     }
 
     public Map<String, ServiceStat> getServiceStats(URI serviceUri) {
-        ServiceStats stats = this.getServiceState(
-                null, ServiceStats.class, UriUtils.buildStatsUri(serviceUri));
+        ServiceStats stats = this.sender.sendStatsGetAndWait(serviceUri);
         return stats.entries;
     }
 

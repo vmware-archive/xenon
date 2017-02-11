@@ -25,6 +25,8 @@ import java.util.Optional;
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.ServiceDocument;
 import com.vmware.xenon.common.ServiceRequestSender;
+import com.vmware.xenon.common.ServiceStats;
+import com.vmware.xenon.common.UriUtils;
 
 /**
  * Provides synchronous/asynchronous send operations for test.
@@ -214,6 +216,13 @@ public class TestRequestSender implements ServiceRequestSender {
      */
     public <T extends ServiceDocument> T sendGetAndWait(URI uri, Class<T> bodyType) {
         return sendAndWait(Operation.createGet(uri), bodyType);
+    }
+
+    /**
+     * Synchronously retrieve service statistics from service/stats suffix
+     */
+    public ServiceStats sendStatsGetAndWait(URI uri) {
+        return sendAndWait(Operation.createGet(UriUtils.buildStatsUri(uri)), ServiceStats.class);
     }
 
     /**
