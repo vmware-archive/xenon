@@ -17,6 +17,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import static com.vmware.xenon.services.common.ServiceHostManagementService.STAT_NAME_THREAD_COUNT;
+
 import java.io.File;
 import java.net.URI;
 import java.util.EnumSet;
@@ -35,6 +37,7 @@ import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.ServiceDocumentQueryResult;
 import com.vmware.xenon.common.ServiceHost;
 import com.vmware.xenon.common.ServiceHost.ServiceHostState;
+import com.vmware.xenon.common.ServiceStats.ServiceStat;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.Utils;
 import com.vmware.xenon.common.test.TestProperty;
@@ -200,4 +203,16 @@ public class TestServiceHostManagementService extends BasicTestCase {
             assertEquals(in.counter, testState.counter);
         }
     }
+
+    @Test
+    public void threadCountStats() {
+        this.host.waitFor("Waiting thread count to be populated in stats", () -> {
+            Map<String, ServiceStat> stats = this.host.getServiceStats(this.host.getManagementServiceUri());
+            return stats.get(STAT_NAME_THREAD_COUNT) != null;
+        });
+        Map<String, ServiceStat> stats = this.host.getServiceStats(this.host.getManagementServiceUri());
+        double threadCountValue = stats.get(STAT_NAME_THREAD_COUNT).latestValue;
+        assertEquals("threadCount in management/stats", Utils.DEFAULT_THREAD_COUNT, threadCountValue, 0);
+    }
+
 }

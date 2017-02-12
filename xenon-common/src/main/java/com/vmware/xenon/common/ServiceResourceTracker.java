@@ -172,16 +172,16 @@ class ServiceResourceTracker {
                 0);
 
         createTimeSeriesStat(
-                ServiceHostManagementService.STAT_NAME_THREAD_COUNT_PREFIX,
-                Utils.DEFAULT_THREAD_COUNT);
-
-        createTimeSeriesStat(
                 ServiceHostManagementService.STAT_NAME_HTTP11_CONNECTION_COUNT_PREFIX,
                 0);
 
         createTimeSeriesStat(
                 ServiceHostManagementService.STAT_NAME_HTTP2_CONNECTION_COUNT_PREFIX,
                 0);
+
+        getManagementService().setStat(ServiceHostManagementService.STAT_NAME_THREAD_COUNT,
+                Utils.DEFAULT_THREAD_COUNT);
+
     }
 
     private void createTimeSeriesStat(String name, double v) {
@@ -257,11 +257,7 @@ class ServiceResourceTracker {
             return;
         }
 
-        mgmtService.setStat(
-                ServiceHostManagementService.STAT_NAME_THREAD_COUNT_PER_DAY,
-                threadIds.length);
-        mgmtService.setStat(
-                ServiceHostManagementService.STAT_NAME_THREAD_COUNT_PER_HOUR,
+        createTimeSeriesStat(ServiceHostManagementService.STAT_NAME_JVM_THREAD_COUNT_PREFIX,
                 threadIds.length);
 
         totalTime = TimeUnit.NANOSECONDS.toMicros(totalTime);

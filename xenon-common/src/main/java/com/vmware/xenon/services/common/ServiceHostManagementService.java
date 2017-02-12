@@ -50,10 +50,11 @@ public class ServiceHostManagementService extends StatefulService {
     public static final String STAT_NAME_CPU_USAGE_PCT_PER_HOUR = STAT_NAME_CPU_USAGE_PCT_PREFIX
             + ServiceStats.STAT_NAME_SUFFIX_PER_HOUR;
 
-    public static final String STAT_NAME_THREAD_COUNT_PREFIX = "threadCount";
-    public static final String STAT_NAME_THREAD_COUNT_PER_DAY = STAT_NAME_THREAD_COUNT_PREFIX
+    public static final String STAT_NAME_THREAD_COUNT = "threadCount";
+    public static final String STAT_NAME_JVM_THREAD_COUNT_PREFIX = "jvmThreadCount";
+    public static final String STAT_NAME_JVM_THREAD_COUNT_PER_DAY = STAT_NAME_JVM_THREAD_COUNT_PREFIX
             + ServiceStats.STAT_NAME_SUFFIX_PER_DAY;
-    public static final String STAT_NAME_THREAD_COUNT_PER_HOUR = STAT_NAME_THREAD_COUNT_PREFIX
+    public static final String STAT_NAME_JVM_THREAD_COUNT_PER_HOUR = STAT_NAME_JVM_THREAD_COUNT_PREFIX
             + ServiceStats.STAT_NAME_SUFFIX_PER_HOUR;
 
     public static final String STAT_NAME_HTTP11_CONNECTION_COUNT_PREFIX = "http11ConnectionCount";

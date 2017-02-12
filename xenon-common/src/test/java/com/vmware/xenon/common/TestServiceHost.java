@@ -1336,13 +1336,13 @@ public class TestServiceHost {
                 return false;
             }
             ServiceStat threadCountDaily = hostMgmtStats
-                    .get(ServiceHostManagementService.STAT_NAME_THREAD_COUNT_PER_DAY);
+                    .get(ServiceHostManagementService.STAT_NAME_JVM_THREAD_COUNT_PER_DAY);
             if (!isTimeSeriesStatReady(threadCountDaily)) {
                 this.host.log("not ready: %s", Utils.toJson(threadCountDaily));
                 return false;
             }
             ServiceStat threadCountHourly = hostMgmtStats
-                    .get(ServiceHostManagementService.STAT_NAME_THREAD_COUNT_PER_HOUR);
+                    .get(ServiceHostManagementService.STAT_NAME_JVM_THREAD_COUNT_PER_HOUR);
             if (!isTimeSeriesStatReady(threadCountHourly)) {
                 this.host.log("not ready: %s", Utils.toJson(threadCountHourly));
                 return false;
