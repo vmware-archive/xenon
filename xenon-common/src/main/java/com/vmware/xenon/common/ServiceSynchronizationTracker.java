@@ -158,7 +158,14 @@ class ServiceSynchronizationTracker {
                 // Factory service is not available. This indicates that the node-group
                 // hasn't reached steady state for this factory. We kick-off on-demand
                 // synchronization.
-                String documentSelfLink = UriUtils.getLastPathSegment(op.getUri());
+                String documentSelfLink;
+
+                if (ServiceHost.isHelperServicePath(op.getUri().getPath())) {
+                    documentSelfLink = UriUtils.getLastPathSegment(UriUtils.getParentPath(op.getUri().getPath()));
+                } else {
+                    documentSelfLink = UriUtils.getLastPathSegment(op.getUri().getPath());
+                }
+
                 sendSynchRequest(parent.getUri(), documentSelfLink, (o, e) -> {
                     if (e == null) {
                         // Service was found on a remote peer and has been
