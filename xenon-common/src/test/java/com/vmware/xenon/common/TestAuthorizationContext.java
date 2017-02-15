@@ -15,9 +15,11 @@ package com.vmware.xenon.common;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 import java.security.GeneralSecurityException;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -40,6 +42,7 @@ import com.vmware.xenon.services.common.ResourceGroupService.ResourceGroupState;
 import com.vmware.xenon.services.common.RoleService.Policy;
 import com.vmware.xenon.services.common.RoleService.RoleState;
 import com.vmware.xenon.services.common.ServiceUriPaths;
+import com.vmware.xenon.services.common.SystemUserService;
 import com.vmware.xenon.services.common.UserGroupService.UserGroupState;
 import com.vmware.xenon.services.common.UserService.UserState;
 import com.vmware.xenon.services.common.authn.AuthenticationConstants;
@@ -578,5 +581,17 @@ public class TestAuthorizationContext extends BasicTestCase {
             }
         });
         this.host.testWait();
+    }
+
+    @Test
+    public void testAuthContextExpiry() {
+        AuthorizationContext authContext = this.host.getAuthorizationContextForSubject("foo");
+        assertTrue(authContext.getClaims().getExpirationTime() == Instant.MAX.getEpochSecond());
+        authContext = this.host.getAuthorizationContextForSubject("bar");
+        assertTrue(authContext.getClaims().getExpirationTime() == Instant.MAX.getEpochSecond());
+        authContext = this.host.getAuthorizationContextForSubject(GuestUserService.SELF_LINK);
+        assertTrue(authContext.getClaims().getExpirationTime() == Instant.MAX.getEpochSecond());
+        authContext = this.host.getAuthorizationContextForSubject(SystemUserService.SELF_LINK);
+        assertTrue(authContext.getClaims().getExpirationTime() == Instant.MAX.getEpochSecond());
     }
 }
