@@ -408,7 +408,7 @@ public class LuceneDocumentIndexService extends StatelessService {
             } catch (Throwable e) {
                 adjustStat(STAT_NAME_INDEX_LOAD_RETRY_COUNT, 1);
                 if (retryCount < 1) {
-                    logWarning("Failure creating index writer, will retry");
+                    logWarning("Failure creating index writer: %s, will retry", Utils.toString(e));
                     close(this.writer);
                     archiveCorruptIndexFiles(directory);
                     continue;
@@ -583,9 +583,11 @@ public class LuceneDocumentIndexService extends StatelessService {
         File newDirectory = new File(new File(getHost().getStorageSandbox()), this.indexDirectory
                 + "." + Utils.getNowMicrosUtc());
         try {
+            logWarning("Archiving corrupt index files to %s", newDirectory.toPath());
             Files.createDirectory(newDirectory.toPath());
             // we assume a flat directory structure for the LUCENE directory
             FileUtils.moveOrDeleteFiles(directory, newDirectory, false);
+
         } catch (IOException e) {
             logWarning(e.toString());
         }
