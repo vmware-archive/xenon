@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.1.0-CR4-SNAPSHOT
+
 ## 1.1.0-CR3
 
 * Bug fix related to properly loading the state of ON_DEMAND_LOAD services when the
