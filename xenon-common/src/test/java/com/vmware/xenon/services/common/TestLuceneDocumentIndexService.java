@@ -1620,9 +1620,9 @@ public class TestLuceneDocumentIndexService {
                     ServiceHostState.DEFAULT_OPERATION_TIMEOUT_MICROS);
         }
 
-        // Set the document expiration limit to something high enough that we won't allow the index
-        // to grow in unbounded fashion.
-        LuceneDocumentIndexService.setExpiredDocumentSearchThreshold(100000);
+        // Set the document expiration limit to something low enough that document expiration will
+        // be forced to run in batches.
+        LuceneDocumentIndexService.setExpiredDocumentSearchThreshold(10);
 
         // This code path is designed to simulate POST and query throughput under heavy load,
         // processing queries which match many results.
@@ -1647,7 +1647,15 @@ public class TestLuceneDocumentIndexService {
         do {
             this.host.log("Starting POST test to %s, count:%d", factoryUri, this.serviceCount);
             doThroughputPost(true, factoryUri, expirationMicros, queryTask);
-            logQuerySingleStat();
+            Map<String, ServiceStat> stats = this.host.getServiceStats(
+                    this.host.getDocumentIndexServiceUri());
+            ServiceStat expiredDocumentStat = stats.get(
+                    LuceneDocumentIndexService.STAT_NAME_DOCUMENT_EXPIRATION_COUNT
+                            + ServiceStats.STAT_NAME_SUFFIX_PER_DAY);
+            if (expiredDocumentStat != null) {
+                this.host.log("Expired documents: %f", expiredDocumentStat.latestValue);
+            }
+
         } while (this.testDurationSeconds > 0 && Utils.getSystemNowMicrosUtc() < testExpiration);
 
         Map<String, ServiceStat> indexServiceStats = this.host.getServiceStats(
