@@ -279,15 +279,10 @@ public class ServiceDocument {
             return results;
         }
 
-        long epochA = stateA.documentEpoch != null ? stateA.documentEpoch : 0;
-        long epochB = stateB.documentEpoch != null ? stateB.documentEpoch : 0;
-
-        if (epochA > epochB ||
-                (epochA == epochB && stateA.documentVersion > stateB.documentVersion)) {
+        if (stateA.documentVersion > stateB.documentVersion) {
             results.add(DocumentRelationship.NEWER_VERSION);
             preferred = true;
-        } else if (epochA == epochB &&
-                stateA.documentVersion == stateB.documentVersion) {
+        } else if (stateA.documentVersion == stateB.documentVersion) {
             results.add(DocumentRelationship.EQUAL_VERSION);
         }
 

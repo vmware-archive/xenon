@@ -275,20 +275,12 @@ class ServiceSynchronizationTracker {
             if (ServiceDocument.isDeleted(selectedState)) {
                 op.fail(new IllegalStateException(
                         "Document marked deleted by peers: " + s.getSelfLink()));
-
-                boolean isVersionSame = ServiceDocument
-                        .compare(selectedState, t.state, t.stateDescription, Utils.getTimeComparisonEpsilonMicros())
-                        .contains(ServiceDocument.DocumentRelationship.EQUAL_VERSION);
-
-                // Only save the document, if the selected state is a newer version of the document
-                // than the local copy.
-                if (!isVersionSame ) {
-                    selectedState.documentSelfLink = s.getSelfLink();
-                    selectedState.documentUpdateAction = Action.DELETE.toString();
-                    this.host.saveServiceState(s, Operation.createDelete(UriUtils.buildUri(this.host,
-                                    s.getSelfLink())).setReferer(s.getUri()),
-                            selectedState);
-                }
+                selectedState.documentSelfLink = s.getSelfLink();
+                selectedState.documentUpdateAction = Action.DELETE.toString();
+                // delete local version
+                this.host.saveServiceState(s, Operation.createDelete(UriUtils.buildUri(this.host,
+                        s.getSelfLink())).setReferer(s.getUri()),
+                        selectedState);
                 return;
             }
 

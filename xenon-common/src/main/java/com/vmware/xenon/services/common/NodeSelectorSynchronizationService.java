@@ -355,11 +355,7 @@ public class NodeSelectorSynchronizationService extends StatelessService {
                 Operation peerOp = prepareSynchPostRequest(post, request, bestState,
                         isServiceDeleted, c, clonedState, peer);
 
-                boolean isVersionSame = ServiceDocument
-                        .compare(bestPeerRsp, peerState, request.stateDescription, Utils.getTimeComparisonEpsilonMicros())
-                        .contains(DocumentRelationship.EQUAL_VERSION);
-
-                if (!incrementEpoch && isVersionSame
+                if (!incrementEpoch
                         && bestPeerRsp.getClass().equals(peerState.getClass())
                         && ServiceDocument.equals(request.stateDescription, bestPeerRsp, peerState)) {
                     skipSynchOrStartServiceOnPeer(peerOp, peerState.documentSelfLink, request);
