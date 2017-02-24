@@ -154,7 +154,7 @@ public class SampleContinuousQueryWatchService extends StatefulService {
         URI subscriptionUri = UriUtils.buildPublicUri(getHost(), SUBSCRIPTION_SELF_LINK);
 
         ServiceSubscriber sr = ServiceSubscriber
-                .create(false)
+                .create(true)
                 .setUsePublicUri(true)
                 .setSubscriberReference(subscriptionUri);
 
