@@ -11,6 +11,13 @@
   Level.Finest/Level.All - Operations are deeply indexed in the core/operation-index
   (this was the only level of tracing until now)
 
+* Added special handling for `doc.documentExpirationTimeMicros` field in `Utils.mergeWithState(desc,source,patch)`.  
+  Previously, source document expiration time was ALWAYS updated by patch expiration time.
+  Special handling is added to **patch** expiration time.
+  When **patch** expiration time is 0, **source** expiration time will NOT be updated.
+  Any other value is set, then source expiration time will be updated to that value.
+
+
 ## 1.3.7
 
 * For factories using setUseBodyForSelfLink, FactoryService will

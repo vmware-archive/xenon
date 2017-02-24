@@ -14,6 +14,8 @@
 package com.vmware.xenon.common;
 
 
+import static com.vmware.xenon.common.ServiceDocument.FIELD_NAME_EXPIRATION_TIME_MICROS;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -1081,6 +1083,17 @@ public final class Utils {
      * Merges {@code patch} object into the {@code source} object by replacing or updating all {@code source}
      *  fields with non-null {@code patch} fields. Only fields with specified merge policy are merged.
      *
+     * NOTE:
+     * When {@code patch.documentExpirationTimeMicros} is 0, {@code source.documentExpirationTimeMicros}
+     * will NOT be updated.
+     * If you need to always update the source, you need explicitly set it.
+     * <pre>
+     * {@code
+     *   Utils.mergeWithState(getStateDescription(), source, patchState);
+     *   source.documentExpirationTimeMicros = patchState.documentExpirationTimeMicros;
+     * }
+     * </pre>
+     *
      * @param desc Service document description.
      * @param source Source object.
      * @param patch  Patch object.
@@ -1103,6 +1116,13 @@ public final class Utils {
                     prop.usageOptions.contains(PropertyUsageOption.AUTO_MERGE_IF_NOT_NULL)) {
                 Object o = ReflectionUtils.getPropertyValue(prop, patch);
                 if (o != null) {
+
+                    // when patch.documentExpirationTimeMicros is 0, do not override source.documentExpirationTimeMicros
+                    if (FIELD_NAME_EXPIRATION_TIME_MICROS.equals(prop.accessor.getName())
+                            && Long.valueOf(0).equals(o)) {
+                        continue;
+                    }
+
                     if ((prop.typeName == TypeName.COLLECTION && !o.getClass().isArray())
                             || prop.typeName == TypeName.MAP) {
                         modified |= ReflectionUtils.setOrUpdatePropertyValue(prop, source, o);
