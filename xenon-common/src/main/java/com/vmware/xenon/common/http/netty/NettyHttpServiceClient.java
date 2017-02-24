@@ -542,6 +542,10 @@ public class NettyHttpServiceClient implements ServiceClient {
                 }
 
                 httpHeaders.add(HttpHeaderNames.HOST, op.getUri().getHost());
+            } else {
+                if (acceptValue != null) {
+                    httpHeaders.add(HttpHeaderNames.ACCEPT, acceptValue);
+                }
             }
 
             if (LOGGER.isLoggable(Level.FINEST)) {
@@ -560,6 +564,7 @@ public class NettyHttpServiceClient implements ServiceClient {
                 if (doCookieJarUpdate) {
                     updateCookieJarFromResponseHeaders(o);
                 }
+
                 // After request is sent control is transferred to the
                 // NettyHttpServerResponseHandler. The response handler will nest completions
                 // and call complete() when response is received, which will invoke this completion

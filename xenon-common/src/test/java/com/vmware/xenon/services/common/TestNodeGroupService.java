@@ -2079,7 +2079,7 @@ public class TestNodeGroupService {
      * @throws Throwable
      */
     @Test
-    public void replicationWithCrossServiceDependencies() throws Throwable {
+    public void replicationAndForwardingWithCrossServiceDependencies() throws Throwable {
         this.isPeerSynchronizationEnabled = false;
         setUp(this.nodeCount);
 
@@ -2265,6 +2265,22 @@ public class TestNodeGroupService {
             ops.add(Operation.createGet(u));
         }
         sender.sendAndWait(ops);
+
+        // verify content-type propagation through forwarded requests
+        ops = new ArrayList<>();
+        for (URI u : ownerSelectedServices.keySet()) {
+            Operation op = Operation
+                    .createGet(u)
+                    .addRequestHeader(Operation.ACCEPT_HEADER, Operation.MEDIA_TYPE_TEXT_HTML);
+            ops.add(op);
+        }
+        List<Operation> responses = sender.sendAndWait(ops);
+        for (Operation rspOp : responses) {
+            String body = (String) rspOp.getBodyRaw();
+            assertTrue(body.contains("<html>"));
+            assertEquals(Operation.MEDIA_TYPE_TEXT_HTML, rspOp.getContentType());
+        }
+
         verifyOperationJoinAcrossPeers(latestStateAfter);
     }
 

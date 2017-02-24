@@ -3763,7 +3763,11 @@ public class ServiceHost implements ServiceRequestSender {
             if (fo.hasBody()) {
                 op.setBodyNoCloning(fo.getBodyRaw());
             }
+
+            op.setContentType(fo.getContentType());
+            op.setContentLength(fo.getContentLength());
             op.transferResponseHeadersFrom(fo);
+
             op.complete();
         };
 
