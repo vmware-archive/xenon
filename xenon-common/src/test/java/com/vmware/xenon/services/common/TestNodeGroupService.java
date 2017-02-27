@@ -426,8 +426,7 @@ public class TestNodeGroupService {
         this.host.waitForNodeGroupConvergence(this.nodeCount);
 
         VerificationHost peer = this.host.getPeerHost();
-        List<URI> exampleUris = new ArrayList<>();
-        this.host.createExampleServices(peer, this.serviceCount * 5, exampleUris, null);
+        List<URI> exampleUris = this.host.createExampleServices(peer, this.serviceCount * 5, null);
 
         List<ServiceHost> inMemoryHosts = new ArrayList<>();
         this.host.getInProcessHostMap().values().forEach(h -> inMemoryHosts.add(h));
@@ -1881,8 +1880,7 @@ public class TestNodeGroupService {
 
         VerificationHost peerHost = this.host.getPeerHost();
 
-        List<URI> exampleUris = new ArrayList<>();
-        this.host.createExampleServices(peerHost, 1, exampleUris, null);
+        List<URI> exampleUris = this.host.createExampleServices(peerHost, 1, null);
 
         URI instanceUri = exampleUris.get(0);
 
@@ -3777,8 +3775,7 @@ public class TestNodeGroupService {
             }
             hostTwo = h;
         }
-        List<URI> exampleUris = new ArrayList<>();
-        this.host.createExampleServices(hostOne, this.serviceCount, exampleUris, null);
+        List<URI> exampleUris = this.host.createExampleServices(hostOne, this.serviceCount, null);
 
         URI hostOneNodeGroup = UriUtils.buildUri(hostOne, ServiceUriPaths.DEFAULT_NODE_GROUP);
         URI hostTwoNodeGroup = UriUtils.buildUri(hostTwo, ServiceUriPaths.DEFAULT_NODE_GROUP);
