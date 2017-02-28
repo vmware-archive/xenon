@@ -1,6 +1,12 @@
 # CHANGELOG
 
-## 1.1.0-CR4-SNAPSHOT
+## 1.1.0-CR4
+
+* Various bug fixes related to synchronization
+
+* Bug fix related to cancellation of pending operations during node group flux
+
+* Bug fix related to concurrent expiration of large numbers of documents
 
 ## 1.1.0-CR3
 
