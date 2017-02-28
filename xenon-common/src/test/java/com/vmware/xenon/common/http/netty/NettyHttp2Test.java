@@ -454,6 +454,32 @@ public class NettyHttp2Test {
         client.start();
     }
 
+    @Ignore("https://www.pivotaltracker.com/story/show/140797353")
+    @Test
+    public void pendingRequestLimit() throws Throwable {
+        setUpHost(false);
+        List<Service> services = this.host.doThroughputServiceStart(this.serviceCount,
+                MinimalTestService.class,
+                this.host.buildMinimalTestState(),
+                null, null);
+        String tag = ServiceClient.CONNECTION_TAG_DEFAULT;
+
+        int http11Count = services.size() * this.requestCount;
+        // we need a fresh connection pool, with no connections already created
+        // HTTP1.1 test
+        NettyHttpServiceClientTest.verifyPerHostPendingRequestLimit(this.host, services,
+                tag,
+                http11Count,
+                false);
+
+        tag = ServiceClient.CONNECTION_TAG_HTTP2_DEFAULT;
+        // HTTP/2 test (connectionSharing == true)
+        NettyHttpServiceClientTest.verifyPerHostPendingRequestLimit(this.host, services,
+                tag,
+                this.host.getClient().getConnectionLimitPerTag(tag) * this.requestCount,
+                true);
+    }
+
     @Test
     public void throughputPutRemote() throws Throwable {
         setUpHost(false);
@@ -473,12 +499,13 @@ public class NettyHttp2Test {
                 this.host.buildMinimalTestState(),
                 null, null);
 
-        NettyHttpServiceClientTest.verifyPerHostPendingRequestLimit(this.host, services,
-                this.requestCount, true);
-
         // use global limit, which applies by default to all tags
         int limit = this.host.getClient()
                 .getConnectionLimitPerTag(ServiceClient.CONNECTION_TAG_HTTP2_DEFAULT);
+
+        NettyHttpServiceClientTest.verifyPerHostPendingRequestLimit(this.host, services,
+                ServiceClient.CONNECTION_TAG_HTTP2_DEFAULT, limit, true);
+
         this.host.connectionTag = null;
         this.host.log("Using default http2 connection limit %d", limit);
 
