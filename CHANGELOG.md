@@ -2,6 +2,9 @@
 
 ## 1.4.0-SNAPSHOT
 
+* Deprecate per-host connection limit APIs in ServiceClient. Consumers who
+  wish to set connection rate limits should use the per-tag APIs instead.
+
 * ServiceHost.failRequestXXX methods have been made static so they are
   useful without a host reference
 
