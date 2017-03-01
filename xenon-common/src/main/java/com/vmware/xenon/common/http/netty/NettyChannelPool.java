@@ -264,7 +264,9 @@ public class NettyChannelPool {
     public NettyChannelPool setPendingRequestQueueLimit(int limit) {
         this.pendingRequestQueueLimit = limit;
         for (NettyChannelGroup g : this.channelGroups.values()) {
-            g.pendingRequests.setLimit(limit);
+            synchronized (g) {
+                g.pendingRequests.setLimit(limit);
+            }
         }
         return this;
     }
@@ -300,9 +302,11 @@ public class NettyChannelPool {
             if (tagInfo == null) {
                 tagInfo = new ConnectionPoolMetrics();
             }
-            tagInfo.pendingRequestCount += g.pendingRequests.size();
-            tagInfo.inUseConnectionCount += g.inUseChannels.size();
-            tagInfo.availableConnectionCount += g.availableChannels.size();
+            synchronized (g) {
+                tagInfo.pendingRequestCount += g.pendingRequests.size();
+                tagInfo.inUseConnectionCount += g.inUseChannels.size();
+                tagInfo.availableConnectionCount += g.availableChannels.size();
+            }
         }
         return tagInfo;
     }
@@ -730,8 +734,12 @@ public class NettyChannelPool {
         if (!LOGGER.isLoggable(Level.FINE)) {
             return;
         }
-        LOGGER.info(String.format("Maintenance on %s, pending: %d, available channels: %d",
-                g.getKey(), g.pendingRequests.size(), g.availableChannels.size()));
+        String s = null;
+        synchronized (g) {
+            s = String.format("Maintenance on %s, pending: %d, available channels: %d",
+                    g.getKey(), g.pendingRequests.size(), g.availableChannels.size());
+        }
+        LOGGER.info(s);
     }
 
     /**
