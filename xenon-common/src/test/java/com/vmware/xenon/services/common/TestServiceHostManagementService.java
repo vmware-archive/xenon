@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -197,6 +198,7 @@ public class TestServiceHostManagementService extends BasicTestCase {
         }
     }
 
+    @Ignore("https://www.pivotaltracker.com/story/show/140807509")
     @Test
     public void testBackupAndRestoreWithLocalFile() throws Throwable {
 
