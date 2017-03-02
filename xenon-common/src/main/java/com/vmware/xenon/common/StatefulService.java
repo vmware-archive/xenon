@@ -309,7 +309,7 @@ public class StatefulService implements Service {
                         : 0;
             } else if (this.context.isUpdateActive) {
                 if (!this.context.operationQueue.offer(op)) {
-                    ServiceHost.failRequestLimitExceeded(op,
+                    Operation.failLimitExceeded(op,
                             ServiceErrorResponse.ERROR_CODE_SERVICE_QUEUE_LIMIT_EXCEEDED);
                 }
                 return RETURN_TRUE_FLAG;
@@ -336,11 +336,11 @@ public class StatefulService implements Service {
                                 .createFifo(Service.SYNCH_QUEUE_DEFAULT_LIMIT);
                     }
                     if (!this.context.synchQueue.offer(op)) {
-                        ServiceHost.failRequestLimitExceeded(op,
+                        Operation.failLimitExceeded(op,
                                 ServiceErrorResponse.ERROR_CODE_SERVICE_QUEUE_LIMIT_EXCEEDED);
                     }
                 } else if (!this.context.operationQueue.offer(op)) {
-                    ServiceHost.failRequestLimitExceeded(op,
+                    Operation.failLimitExceeded(op,
                             ServiceErrorResponse.ERROR_CODE_SERVICE_QUEUE_LIMIT_EXCEEDED);
                 }
                 return RETURN_TRUE_FLAG;
@@ -366,7 +366,7 @@ public class StatefulService implements Service {
                         && (request.getAction() == Action.PATCH
                                 || request.getAction() == Action.PUT)) {
                     processPending(request);
-                    ServiceHost.failRequestActionNotSupported(request);
+                    Operation.failActionNotSupported(request);
                     return;
                 }
 
@@ -486,7 +486,7 @@ public class StatefulService implements Service {
                 handleOptions(request);
                 break;
             default:
-                ServiceHost.failRequestActionNotSupported(request);
+                Operation.failActionNotSupported(request);
                 break;
             }
         }
@@ -668,7 +668,7 @@ public class StatefulService implements Service {
     }
 
     public void handlePost(Operation post) {
-        ServiceHost.failRequestActionNotSupported(post);
+        Operation.failActionNotSupported(post);
     }
 
     public void handleDelete(Operation delete) {
@@ -683,7 +683,7 @@ public class StatefulService implements Service {
     }
 
     public void handlePatch(Operation patch) {
-        ServiceHost.failRequestActionNotSupported(patch);
+        Operation.failActionNotSupported(patch);
     }
 
     public void handleOptions(Operation options) {
@@ -2122,7 +2122,7 @@ public class StatefulService implements Service {
             return;
         }
 
-        ServiceHost.failRequestActionNotSupported(request);
+        Operation.failActionNotSupported(request);
     }
 
     /**

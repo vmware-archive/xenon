@@ -44,7 +44,6 @@ import com.vmware.xenon.common.OperationQueue;
 import com.vmware.xenon.common.ServiceClient;
 import com.vmware.xenon.common.ServiceClient.ConnectionPoolMetrics;
 import com.vmware.xenon.common.ServiceErrorResponse;
-import com.vmware.xenon.common.ServiceHost;
 import com.vmware.xenon.common.ServiceHost.ServiceHostState;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.Utils;
@@ -498,7 +497,7 @@ public class NettyChannelPool {
             return;
         }
         ForkJoinPool.commonPool().execute(() -> {
-            ServiceHost.failRequestLimitExceeded(request,
+            Operation.failLimitExceeded(request,
                     ServiceErrorResponse.ERROR_CODE_CLIENT_QUEUE_LIMIT_EXCEEDED);
         });
     }

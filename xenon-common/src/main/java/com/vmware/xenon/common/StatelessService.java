@@ -165,11 +165,11 @@ public class StatelessService implements Service {
     }
 
     public void handlePut(Operation put) {
-        ServiceHost.failRequestActionNotSupported(put);
+        Operation.failActionNotSupported(put);
     }
 
     public void handlePatch(Operation patch) {
-        ServiceHost.failRequestActionNotSupported(patch);
+        Operation.failActionNotSupported(patch);
     }
 
     public void handleOptions(Operation options) {
@@ -204,7 +204,7 @@ public class StatelessService implements Service {
     }
 
     public void handlePost(Operation post) {
-        ServiceHost.failRequestActionNotSupported(post);
+        Operation.failActionNotSupported(post);
     }
 
     public void handleGet(Operation get) {

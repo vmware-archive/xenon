@@ -692,7 +692,7 @@ class ServiceResourceTracker {
         if (factoryPath != null) {
             Service parentService = this.host.findService(factoryPath);
             if (!(parentService instanceof FactoryService)) {
-                ServiceHost.failRequestServiceNotFound(inboundOp,
+                Operation.failServiceNotFound(inboundOp,
                         ServiceErrorResponse.ERROR_CODE_SERVICE_PARENT_NOT_A_FACTORY,
                         "URI path appears invalid, parent is not a factory service");
                 return true;
@@ -721,7 +721,7 @@ class ServiceResourceTracker {
         String path = key;
 
         if (factoryService == null) {
-            ServiceHost.failRequestServiceNotFound(inboundOp);
+            Operation.failServiceNotFound(inboundOp);
             return true;
         }
 
@@ -780,7 +780,7 @@ class ServiceResourceTracker {
 
     boolean checkAndOnDemandStartService(Operation inboundOp, Service parentService) {
         if (!parentService.hasOption(ServiceOption.FACTORY)) {
-            ServiceHost.failRequestServiceNotFound(inboundOp);
+            Operation.failServiceNotFound(inboundOp);
             return true;
         }
 
@@ -893,7 +893,7 @@ class ServiceResourceTracker {
                             } else {
                                 // All other actions fail with NOT_FOUND making it look like the service
                                 // does not exist (or ever existed)
-                                ServiceHost.failRequestServiceNotFound(inboundOp,
+                                Operation.failServiceNotFound(inboundOp,
                                         ServiceErrorResponse.ERROR_CODE_STATE_MARKED_DELETED);
                             }
                             return;

@@ -2446,7 +2446,7 @@ public class ServiceHost implements ServiceRequestSender {
         if (synchPendingDelete) {
             // If this is a synch request and the service was going
             // through deletion, we fail the synch request.
-            failRequestServiceMarkedDeleted(servicePath, post);
+            Operation.failServiceMarkedDeleted(servicePath, post);
             return true;
         }
 
@@ -2910,7 +2910,7 @@ public class ServiceHost implements ServiceRequestSender {
                     }
 
                     if (!o.hasBody()) {
-                        failRequestServiceNotFound(op);
+                        Operation.failServiceNotFound(op);
                         return;
                     }
 
@@ -3088,7 +3088,8 @@ public class ServiceHost implements ServiceRequestSender {
         if (!serviceStartPost.hasBody()) {
             if (isDeleted) {
                 // this POST is due to a restart which will never have a body
-                failRequestServiceMarkedDeleted(stateFromStore.documentSelfLink, serviceStartPost);
+                Operation.failServiceMarkedDeleted(stateFromStore.documentSelfLink,
+                        serviceStartPost);
                 return false;
             } else {
                 // this POST is due to a restart, which will never have a body
@@ -3109,7 +3110,8 @@ public class ServiceHost implements ServiceRequestSender {
                         stateFromStore.documentVersion,
                         initState.documentVersion,
                         serviceStartPost.getRequestHeaderAsIs(Operation.PRAGMA_HEADER));
-                failRequestServiceMarkedDeleted(stateFromStore.documentSelfLink, serviceStartPost);
+                Operation.failServiceMarkedDeleted(stateFromStore.documentSelfLink,
+                        serviceStartPost);
                 return false;
             }
         }
@@ -3296,7 +3298,7 @@ public class ServiceHost implements ServiceRequestSender {
         }
 
         if (!this.state.isStarted) {
-            failRequestServiceNotFound(inboundOp);
+            Operation.failServiceNotFound(inboundOp);
             return true;
         }
 
@@ -3380,7 +3382,7 @@ public class ServiceHost implements ServiceRequestSender {
         if (service == null) {
             path = inboundOp.getUri().getPath();
             if (path == null) {
-                failRequestServiceNotFound(inboundOp);
+                Operation.failServiceNotFound(inboundOp);
                 return;
             }
 
@@ -3409,7 +3411,7 @@ public class ServiceHost implements ServiceRequestSender {
         }
 
         if (service == null) {
-            failRequestServiceNotFound(inboundOp);
+            Operation.failServiceNotFound(inboundOp);
             return;
         }
 
@@ -3577,7 +3579,7 @@ public class ServiceHost implements ServiceRequestSender {
             if (op.getAction() == Action.DELETE) {
                 op.complete();
             } else {
-                failRequestServiceNotFound(op);
+                Operation.failServiceNotFound(op);
             }
             return true;
         }
@@ -3604,7 +3606,7 @@ public class ServiceHost implements ServiceRequestSender {
                         retryPauseOrOnDemandLoadConflict(op, false);
                         return true;
                     }
-                    failRequestServiceNotFound(op);
+                    Operation.failServiceNotFound(op);
                     return true;
                 }
                 options = parent.getOptions();
@@ -3624,13 +3626,13 @@ public class ServiceHost implements ServiceRequestSender {
 
             String factoryPath = UriUtils.getParentPath(path);
             if (factoryPath == null) {
-                failRequestServiceNotFound(op);
+                Operation.failServiceNotFound(op);
                 return true;
             }
 
             parent = findService(factoryPath);
             if (parent == null) {
-                failRequestServiceNotFound(op);
+                Operation.failServiceNotFound(op);
                 return true;
             }
             options = parent.getOptions();
@@ -3694,7 +3696,7 @@ public class ServiceHost implements ServiceRequestSender {
             if (op.isFromReplication()) {
                 ServiceDocument body = op.getBody(s.getStateType());
                 if (rsp.isLocalHostOwner) {
-                    failRequestOwnerMismatch(op, rsp.ownerNodeId, body);
+                    Operation.failOwnerMismatch(op, rsp.ownerNodeId, body);
                     return;
                 }
 
@@ -3746,7 +3748,7 @@ public class ServiceHost implements ServiceRequestSender {
 
         if (op.isForwarded()) {
             // this was forwarded from another node, but we do not think we own the service
-            failRequestOwnerMismatch(op, op.getUri().getPath(), null);
+            Operation.failOwnerMismatch(op, op.getUri().getPath(), null);
             return;
         }
 
@@ -3791,7 +3793,7 @@ public class ServiceHost implements ServiceRequestSender {
 
     void checkPragmaAndRegisterForAvailability(String path, Operation op) {
         if (!op.hasPragmaDirective(Operation.PRAGMA_DIRECTIVE_QUEUE_FOR_SERVICE_AVAILABILITY)) {
-            failRequestServiceNotFound(op);
+            Operation.failServiceNotFound(op);
             return;
         }
 
@@ -3838,7 +3840,7 @@ public class ServiceHost implements ServiceRequestSender {
         }
 
         if (!shouldRetry) {
-            failForwardedRequest(op, fo, fe);
+            Operation.failForwardedRequest(op, fo, fe);
             return;
         }
 
@@ -3892,7 +3894,7 @@ public class ServiceHost implements ServiceRequestSender {
                         inboundOp.getUri().getPath());
 
                 IllegalStateException ex = new IllegalStateException("Service not found on replica");
-                failRequest(inboundOp, Operation.STATUS_CODE_NOT_FOUND,
+                Operation.fail(inboundOp, Operation.STATUS_CODE_NOT_FOUND,
                         ServiceErrorResponse.ERROR_CODE_SERVICE_NOT_FOUND_ON_REPLICA, ex);
                 return true;
             }
@@ -4034,7 +4036,7 @@ public class ServiceHost implements ServiceRequestSender {
             return false;
         }
 
-        failRequestLimitExceeded(op, ServiceErrorResponse.ERROR_CODE_HOST_RATE_LIMIT_EXCEEDED);
+        Operation.failLimitExceeded(op, ServiceErrorResponse.ERROR_CODE_HOST_RATE_LIMIT_EXCEEDED);
         Operation nextOp = s.dequeueRequest();
         if (nextOp != null) {
             run(() -> handleRequest(null, nextOp));
@@ -5857,74 +5859,6 @@ public class ServiceHost implements ServiceRequestSender {
         return Runtime.getRuntime().removeShutdownHook(getRuntimeShutdownHook());
     }
 
-    private static void failRequest(Operation request, int statusCode, int errorCode, Throwable e) {
-        request.setStatusCode(statusCode);
-        ServiceErrorResponse r = Utils.toServiceErrorResponse(e);
-        r.statusCode = statusCode;
-        r.errorCode = errorCode;
-
-        if (e instanceof ServiceNotFoundException) {
-            r.stackTrace = null;
-        }
-        request.setContentType(Operation.MEDIA_TYPE_APPLICATION_JSON).fail(e, r);
-    }
-
-    public static void failRequestOwnerMismatch(Operation op, String id, ServiceDocument body) {
-        String owner = body != null ? body.documentOwner : "";
-        op.setStatusCode(Operation.STATUS_CODE_CONFLICT);
-        Throwable e = new IllegalStateException(String.format(
-                "Owner in body: %s, computed locally: %s",
-                owner, id));
-        ServiceErrorResponse rsp = ServiceErrorResponse.create(e, op.getStatusCode(),
-                EnumSet.of(ErrorDetail.SHOULD_RETRY));
-        rsp.setInternalErrorCode(ServiceErrorResponse.ERROR_CODE_OWNER_MISMATCH);
-        op.fail(e, rsp);
-    }
-
-    public static void failRequestActionNotSupported(Operation request) {
-        request.setStatusCode(Operation.STATUS_CODE_BAD_METHOD).fail(
-                new IllegalArgumentException("Action not supported: " + request.getAction()));
-    }
-
-    public static void failRequestLimitExceeded(Operation request, int errorCode) {
-        // Add a header indicating retry should be attempted after some interval.
-        // Currently set to just one second, subject to change in the future
-        request.addResponseHeader(Operation.RETRY_AFTER_HEADER, "1");
-        failRequest(request, Operation.STATUS_CODE_UNAVAILABLE,
-                errorCode,
-                new CancellationException("queue limit exceeded"));
-    }
-
-    private static void failForwardedRequest(Operation op, Operation fo, Throwable fe) {
-        op.setStatusCode(fo.getStatusCode());
-        op.setBodyNoCloning(fo.getBodyRaw()).fail(fe);
-    }
-
-    static void failRequestServiceNotFound(Operation inboundOp) {
-        failRequestServiceNotFound(inboundOp,
-                ServiceErrorResponse.ERROR_CODE_INTERNAL_MASK);
-    }
-
-    static void failRequestServiceNotFound(Operation inboundOp, int errorCode, String errorMsg) {
-        failRequest(inboundOp, Operation.STATUS_CODE_NOT_FOUND,
-                errorCode,
-                new ServiceNotFoundException(inboundOp.getUri().toString(), errorMsg));
-    }
-
-    static void failRequestServiceNotFound(Operation inboundOp, int errorCode) {
-        failRequest(inboundOp, Operation.STATUS_CODE_NOT_FOUND,
-                errorCode,
-                new ServiceNotFoundException(inboundOp.getUri().toString()));
-    }
-
-    static void failRequestServiceMarkedDeleted(String documentSelfLink,
-            Operation serviceStartPost) {
-        failRequest(serviceStartPost, Operation.STATUS_CODE_CONFLICT,
-                ServiceErrorResponse.ERROR_CODE_STATE_MARKED_DELETED,
-                new IllegalStateException("Service marked deleted: "
-                        + documentSelfLink));
-    }
-
     void failRequestServiceAlreadyStarted(String path, Service s, Operation post) {
         ProcessingStage st = ProcessingStage.AVAILABLE;
         if (s != null) {
@@ -5944,7 +5878,7 @@ public class ServiceHost implements ServiceRequestSender {
             e = new ServiceAlreadyStartedException(path, st);
         }
 
-        failRequest(post, Operation.STATUS_CODE_CONFLICT,
+        Operation.fail(post, Operation.STATUS_CODE_CONFLICT,
                 ServiceErrorResponse.ERROR_CODE_SERVICE_ALREADY_EXISTS,
                 e);
     }

@@ -17,7 +17,6 @@ import java.util.EnumSet;
 
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.ServiceDocument;
-import com.vmware.xenon.common.ServiceHost;
 import com.vmware.xenon.common.Utils;
 import com.vmware.xenon.services.common.ServiceUriPaths;
 import com.vmware.xenon.services.common.UiContentService;
@@ -40,7 +39,7 @@ public class UiService extends UiContentService {
     @Override
     public void handlePost(Operation post) {
         if (!post.hasBody()) {
-            ServiceHost.failRequestActionNotSupported(post);
+            Operation.failActionNotSupported(post);
             return;
         }
 

@@ -21,6 +21,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
@@ -30,6 +31,8 @@ import javax.security.cert.X509Certificate;
 
 import com.vmware.xenon.common.Service.Action;
 import com.vmware.xenon.common.ServiceDocumentDescription.Builder;
+import com.vmware.xenon.common.ServiceErrorResponse.ErrorDetail;
+import com.vmware.xenon.common.ServiceHost.ServiceNotFoundException;
 import com.vmware.xenon.services.common.QueryFilter;
 import com.vmware.xenon.services.common.QueryTask.Query;
 import com.vmware.xenon.services.common.SystemUserService;
@@ -369,6 +372,75 @@ public class Operation implements Cloneable {
             EnumSet<Service.ServiceOption> options = EnumSet.of(Service.ServiceOption.PERSISTENCE);
             return Builder.create().buildDescription(SerializedOperation.class, options);
         }
+    }
+
+    public static void fail(Operation request, int statusCode, int errorCode, Throwable e) {
+        request.setStatusCode(statusCode);
+        ServiceErrorResponse r = Utils.toServiceErrorResponse(e);
+        r.statusCode = statusCode;
+        r.errorCode = errorCode;
+
+        if (e instanceof ServiceNotFoundException) {
+            r.stackTrace = null;
+        }
+        request.setContentType(Operation.MEDIA_TYPE_APPLICATION_JSON).fail(e, r);
+    }
+
+    static void failOwnerMismatch(Operation op, String id, ServiceDocument body) {
+        String owner = body != null ? body.documentOwner : "";
+        op.setStatusCode(Operation.STATUS_CODE_CONFLICT);
+        Throwable e = new IllegalStateException(String.format(
+                "Owner in body: %s, computed locally: %s",
+                owner, id));
+        ServiceErrorResponse rsp = ServiceErrorResponse.create(e, op.getStatusCode(),
+                EnumSet.of(ErrorDetail.SHOULD_RETRY));
+        rsp.setInternalErrorCode(ServiceErrorResponse.ERROR_CODE_OWNER_MISMATCH);
+        op.fail(e, rsp);
+    }
+
+    public static void failActionNotSupported(Operation request) {
+        request.setStatusCode(Operation.STATUS_CODE_BAD_METHOD).fail(
+                new IllegalArgumentException("Action not supported: " + request.getAction()));
+    }
+
+    public static void failLimitExceeded(Operation request, int errorCode) {
+        // Add a header indicating retry should be attempted after some interval.
+        // Currently set to just one second, subject to change in the future
+        request.addResponseHeader(Operation.RETRY_AFTER_HEADER, "1");
+        fail(request, Operation.STATUS_CODE_UNAVAILABLE,
+                errorCode,
+                new CancellationException("queue limit exceeded"));
+    }
+
+    static void failForwardedRequest(Operation op, Operation fo, Throwable fe) {
+        op.setStatusCode(fo.getStatusCode());
+        op.setBodyNoCloning(fo.getBodyRaw()).fail(fe);
+    }
+
+    public static void failServiceNotFound(Operation inboundOp) {
+        failServiceNotFound(inboundOp,
+                ServiceErrorResponse.ERROR_CODE_INTERNAL_MASK);
+    }
+
+    public static void failServiceNotFound(Operation inboundOp, int errorCode,
+            String errorMsg) {
+        fail(inboundOp, Operation.STATUS_CODE_NOT_FOUND,
+                errorCode,
+                new ServiceNotFoundException(inboundOp.getUri().toString(), errorMsg));
+    }
+
+    public static void failServiceNotFound(Operation inboundOp, int errorCode) {
+        fail(inboundOp, Operation.STATUS_CODE_NOT_FOUND,
+                errorCode,
+                new ServiceNotFoundException(inboundOp.getUri().toString()));
+    }
+
+    static void failServiceMarkedDeleted(String documentSelfLink,
+            Operation serviceStartPost) {
+        fail(serviceStartPost, Operation.STATUS_CODE_CONFLICT,
+                ServiceErrorResponse.ERROR_CODE_STATE_MARKED_DELETED,
+                new IllegalStateException("Service marked deleted: "
+                        + documentSelfLink));
     }
 
     // HTTP Header definitions
