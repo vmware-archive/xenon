@@ -347,7 +347,7 @@ public class TestMigrationTaskService extends BasicReusableHostTestCase {
         // "latest source update time" uses "documentUpdateTimeMicros" of last processed document's (max) in each host
         // and pick the smallest(min) among the hosts(documentOwner).
         Map<String, List<ExampleServiceState>> docsPerOwner = states.stream().collect(groupingBy((s) -> s.documentOwner));
-        Long time = docsPerOwner.values().stream().map(list ->
+        Long expectedLastSourceUpdateTime = docsPerOwner.values().stream().map(list ->
                 list.stream().map(s -> s.documentUpdateTimeMicros).max(Long::compare).orElse(0L)
         ).min(Long::compare).orElse(0L);
 
@@ -373,7 +373,7 @@ public class TestMigrationTaskService extends BasicReusableHostTestCase {
         assertEquals("estimated total count", this.serviceCount, estimatedTotalServiceCount);
         assertEquals("fetched docs count", expectedFetchedCount, fetchedCount);
         assertEquals("owner mismatch count", expectedOwnerMismatchCount, ownerMismatchCount);
-        assertEquals("latest source update time", time, finalServiceState.latestSourceUpdateTimeMicros);
+        assertEquals("latest source update time", expectedLastSourceUpdateTime, finalServiceState.latestSourceUpdateTimeMicros);
 
         ServiceStat countQueryDurationStat = stats.entries.get(MigrationTaskService.STAT_NAME_COUNT_QUERY_TIME_DURATION_MICRO);
         ServiceStat retrievalOpDurationStat = stats.entries.get(MigrationTaskService.STAT_NAME_RETRIEVAL_OPERATIONS_DURATION_MICRO);
