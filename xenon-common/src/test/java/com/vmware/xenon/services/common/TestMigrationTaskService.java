@@ -14,6 +14,7 @@
 package com.vmware.xenon.services.common;
 
 import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
@@ -342,55 +343,39 @@ public class TestMigrationTaskService extends BasicReusableHostTestCase {
     public void successMigrateDocuments() throws Throwable {
         // create object in host
         List<ExampleServiceState> states = createExampleDocuments(this.exampleSourceFactory, getSourceHost(), this.serviceCount);
-        List<URI> uris = getFullUri(getSourceHost(), states);
 
-        List<SimpleEntry<String, Long>> timePerNode = getSourceHost()
-                .getServiceState(EnumSet.noneOf(TestProperty.class), ExampleServiceState.class, uris)
-                .values()
-                .stream()
-                .map(d -> new AbstractMap.SimpleEntry<>(d.documentOwner, d.documentUpdateTimeMicros))
-                .collect(toList());
-        Map<String, Long> times = new HashMap<>();
-        for (SimpleEntry<String, Long> entry : timePerNode) {
-            times.put(entry.getKey(), Math.max(times.getOrDefault(entry.getKey(), 0L), entry.getValue()));
-        }
-        long time = times.values().stream().mapToLong(i -> i).min().orElse(0);
+        // get highest doc update time per documentOwner, then get the lowest among owners.
+        Map<String, List<ExampleServiceState>> docsPerOwner = states.stream().collect(groupingBy((s) -> s.documentOwner));
+        Long time = docsPerOwner.values().stream().map(list ->
+                list.stream().map(s -> s.documentUpdateTimeMicros).max(Long::compare).orElse(0L)
+        ).min(Long::compare).orElse(0L);
 
         // start migration
-        MigrationTaskService.State migrationState = validMigrationState(
-                ExampleService.FACTORY_LINK);
+        MigrationTaskService.State migrationState = validMigrationState(ExampleService.FACTORY_LINK);
 
-        TestContext ctx = testCreate(1);
-        String[] out = new String[1];
-        Operation op = Operation.createPost(this.destinationFactoryUri)
-                .setBody(migrationState)
-                .setCompletion((o, e) -> {
-                    if (e != null) {
-                        this.host.log("Post service error: %s", Utils.toString(e));
-                        ctx.failIteration(e);
-                        return;
-                    }
-                    out[0] = o.getBody(State.class).documentSelfLink;
-                    ctx.completeIteration();
-                });
-        getDestinationHost().send(op);
-        testWait(ctx);
+        Operation op = Operation.createPost(this.destinationFactoryUri).setBody(migrationState);
+        State state = this.sender.sendAndWait(op, State.class);
 
-        State finalServiceState = waitForServiceCompletion(out[0], getDestinationHost());
-        ServiceStats stats = getStats(out[0], getDestinationHost());
+        State finalServiceState = waitForServiceCompletion(state.documentSelfLink, getDestinationHost());
+        ServiceStats stats = getStats(state.documentSelfLink, getDestinationHost());
 
         assertEquals(TaskStage.FINISHED, finalServiceState.taskInfo.stage);
-        Long processedDocuments = Long.valueOf((long) stats.entries.get(MigrationTaskService.STAT_NAME_PROCESSED_DOCUMENTS).latestValue);
-        Long estimatedTotalServiceCount = Long.valueOf((long) stats.entries.get(MigrationTaskService.STAT_NAME_ESTIMATED_TOTAL_SERVICE_COUNT).latestValue);
-        assertEquals(Long.valueOf(this.serviceCount), processedDocuments);
-        assertEquals(Long.valueOf(this.serviceCount), estimatedTotalServiceCount);
-        assertEquals(Long.valueOf(time), finalServiceState.latestSourceUpdateTimeMicros);
+        long processedDocuments = (long) stats.entries.get(MigrationTaskService.STAT_NAME_PROCESSED_DOCUMENTS).latestValue;
+        long estimatedTotalServiceCount = (long) stats.entries.get(MigrationTaskService.STAT_NAME_ESTIMATED_TOTAL_SERVICE_COUNT).latestValue;
+        long fetchedCount = (long) stats.entries.get(MigrationTaskService.STAT_NAME_FETCHED_DOCUMENT_COUNT).latestValue;
+        long ownerMismatchCount = (long) stats.entries.get(MigrationTaskService.STAT_NAME_OWNER_MISMATCH_COUNT).latestValue;
+
+        long expectedFetchedCount = this.nodeCount * this.serviceCount;
+        long expectedOwnerMismatchCount = expectedFetchedCount - this.serviceCount;
+        assertEquals("processed docs count", this.serviceCount, processedDocuments);
+        assertEquals("estimated total count", this.serviceCount, estimatedTotalServiceCount);
+        assertEquals("fetched docs count", expectedFetchedCount, fetchedCount);
+        assertEquals("owner mismatch count", expectedOwnerMismatchCount, ownerMismatchCount);
+        assertEquals("latest source update time", time, finalServiceState.latestSourceUpdateTimeMicros);
 
         // check if object is in new host
-        uris = getFullUri(getDestinationHost(), states);
-
-        getDestinationHost().getServiceState(EnumSet.noneOf(TestProperty.class),
-                ExampleServiceState.class, uris);
+        List<URI> uris = getFullUri(getDestinationHost(), states);
+        this.sender.sendAndWait(uris.stream().map(Operation::createGet).collect(toList()));
     }
 
     @Test

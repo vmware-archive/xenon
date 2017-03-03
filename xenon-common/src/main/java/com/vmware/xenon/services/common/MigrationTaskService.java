@@ -104,6 +104,8 @@ public class MigrationTaskService extends StatefulService {
 
     public static final String STAT_NAME_PROCESSED_DOCUMENTS = "processedServiceCount";
     public static final String STAT_NAME_ESTIMATED_TOTAL_SERVICE_COUNT = "estimatedTotalServiceCount";
+    public static final String STAT_NAME_FETCHED_DOCUMENT_COUNT = "fetchedDocumentCount";
+    public static final String STAT_NAME_OWNER_MISMATCH_COUNT = "ownerMismatchDocumentCount";
     public static final String FACTORY_LINK = ServiceUriPaths.MIGRATION_TASKS;
 
     public enum MigrationOption {
@@ -656,7 +658,11 @@ public class MigrationTaskService extends StatefulService {
                 // we get the most up to date version of the document and documents without owner.
                 for (Operation op : os.values()) {
                     QueryTask queryTask = op.getBody(QueryTask.class);
-                    for (Object doc : queryTask.results.documents.values()) {
+                    Collection<Object> docs = queryTask.results.documents.values();
+                    int totalFetched = docs.size();
+                    int ownerMissMatched = 0;
+
+                    for (Object doc : docs) {
                         ServiceDocument document = Utils.fromJson(doc, ServiceDocument.class);
                         String documentOwner = document.documentOwner;
                         if (documentOwner == null) {
@@ -671,8 +677,13 @@ public class MigrationTaskService extends StatefulService {
 
                             URI hostUri = getHostUri(op);
                             hostUriByResult.put(doc, hostUri);
+                        } else {
+                            ownerMissMatched++;
                         }
                     }
+
+                    adjustStat(STAT_NAME_FETCHED_DOCUMENT_COUNT, totalFetched);
+                    adjustStat(STAT_NAME_OWNER_MISMATCH_COUNT, ownerMissMatched);
                 }
 
                 if (results.isEmpty()) {
