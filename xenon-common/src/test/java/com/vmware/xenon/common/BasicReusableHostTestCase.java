@@ -27,6 +27,7 @@ import org.junit.runner.Description;
 
 import com.vmware.xenon.common.Operation.CompletionHandler;
 import com.vmware.xenon.common.test.TestContext;
+import com.vmware.xenon.common.test.TestRequestSender;
 import com.vmware.xenon.common.test.VerificationHost;
 import com.vmware.xenon.services.common.ExampleService;
 import com.vmware.xenon.services.common.ServiceUriPaths;
@@ -44,6 +45,8 @@ public class BasicReusableHostTestCase {
     private static VerificationHost HOST;
 
     protected VerificationHost host;
+
+    protected TestRequestSender sender;
 
     public int requestCount = 1000;
 
@@ -83,6 +86,7 @@ public class BasicReusableHostTestCase {
     public void setUpPerMethod() throws Throwable {
         CommandLineArgumentParser.parseFromProperties(this);
         this.host = HOST;
+        this.sender = this.host.getTestRequestSender();
         if (HOST.isStressTest()) {
             Utils.setTimeDriftThreshold(TimeUnit.SECONDS.toMicros(120));
         }
