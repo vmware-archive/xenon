@@ -1263,8 +1263,10 @@ public class MigrationTaskService extends StatefulService {
             .sendWith(this);
     }
 
-    private void failTask(Collection<Throwable> t) {
-        logWarning("%s", t.iterator().next());
-        failTask(t.iterator().next());
+    private void failTask(Collection<Throwable> ts) {
+        for (Throwable t : ts) {
+            logWarning("%s", t);
+        }
+        failTask(ts.iterator().next());
     }
 }

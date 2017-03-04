@@ -41,7 +41,7 @@ public abstract class FactoryService extends StatelessService {
 
     public static class FactoryServiceConfiguration extends ServiceConfiguration {
         public static final String KIND = Utils.buildKind(FactoryServiceConfiguration.class);
-        public EnumSet<ServiceOption> childOptions;
+        public EnumSet<ServiceOption> childOptions = EnumSet.noneOf(ServiceOption.class);
     }
 
     /**
