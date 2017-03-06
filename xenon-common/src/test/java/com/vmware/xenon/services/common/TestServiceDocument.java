@@ -66,42 +66,60 @@ public class TestServiceDocument {
         assertEquals(one.documentVersion, two.documentVersion);
     }
 
+    public static class ComparableServiceState extends ExampleService.ExampleServiceState {
+        public Boolean booleanValue;
+    }
+
     @Test
     public void equals() throws Throwable {
         ServiceDocumentDescription description = TestUtils.buildStateDescription(
-                ExampleService.ExampleServiceState.class, null);
-        ExampleService.ExampleServiceState initialState = new ExampleService.ExampleServiceState();
+                ComparableServiceState.class, null);
+        ComparableServiceState initialState = new ComparableServiceState();
         initialState.name = UUID.randomUUID().toString();
         initialState.counter = 5L;
+        initialState.booleanValue = false;
 
-        ExampleService.ExampleServiceState modifiedState = new ExampleService
-                .ExampleServiceState();
+        ComparableServiceState modifiedState = new ComparableServiceState();
         modifiedState.name = initialState.name;
         modifiedState.counter = initialState.counter;
+        modifiedState.booleanValue = initialState.booleanValue;
 
         boolean value = ServiceDocument.equals(description, initialState, modifiedState);
         assertTrue(value);
 
-        initialState = new ExampleService.ExampleServiceState();
+        initialState = new ComparableServiceState();
         initialState.name = UUID.randomUUID().toString();
         initialState.counter = 5L;
+        initialState.booleanValue = false;
 
-        modifiedState = new ExampleService
-                .ExampleServiceState();
+        modifiedState = new ComparableServiceState();
         modifiedState.name = initialState.name;
         modifiedState.counter = 10L;
+        modifiedState.booleanValue = initialState.booleanValue;
+
+        value = ServiceDocument.equals(description, initialState, modifiedState);
+        assertFalse(value);
+
+        initialState = new ComparableServiceState();
+        initialState.name = UUID.randomUUID().toString();
+        initialState.counter = 5L;
+        initialState.booleanValue = false;
+
+        modifiedState = new ComparableServiceState();
+        modifiedState.name = initialState.name;
+        modifiedState.counter = initialState.counter;
+        modifiedState.booleanValue = true;
 
         value = ServiceDocument.equals(description, initialState, modifiedState);
         assertFalse(value);
 
         // set a core document field to be different between states and still verify
         // the states compare as equals (core fields are ignored)
-        initialState = new ExampleService.ExampleServiceState();
+        initialState = new ComparableServiceState();
         initialState.documentOwner = UUID.randomUUID().toString();
         initialState.counter = 10L;
 
-        modifiedState = new ExampleService
-                .ExampleServiceState();
+        modifiedState = new ComparableServiceState();
         modifiedState.documentOwner = UUID.randomUUID().toString();
         modifiedState.counter = 10L;
 
