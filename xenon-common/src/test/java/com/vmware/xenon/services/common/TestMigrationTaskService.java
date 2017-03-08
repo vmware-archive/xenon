@@ -344,7 +344,8 @@ public class TestMigrationTaskService extends BasicReusableHostTestCase {
         // create object in host
         List<ExampleServiceState> states = createExampleDocuments(this.exampleSourceFactory, getSourceHost(), this.serviceCount);
 
-        // get highest doc update time per documentOwner, then get the lowest among owners.
+        // "latest source update time" uses "documentUpdateTimeMicros" of last processed document's (max) in each host
+        // and pick the smallest(min) among the hosts(documentOwner).
         Map<String, List<ExampleServiceState>> docsPerOwner = states.stream().collect(groupingBy((s) -> s.documentOwner));
         Long time = docsPerOwner.values().stream().map(list ->
                 list.stream().map(s -> s.documentUpdateTimeMicros).max(Long::compare).orElse(0L)

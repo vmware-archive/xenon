@@ -698,10 +698,16 @@ public class MigrationTaskService extends StatefulService {
                         }
 
                         if (documentOwner.equals(queryTask.results.documentOwner)) {
-                            Long lastUpdateTime = lastUpdateTimesPerOwner.getOrDefault(documentOwner, 0L);
-                            lastUpdateTimesPerOwner
-                                .put(document.documentOwner, Math.max(lastUpdateTime, document.documentUpdateTimeMicros));
                             results.add(doc);
+
+                            // keep last processed document update time(max) in each host
+                            lastUpdateTimesPerOwner.compute(documentOwner, (key, val) -> {
+                                        if (val == null) {
+                                            return document.documentUpdateTimeMicros;
+                                        }
+                                        return Math.max(val, document.documentUpdateTimeMicros);
+                                    }
+                            );
 
                             URI hostUri = getHostUri(op);
                             hostUriByResult.put(doc, hostUri);
@@ -1153,8 +1159,8 @@ public class MigrationTaskService extends StatefulService {
         State patch = new State();
         patch.taskInfo = TaskState.createAsFinished();
         if (lastUpdateTimesPerOwner != null) {
-            patch.latestSourceUpdateTimeMicros = lastUpdateTimesPerOwner.values()
-                    .stream().mapToLong(x -> x).min().orElse(0);
+            // pick the smallest(min) among the hosts(documentOwner)
+            patch.latestSourceUpdateTimeMicros = lastUpdateTimesPerOwner.values().stream().min(Long::compare).orElse(0L);
         }
         Operation.createPatch(getUri()).setBody(patch).sendWith(this);
     }
