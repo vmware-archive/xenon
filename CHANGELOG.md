@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.4.0-SNAPSHOT
+## 1.4.0
 
 * Move ServiceHost.failRequestXXXX methods to Operation.failXXXX equivalents 
 
