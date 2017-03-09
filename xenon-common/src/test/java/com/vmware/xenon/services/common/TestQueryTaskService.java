@@ -506,6 +506,7 @@ public class TestQueryTaskService {
                         if (body.results == null || body.results.documentLinks.isEmpty()) {
                             return;
                         }
+                        assertNotNull(body.results.continuousResults);
 
                         for (Object doc : body.results.documents.values()) {
                             QueryValidationServiceState state = Utils.fromJson(doc,
@@ -4324,5 +4325,154 @@ public class TestQueryTaskService {
                     .setCompletion(ctx.getCompletion()));
         }
         this.host.testWait(ctx);
+    }
+
+    @Test
+    public void continuousQueryTaskCount() throws Throwable {
+        setUpHost();
+
+        int servicesWithExpirationCount = Math.min(3, this.serviceCount);
+        // we expect an update for initial state indexed as part of POST to the factory,
+        // then another for the PUT we do on each service, and another for the DELETE.
+        // For services with expiration there will be one more PATCH to set expiration.
+        int totalCount = this.serviceCount + servicesWithExpirationCount;
+
+        QueryValidationServiceState newState = new QueryValidationServiceState();
+        final String textValue = UUID.randomUUID().toString();
+        newState.textValue = textValue;
+
+        TestContext ctx = this.host.testCreate(totalCount);
+        // create the continuous task monitoring updates across the index
+        URI taskUri = createContinuousQueryTasksCount(ctx, newState, totalCount);
+
+        this.host.log("Query task is active in index service");
+        long start = System.nanoTime() / 1000;
+
+        // start services
+        List<URI> services = startQueryTargetServices(this.serviceCount, newState);
+
+        // reserve a couple of services to test notification of expiration induced deletes
+        Set<URI> servicesWithExpiration = new HashSet<>();
+        for (URI u : services) {
+            servicesWithExpiration.add(u);
+            if (servicesWithExpiration.size() >= servicesWithExpirationCount) {
+                break;
+            }
+        }
+
+        // update services
+        putSimpleStateOnQueryTargetServices(services, newState);
+
+        // send DELETEs, wait for DELETE notifications
+        this.host.testStart(services.size() - servicesWithExpirationCount);
+        for (URI service : services) {
+            if (servicesWithExpiration.contains(service)) {
+                continue;
+            }
+            Operation delete = Operation.createDelete(service).setCompletion(
+                    this.host.getCompletion());
+            this.host.send(delete);
+        }
+        this.host.testWait();
+
+        // issue a PATCH to a sub set of the services and expect notifications for both the PATCH
+        // and the expiration induced DELETE
+        this.host.testStart(servicesWithExpirationCount);
+        for (URI service : servicesWithExpiration) {
+            QueryValidationServiceState patchBody = new QueryValidationServiceState();
+            patchBody.documentExpirationTimeMicros = 1;
+            Operation patchExpiration = Operation.createPatch(service)
+                    .setBody(patchBody)
+                    .setCompletion(this.host.getCompletion());
+            this.host.send(patchExpiration);
+        }
+        this.host.testWait();
+
+        ctx.await();
+        long end = System.nanoTime() / 1000;
+
+        double thpt = totalCount / ((end - start) / 1000000.0);
+        this.host.log("Update notification throughput (updates/sec): %f, update count: %d", thpt,
+                totalCount);
+
+        this.host.waitFor("Query task never completed", () -> {
+            QueryTask state = this.host.getServiceState(null, QueryTask.class, taskUri);
+            if (totalCount == state.results.continuousResults.documentCountUpdated) {
+                return true;
+            }
+
+            return false;
+        });
+    }
+
+    /**
+     * Creates query task for continuous + count option.
+     */
+    private URI createContinuousQueryTasksCount(TestContext ctx,
+            QueryValidationServiceState newState, int totalCount)
+            throws Throwable {
+
+        Query query = Query.Builder.create()
+                .addFieldClause(QueryValidationServiceState.FIELD_NAME_TEXT_VALUE, newState.textValue)
+                .build();
+
+        QueryTask task = QueryTask.Builder.create()
+                .addOptions(EnumSet.of(QueryOption.CONTINUOUS, QueryOption.COUNT))
+                .setQuery(query)
+                .build();
+
+        // If the expiration time is not set, then the query will receive the default
+        // query expiration time of 1 minute.
+        task.documentExpirationTimeMicros = Utils
+                .fromNowMicrosUtc(TimeUnit.DAYS.toMicros(1));
+
+        URI taskUri = this.host.createQueryTaskService(
+                UriUtils.buildUri(this.host.getUri(), ServiceUriPaths.CORE_QUERY_TASKS),
+                task, false, false, task, null);
+
+        this.host.testStart(1);
+        Operation post = Operation.createPost(taskUri)
+                .setReferer(this.host.getReferer())
+                .setCompletion(this.host.getCompletion());
+
+        // subscribe to state update query task
+        this.host.startSubscriptionService(
+                post,
+                (notifyOp) -> {
+                    try {
+                        QueryTask body = notifyOp.getBody(QueryTask.class);
+                        if (body.results == null || body.results.continuousResults == null
+                                || body.results.continuousResults.documentCountUpdated < totalCount) {
+                            return;
+                        }
+                        assertNotNull(body.results.documentCount);
+                        assertNotNull(body.results.continuousResults);
+                        assertNull(body.results.documentLinks);
+                        assertNull(body.results.documents);
+                    } catch (Throwable e) {
+                        ctx.fail(e);
+                    } finally {
+                        ctx.complete();
+                    }
+                });
+        // wait for subscription to go through before we start issuing updates
+        this.host.testWait();
+
+        // wait for filter to be active in the index service, which happens asynchronously
+        // in relation to query task creation, before issuing updates.
+
+        this.host.waitFor("task never activated", () -> {
+            ServiceStats indexStats = this.host.getServiceState(null, ServiceStats.class,
+                    UriUtils.buildStatsUri(this.host.getDocumentIndexServiceUri()));
+            ServiceStat activeQueryStat = indexStats.entries.get(
+                    LuceneDocumentIndexService.STAT_NAME_ACTIVE_QUERY_FILTERS
+                            + ServiceStats.STAT_NAME_SUFFIX_PER_HOUR);
+            if (activeQueryStat == null || activeQueryStat.latestValue < 1.0) {
+                return false;
+            }
+            return true;
+        });
+
+        return taskUri;
     }
 }
