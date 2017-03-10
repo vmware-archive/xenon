@@ -1,6 +1,8 @@
 # CHANGELOG
 
-## 1.1.0-CR5-SNAPSHOT
+## 1.1.0-CR5
+
+* Bug fix related to synchronization of deleted documents
 
 * Bug fix in Murmur3 hash computation
 
