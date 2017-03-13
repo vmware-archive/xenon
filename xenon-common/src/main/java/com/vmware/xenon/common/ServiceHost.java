@@ -5028,15 +5028,17 @@ public class ServiceHost implements ServiceRequestSender {
             }
 
             if (stage == null) {
-                // update the maintenance count stat for the ServiceHost before, completing
-                // the current maintenance run.
-                this.managementService.adjustStat(
-                        Service.STAT_NAME_SERVICE_HOST_MAINTENANCE_COUNT, 1);
+                if (this.managementService != null) {
+                    // update the maintenance count stat for the ServiceHost before, completing
+                    // the current maintenance run.
+                    this.managementService.adjustStat(
+                            Service.STAT_NAME_SERVICE_HOST_MAINTENANCE_COUNT, 1);
 
-                // Update the count of services that are pending delete on the service host.
-                this.managementService.setStat(
-                        ServiceHostManagementService.STAT_NAME_PENDING_SERVICE_DELETION_COUNT,
-                        this.pendingServiceDeletions.size());
+                    // Update the count of services that are pending delete on the service host.
+                    this.managementService.setStat(
+                            ServiceHostManagementService.STAT_NAME_PENDING_SERVICE_DELETION_COUNT,
+                            this.pendingServiceDeletions.size());
+                }
 
                 post.complete();
                 scheduleMaintenance();
