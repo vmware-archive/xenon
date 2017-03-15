@@ -576,7 +576,7 @@ public class StatelessService implements Service {
 
     @Override
     public String getPeerNodeSelectorPath() {
-        throw new RuntimeException("Replication is not supported");
+        return null;
     }
 
     @Override
