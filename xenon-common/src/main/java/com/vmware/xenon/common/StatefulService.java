@@ -309,8 +309,7 @@ public class StatefulService implements Service {
                         : 0;
             } else if (this.context.isUpdateActive) {
                 if (!this.context.operationQueue.offer(op)) {
-                    Operation.failLimitExceeded(op,
-                            ServiceErrorResponse.ERROR_CODE_SERVICE_QUEUE_LIMIT_EXCEEDED);
+                    failRequestLimitExceeded(op);
                 }
                 return RETURN_TRUE_FLAG;
             } else {
@@ -336,12 +335,10 @@ public class StatefulService implements Service {
                                 .createFifo(Service.SYNCH_QUEUE_DEFAULT_LIMIT);
                     }
                     if (!this.context.synchQueue.offer(op)) {
-                        Operation.failLimitExceeded(op,
-                                ServiceErrorResponse.ERROR_CODE_SERVICE_QUEUE_LIMIT_EXCEEDED);
+                        failRequestLimitExceeded(op);
                     }
                 } else if (!this.context.operationQueue.offer(op)) {
-                    Operation.failLimitExceeded(op,
-                            ServiceErrorResponse.ERROR_CODE_SERVICE_QUEUE_LIMIT_EXCEEDED);
+                    failRequestLimitExceeded(op);
                 }
                 return RETURN_TRUE_FLAG;
             } else {
@@ -859,22 +856,6 @@ public class StatefulService implements Service {
         processCompletionStagePublishAndComplete(options);
     }
 
-    private void failRequest(Operation op, Throwable e) {
-        failRequest(op, e, false);
-    }
-
-    private void failRequest(Operation op, Throwable e, boolean shouldRetry) {
-        if (shouldRetry) {
-            // Request client side retries on state or consensus conflict
-            ServiceErrorResponse rsp = ServiceErrorResponse.create(e, op.getStatusCode(),
-                    EnumSet.of(ErrorDetail.SHOULD_RETRY));
-            op.setBodyNoCloning(rsp);
-        }
-
-        processPending(op);
-        op.fail(e);
-    }
-
     private boolean isIndexed() {
         return this.context.options.contains(ServiceOption.PERSISTENCE);
     }
@@ -1200,6 +1181,30 @@ public class StatefulService implements Service {
             return;
         }
         this.context.utilityService.notifySubscribers(op);
+    }
+
+    private void failRequest(Operation op, Throwable e) {
+        failRequest(op, e, false);
+    }
+
+    private void failRequest(Operation op, Throwable e, boolean shouldRetry) {
+        if (shouldRetry) {
+            // Request client side retries on state or consensus conflict
+            ServiceErrorResponse rsp = ServiceErrorResponse.create(e, op.getStatusCode(),
+                    EnumSet.of(ErrorDetail.SHOULD_RETRY));
+            op.setBodyNoCloning(rsp);
+        }
+
+        processPending(op);
+        op.fail(e);
+    }
+
+    private void failRequestLimitExceeded(final Operation op) {
+        if (hasOption(ServiceOption.INSTRUMENTATION)) {
+            adjustStat(Service.STAT_NAME_REQUEST_FAILURE_QUEUE_LIMIT_EXCEEDED_COUNT, 1);
+        }
+        Operation.failLimitExceeded(op,
+                ServiceErrorResponse.ERROR_CODE_SERVICE_QUEUE_LIMIT_EXCEEDED);
     }
 
     private void updatePerOperationStats(Operation op) {

@@ -621,6 +621,7 @@ public class TestStatefulService extends BasicReusableHostTestCase {
     public void operationQueueLimit() throws Throwable {
         Service lifoService = new MinimalTestService();
         lifoService.toggleOption(ServiceOption.LIFO_QUEUE, true);
+        lifoService.toggleOption(ServiceOption.INSTRUMENTATION, true);
         lifoService = this.host.startServiceAndWait(lifoService, UUID.randomUUID().toString(),
                 null);
 
@@ -682,6 +683,12 @@ public class TestStatefulService extends BasicReusableHostTestCase {
         if (cancelledOpCount.get() < limit / 20) {
             throw new IllegalStateException("not enough operations where cancelled");
         }
+
+        Map<String, ServiceStat> stats = this.host.getServiceStats(serviceUri);
+        ServiceStat limitExceededCountSt = stats
+                .get(Service.STAT_NAME_REQUEST_FAILURE_QUEUE_LIMIT_EXCEEDED_COUNT);
+        assertTrue(limitExceededCountSt != null);
+        assertTrue(limitExceededCountSt.latestValue > 1);
 
         // make sure no operations are cancelled if we are below the limit
         this.host.testStart(limit - 1);

@@ -315,6 +315,7 @@ public interface Service extends ServiceRequestSender {
     static final String STAT_NAME_AVAILABLE = "isAvailable";
     static final String STAT_NAME_FAILURE_COUNT = "failureCount";
     static final String STAT_NAME_REQUEST_OUT_OF_ORDER_COUNT = "requestOutOfOrderCount";
+    static final String STAT_NAME_REQUEST_FAILURE_QUEUE_LIMIT_EXCEEDED_COUNT = "requestFailureQueueLimitExceededCount";
     static final String STAT_NAME_STATE_PERSIST_LATENCY = "statePersistLatencyMicros";
     static final String STAT_NAME_OPERATION_QUEUEING_LATENCY = "operationQueueingLatencyMicros";
     static final String STAT_NAME_SERVICE_HANDLER_LATENCY = "operationHandlerProcessingLatencyMicros";
