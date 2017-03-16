@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.4.2-SNAPSHOT
+
 ## 1.4.1
 
 * Fix migration task bug that may cause data loss when combined with transformation service.
