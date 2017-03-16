@@ -8,6 +8,7 @@ import { BaseComponent } from '../../../frameworks/core/index';
 import { URL } from '../../../frameworks/app/enums/index';
 import { BooleanClause, EventContext, QuerySpecification, QueryTask } from '../../../frameworks/app/interfaces/index';
 import { BaseService, NodeSelectorService, NotificationService } from '../../../frameworks/app/services/index';
+import { ODataUtil } from '../../../frameworks/app/utils/index';
 
 import { QueryClauseComponent } from './query-clause.component';
 
@@ -34,7 +35,8 @@ const sampleQueryTask: string = `{
             "propertyType": "STRING",
             "propertyName": "name"
         },
-        "sortOrder" : "DESC"
+        "sortOrder" : "DESC",
+        "resultLimit": 25
     }
 }`;
 
@@ -69,6 +71,11 @@ export class QueryComponent implements OnDestroy {
     advancedQueryTaskInput: string = sampleQueryTask;
 
     /**
+     * Whether a query has happend.
+     */
+    isQueried: boolean = false;
+
+    /**
      * Track the id of the next clause to be added. It starts from 1
      * and will always increase even when some clauses are deleted along
      * the way.
@@ -90,9 +97,15 @@ export class QueryComponent implements OnDestroy {
     private _queryTask: QueryTask;
 
     /**
-     * Object contains both the original query and the result
+     * Array contains the documentLinks of the result
      */
-    private _queryResult: QueryTask;
+    private _queryResultLinks: string[];
+
+    /**
+     * Keep track of the total count of the query result. Can't rely on _queryResultLinks.length
+     * since it's paginated.
+     */
+    private _queryResultCount: number = 0;
 
     /**
      * Link to the selected result.
@@ -100,9 +113,20 @@ export class QueryComponent implements OnDestroy {
     private _selectedResultDocumentLink: string = '';
 
     /**
+     * Link to the next page of the child services
+     */
+    private _queryResultNextPageLink: string;
+
+    /**
+     * A lock to prevent the same next page link from being requested multiple times when scrolling
+     */
+    private _requestResultNextPageLinkRequestLocked: boolean = false;
+
+    /**
      * Subscriptions to services.
      */
     private _baseServiceSubscription: Subscription;
+    private _baseServiceGetQueryResultNextPageSubscription: Subscription;
 
     constructor(
         private _baseService: BaseService,
@@ -113,28 +137,22 @@ export class QueryComponent implements OnDestroy {
         if (!_.isUndefined(this._baseServiceSubscription)) {
             this._baseServiceSubscription.unsubscribe();
         }
+
+        if (!_.isUndefined(this._baseServiceGetQueryResultNextPageSubscription)) {
+            this._baseServiceGetQueryResultNextPageSubscription.unsubscribe();
+        }
     }
 
-    getQueryResult(): QueryTask | any {
-        return this._queryResult ? this._queryResult : {};
+    getQueryResultLinks(): string[] {
+        return this._queryResultLinks;
     }
 
     getQueryResultCount(): number {
-        if (_.isUndefined(this._queryResult) || _.isNull(this._queryResult)
-            || _.isUndefined(this._queryResult.results) || _.isEmpty(this._queryResult.results)) {
-            return 0;
-        }
-
-        if (_.isUndefined(this._queryResult.results.documentCount)) {
-            return this._queryResult.results.documentLinks ?
-                this._queryResult.results.documentLinks.length : 0;
-        }
-
-        return this._queryResult.results.documentCount;
+        return this._queryResultCount;
     }
 
     getSelectedResultDocumentLink(): string {
-        let link: string = this._selectedResultDocumentLink;
+        var link: string = this._selectedResultDocumentLink;
 
         // Process the selected result document link and make it a valid
         // url query parameter, for INCLUDE_ALL_VERSIONS case
@@ -191,15 +209,18 @@ export class QueryComponent implements OnDestroy {
             this.advancedQueryTaskInput = '';
         }
 
-        this._queryResult = null;
+        // Reset all the states
+        this._queryResultLinks = [];
+        this._queryResultCount = 0;
+        this.isQueried = false;
     }
 
     onQuery(event: MouseEvent): void {
         try {
             // Reset
             this._selectedResultDocumentLink = '';
-            this._queryResult = null;
-            this._queryTask = null;
+            this._queryResultLinks = [];
+            this._queryTask = undefined;
 
             if (this.queryBuilderMode === 'interactive') {
                 this._queryTask = this._buildInteractiveQueryTask();
@@ -207,14 +228,46 @@ export class QueryComponent implements OnDestroy {
                 this._queryTask = this._buildAdvancedQueryTask();
             }
 
-            if (_.isUndefined(this._queryTask) || _.isNull(this._queryTask)
-                    || _.isEmpty(this._queryTask)) {
+            if (_.isUndefined(this._queryTask) || _.isEmpty(this._queryTask)) {
                 throw new Error('The query is empty');
             }
 
-            this._baseServiceSubscription = this._baseService.post(URL.Query, this._queryTask).subscribe(
+            // Add a COUNT option to the spec to get count
+            var queryCountTask: QueryTask = _.cloneDeep(this._queryTask);
+            if (queryCountTask.querySpec.options) {
+                queryCountTask.querySpec.options.push('COUNT');
+            } else {
+                queryCountTask.querySpec.options = ['COUNT'];
+            }
+
+            // Delete resultLimit for count quert since it's not necessary and will cause warnings in log
+            delete queryCountTask.querySpec.resultLimit;
+
+            this._baseServiceSubscription = this._baseService.post(URL.Query, queryCountTask).subscribe(
                 (result: QueryTask) => {
-                    this._queryResult = result;
+                    this.isQueried = true;
+                    this._queryResultCount = result.results.documentCount;
+
+                    if (this._queryResultCount === 0) {
+                        return;
+                    }
+
+                    // Only do query task if the count is not 0
+                    this._baseService.post(URL.Query, this._queryTask).subscribe((result: QueryTask) => {
+                            this._queryResultNextPageLink = result.results.nextPageLink;
+                            if (_.isUndefined(this._queryResultNextPageLink)) {
+                                return;
+                            }
+
+                            this._getNextPage();
+                        },
+                        (error) => {
+                            // TODO: Better error handling
+                            this._notificationService.set([{
+                                type: 'ERROR',
+                                messages: [`Failed to query: [${error.statusCode}] ${error.message}`]
+                            }]);
+                        });
                 },
                 (error) => {
                     // TODO: Better error handling
@@ -235,6 +288,14 @@ export class QueryComponent implements OnDestroy {
         this._selectedResultDocumentLink = queryResultLink;
     }
 
+    onLoadNextPage(): void {
+        if (_.isUndefined(this._queryResultNextPageLink) || this._requestResultNextPageLinkRequestLocked) {
+            return;
+        }
+
+        this._getNextPage();
+    }
+
     private _getQueryOptions(): string[] {
         var options: string[] = [];
 
@@ -253,15 +314,43 @@ export class QueryComponent implements OnDestroy {
         return options;
     }
 
+    private _getNextPage(): void {
+        this._requestResultNextPageLinkRequestLocked = true;
+        this._baseServiceGetQueryResultNextPageSubscription =
+            this._baseService.getDocument(this._queryResultNextPageLink, '', false).subscribe(
+                (document: QueryTask) => {
+                    if (_.isEmpty(document.results) || this._queryResultNextPageLink === document.results.nextPageLink) {
+                        return;
+                    }
+
+                    this._requestResultNextPageLinkRequestLocked = false;
+                    this._queryResultLinks = _.concat(this._queryResultLinks, document.results.documentLinks);
+
+                    // NOTE: Need to use forwarding link here since the paginated data is stored on a particular node
+                    if (document.results.nextPageLink) {
+                        this._queryResultNextPageLink = this._baseService.getForwardingLink(document.results.nextPageLink);
+                    }
+                },
+                (error) => {
+                    // TODO: Better error handling
+                    this._notificationService.set([{
+                        type: 'ERROR',
+                        messages: [`Failed to query: [${error.statusCode}] ${error.message}`]
+                    }]);
+                });
+    }
+
     private _buildInteractiveQueryTask(): QueryTask {
         // Build specs
         var spec: QuerySpecification = {
             options: this._getQueryOptions(),
+            resultLimit: ODataUtil.DEFAULT_PAGE_SIZE,
             query: {
                 booleanClauses: [],
                 occurance: 'MUST_OCCUR'
             }
         };
+
         this.queryClauseComponents.forEach((queryClauseComponent: QueryClauseComponent) => {
             var clauseType: string = queryClauseComponent.type;
 

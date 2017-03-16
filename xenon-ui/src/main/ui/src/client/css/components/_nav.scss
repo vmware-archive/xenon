@@ -32,7 +32,7 @@
     white-space: nowrap;
     box-shadow: 0 rpx(-1) 0 $grey-300 inset;
 
-    //logo and product title
+    // logo and product title
     .branding {
         min-width: baselinerem(12);
         height: 100%;
@@ -91,7 +91,7 @@
             &.active {
                 background: $grey-50;
                 opacity: 1;
-                box-shadow: 0 rpx(-4) 0 $grey-400 inset;
+                box-shadow: 0 rpx(-4) 0 $light-blue-400 inset;
             }
 
             &.active, &:active, &:focus {

@@ -275,7 +275,7 @@ export class ChildServiceDetailComponent implements AfterViewChecked, OnChanges,
     }
 
     private _getData(): void {
-        let link: string = this.selectedServiceId + '/' + this.selectedChildServiceId;
+        var link: string = this.selectedServiceId + '/' + this.selectedChildServiceId;
 
         this._baseServiceGetChildServiceSubscription =
             this._baseService.getDocument(link).subscribe(

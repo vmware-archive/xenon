@@ -123,6 +123,13 @@ export class SeedAdvancedConfig extends SeedConfig {
                 }
             },
             {
+                name: 'angular2-infinite-scroll',
+                packageMeta: {
+                    main: 'angular2-infinite-scroll.js',
+                    defaultExtension: 'js'
+                }
+            },
+            {
                 name: 'moment',
                 packageMeta: {
                     main: 'moment.js',

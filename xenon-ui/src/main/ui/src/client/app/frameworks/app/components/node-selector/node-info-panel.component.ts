@@ -235,7 +235,7 @@ export class NodeInfoPanelComponent implements OnChanges, AfterViewInit, OnDestr
             url = this._getForwardingLink();
         }
 
-        this._baseServiceSubscription = this._baseService.getDocument(url, false).subscribe(
+        this._baseServiceSubscription = this._baseService.getDocument(url, '', false).subscribe(
             (serviceHostState: ServiceHostState) => {
                 this._highlightedNodeDetails = serviceHostState;
 

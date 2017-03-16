@@ -101,16 +101,16 @@ export class ServiceCardComponent implements OnChanges, OnDestroy {
         return `${baseClasses} ${statusClass}`;
     }
 
-    getChildServiceCount(): number {
+    getChildServiceCount(): string {
         if (_.isEmpty(this.service)) {
-            return 0;
+            return '0';
         }
 
         if (_.isUndefined(this.service.documentCount)) {
-            return this.service.documentLinks ? this.service.documentLinks.length : 0;
+            return this.service.documentLinks ? `${this.service.documentLinks.length}` : '0';
         }
 
-        return this.service.documentCount;
+        return StringUtil.formatNumber(this.service.documentCount, true);
     }
 
     getServiceConfiguration(): ServiceConfiguration {

@@ -193,7 +193,7 @@
             @include flex(0 0 auto);
             @include flex-order(0);
             flex-flow: column nowrap;
-            border-right: 1px solid $grey-300;
+            box-shadow: rpx(1) 0 0 $grey-300;
         }
 
         .content-area {
@@ -211,8 +211,8 @@
         .right-side-area {
             @include flex(0 0 auto);
             @include flex-order(2);
-            border-left: 1px solid $grey-300;
             flex-flow: column nowrap;
+            box-shadow: rpx(-1) 0 0 $grey-300;
         }
     }
 }

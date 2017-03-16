@@ -29,5 +29,13 @@
         color: $grey-600;
         padding: 0 baselinerem(1);
         cursor: pointer;
+
+        &:hover {
+            box-shadow: rpx(4) 0 0 $light-blue-300 inset;
+        }
+
+        &:focus, &:active, &.active {
+            box-shadow: rpx(4) 0 0 $light-blue-400 inset;
+        }
     }
 }

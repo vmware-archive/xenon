@@ -163,6 +163,32 @@ export class StringUtil {
         };
     }
 
+    static getQueryParametersByName(url: string, name: string) {
+        name = name.replace(/[\[\]]/g, '\\$&');
+
+        var regex: RegExp = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+        var results = regex.exec(url);
+
+        if (!results) {
+            return null;
+        }
+
+        if (!results[2]) {
+            return '';
+        }
+
+        return decodeURIComponent(results[2].replace(/\+/g, ' '));
+    }
+
+    /**
+     * Check if a given url has query parameters.
+     *
+     * @param {string} url - url to be checked
+     */
+    static hasQueryParameter(url: string): boolean {
+        return url.search(/\?[^#]*/) !== -1;
+    }
+
     /**
      * Return a formatted timestamp string for the given time in microseconds.
      *
@@ -225,11 +251,20 @@ export class StringUtil {
      * Format a number with commas as thousands separators.
      *
      * @param {number} n - an integer that represents disk space in bytes.
+     * @param {boolean} usePrefix - whether to use metric prefix for the number. If true, 1000 will be 1.0k.
      */
-    static formatNumber(n: number): string {
+    static formatNumber(n: number, usePrefix: boolean = false): string {
         var numeralValue = numeral(n);
 
-        return numeralValue.format('0,0');
+        if (n < 1000 || !usePrefix) {
+            return numeralValue.format('0,0');
+        }
+
+        if (n >= 1000 && n < 10000) {
+            return numeralValue.format('0.0a');
+        }
+
+        return '10k+';
     }
 
     /**

@@ -80,7 +80,7 @@
                 {{'ACTION_CLEAR' | translate}}
             </button>
             <div class="result-count">
-                <div class="stats stats-horizontal" *ngIf="getQueryResult().results">
+                <div class="stats stats-horizontal" *ngIf="isQueried">
                     <span class="stats-number">{{getQueryResultCount()}}</span>
                     <span class="stats-label">
                         {{'RESULT' | translate}}<br>{{'AVAILABLE' | translate }}
@@ -96,10 +96,15 @@
         </div>
         <main class="content-area content-area-with-nested-container component-container horizontal"
                 *ngIf="getQueryResultCount() > 0">
-            <div class="left-side-area area">
+            <div class="left-side-area area"
+                    infinite-scroll
+                    [infiniteScrollThrottle]="100"
+                    [scrollWindow]="false"
+                    [infiniteScrollDisabled]="getQueryResultLinks().length < 25"
+                    (scrolled)="onLoadNextPage()">
                 <div class="list-group">
                     <a class="list-group-item list-group-item-action"
-                        *ngFor="let queryResultLink of getQueryResult().results?.documentLinks"
+                        *ngFor="let queryResultLink of getQueryResultLinks()"
                         [class.active]="isResultLinkSelected(queryResultLink)"
                         (click)="onSelectQueryResult($event, queryResultLink)">
                         {{queryResultLink}}

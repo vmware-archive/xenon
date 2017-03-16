@@ -6,6 +6,7 @@ import { RouterModule } from '@angular/router';
 import { Http } from '@angular/http';
 
 // libs
+import { InfiniteScrollModule } from 'angular2-infinite-scroll';
 import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
@@ -72,6 +73,7 @@ export function cons() {
         }]),
         StoreModule.provideStore(AppReducer),
         StoreDevtoolsModule.instrumentOnlyWithExtension(),
+        InfiniteScrollModule,
 
         AppModule,
 

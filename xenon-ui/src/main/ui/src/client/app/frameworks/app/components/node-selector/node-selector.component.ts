@@ -192,7 +192,7 @@ export class NodeSelectorComponent implements OnInit, OnDestroy {
 
     private _getData(): void {
         this._baseServiceGetDocumentSubscription =
-            this._baseService.getDocument(URL.NodeGroup, false).subscribe(
+            this._baseService.getDocument(URL.NodeGroup, '', false).subscribe(
                 (document: ServiceDocumentQueryResult) => {
                     // If no node is provided through query parameter,
                     // use the current node's documentOwner property as the selectedNodeId
@@ -200,7 +200,7 @@ export class NodeSelectorComponent implements OnInit, OnDestroy {
                         this._selectedNodeId : document.documentOwner;
 
                     this._baseServiceGetDocumentsSubscription =
-                        this._baseService.getDocuments(document.documentLinks, false).subscribe(
+                        this._baseService.getDocuments(document.documentLinks, '', false).subscribe(
                             (nodeGroups: NodeGroup[]) => {
                                 this._nodeGroups = nodeGroups;
                                 this._hostNode = this._getSelectedNodeById(document.documentOwner);

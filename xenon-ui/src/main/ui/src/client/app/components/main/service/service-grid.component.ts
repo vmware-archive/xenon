@@ -9,7 +9,7 @@ import { BaseComponent } from '../../../frameworks/core/index';
 
 import { URL } from '../../../frameworks/app/enums/index';
 import { EventContext, ModalContext, Node, ServiceDocument, ServiceDocumentQueryResult } from '../../../frameworks/app/interfaces/index';
-import { StringUtil } from '../../../frameworks/app/utils/index';
+import { ODataUtil, StringUtil } from '../../../frameworks/app/utils/index';
 
 import { BaseService, NodeSelectorService, NotificationService } from '../../../frameworks/app/services/index';
 
@@ -134,15 +134,15 @@ export class ServiceGridComponent implements OnInit, OnDestroy {
             this._baseService.post(URL.Root, URL.RootPostBody).subscribe(
                 (document: ServiceDocumentQueryResult) => {
                     this._baseServiceGetDocumentSubscription =
-                        this._baseService.getDocuments(document.documentLinks).subscribe(
+                        this._baseService.getDocuments(document.documentLinks, `${ODataUtil.pageLimit()}&${ODataUtil.count()}`).subscribe(
                             (services: ServiceDocument[]) => {
-                                this._coreServices = _.filter(services, (service: ServiceDocument) => {
+                                this._coreServices = _.sortBy(_.filter(services, (service: ServiceDocument) => {
                                     return this._coreServiceRegExp.test(service.documentSelfLink);
-                                });
+                                }), 'documentSelfLink');
 
-                                this._customServices = _.filter(services, (service: ServiceDocument) => {
+                                this._customServices = _.sortBy(_.filter(services, (service: ServiceDocument) => {
                                     return !this._coreServiceRegExp.test(service.documentSelfLink);
-                                });
+                                }), 'documentSelfLink');
                             },
                             (error) => {
                                 // TODO: Better error handling

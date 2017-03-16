@@ -10,7 +10,7 @@
                 <div class="dropdown">
                     <a id="serviceList" class="link-dropdown-toggle dropdown-toggle"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        {{getSelectedServiceId()}}
+                        {{ getSelectedServiceId() }}
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="serviceList">
                         <li class="dropdown-filter"
@@ -25,7 +25,7 @@
                                 [class.active]="getSelectedServiceId() === serviceLink"
                                 [routerLink]="['/main/service', getSelectedServiceRouterId(serviceLink)]"
                                 preserveQueryParams="true">
-                                {{serviceLink}}
+                                {{ serviceLink }}
                             </a>
                         </li>
                     </ul>
@@ -46,13 +46,17 @@
             <h4 class="title">{{ 'ERROR_NO_CHILD_SERVICE_AVAILABLE' | translate }}</h4>
             <p class="message">{{ 'ERROR_NO_CHILD_SERVICE_AVAILABLE_HELPER' | translate }}</p>
         </div>
-        <div class="left-side-area area"
-             *ngIf="getChildServiceLinks().length > 0">
+        <div class="left-side-area area" *ngIf="getChildServiceLinks().length > 0"
+                infinite-scroll
+                [infiniteScrollThrottle]="100"
+                [scrollWindow]="false"
+                [infiniteScrollDisabled]="getChildServiceLinks().length < 25"
+                (scrolled)="onLoadNextPage()">
             <div class="list-group">
                 <a class="list-group-item list-group-item-action"
                     *ngFor="let childServiceLink of getChildServiceLinks()"
-                    [routerLink]="['/main/service', getSelectedServiceRouterId(getSelectedServiceId()), childServiceLink]"
-                    preserveQueryParams="true" routerLinkActive="active">
+                    [class.active]="getSelectedChildServiceId() === childServiceLink"
+                    (click)="onSelectChildService($event, childServiceLink)">
                     {{childServiceLink}}
                 </a>
             </div>

@@ -38,18 +38,16 @@
             overflow-y: scroll;
 
             .list-group-item {
-                border-left: none;
-                border-right: none;
+                border: none;
                 padding-left: baselinerem(1.5);
+                cursor: pointer;
 
-                &:first-child {
-                    border-radius: 0;
-                    border-top: none;
+                &:hover {
+                    box-shadow: rpx(4) 0 0 $light-blue-300 inset;
                 }
 
-                &:last-child {
-                    border-radius: 0;
-                    border-bottom: none;
+                &:focus, &:active, &.active {
+                    box-shadow: rpx(4) 0 0 $light-blue-400 inset;
                 }
             }
         }

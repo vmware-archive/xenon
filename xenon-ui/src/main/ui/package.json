@@ -1,6 +1,6 @@
 {
     "name": "xenon-ui",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "Xenon UI",
     "scripts": {
         "build.desktop.mac": "rimraf desktop/mac/* && gulp desktop.mac",
@@ -171,6 +171,7 @@
         "@ngrx/effects": "^2.0.0",
         "@ngrx/store": "^2.2.1",
         "angular2-cookie": "^1.2.2",
+        "angular2-infinite-scroll": "^0.3.4",
         "angulartics2": "^1.4.3",
         "angular2-websocket": "^0.6.3",
         "bootstrap": "^4.0.0-alpha.5",

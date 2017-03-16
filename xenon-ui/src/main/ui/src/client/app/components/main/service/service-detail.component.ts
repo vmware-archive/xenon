@@ -1,5 +1,6 @@
 // angular
 import { ChangeDetectionStrategy, OnInit, OnDestroy } from '@angular/core';
+import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs/Subscription';
 import * as _ from 'lodash';
@@ -8,8 +9,9 @@ import * as _ from 'lodash';
 import { BaseComponent } from '../../../frameworks/core/index';
 
 import { URL } from '../../../frameworks/app/enums/index';
-import { ModalContext, Node, ServiceDocument, ServiceDocumentQueryResult } from '../../../frameworks/app/interfaces/index';
-import { StringUtil } from '../../../frameworks/app/utils/index';
+import { ModalContext, Node, QueryTask, ServiceDocument,
+    ServiceDocumentQueryResult } from '../../../frameworks/app/interfaces/index';
+import { ODataUtil, StringUtil } from '../../../frameworks/app/utils/index';
 
 import { BaseService, NodeSelectorService, NotificationService } from '../../../frameworks/app/services/index';
 
@@ -34,24 +36,34 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
     };
 
     /**
-     * links to all the available services.
+     * Links to all the available services.
      */
     private _serviceLinks: string[] = [];
 
     /**
-     * links to all the available child services within the specified service.
+     * Links to all the available child services within the specified service.
      */
     private _childServicesLinks: string[] = [];
 
     /**
+     * Link to the next page of the child services
+     */
+    private _childServiceNextPageLink: string;
+
+    /**
+     * A lock to prevent the same next page link from being requested multiple times when scrolling
+     */
+    private _childServiceNextPageLinkRequestLocked: boolean = false;
+
+    /**
      * Id for the selected service. E.g. /core/examples
      */
-    private _selectedServiceId: string = '';
+    private _selectedServiceId: string;
 
     /**
      * Id for the selected child service.
      */
-    private _selectedChildServiceId: string = '';
+    private _selectedChildServiceId: string;
 
     /**
      * Subscriptions to services.
@@ -60,13 +72,15 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
     private _nodeSelectorServiceGetSelectedSubscription: Subscription;
     private _baseServiceGetLinksSubscription: Subscription;
     private _baseServiceGetChildServiceListSubscription: Subscription;
+    private _baseServiceGetChildServiceListNextPageSubscription: Subscription;
 
     constructor(
         private _baseService: BaseService,
         private _nodeSelectorService: NodeSelectorService,
         private _notificationService: NotificationService,
         private _activatedRoute: ActivatedRoute,
-        private _router: Router) {}
+        private _router: Router,
+        private _browserLocation: Location) {}
 
     ngOnInit(): void {
         // Update data when selected node changes
@@ -166,6 +180,54 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
             });
     }
 
+    onSelectChildService(event: MouseEvent, childServiceId: string): void {
+        event.stopImmediatePropagation();
+
+        // Manually update the url to represent the selected child service instead of
+        // using router navigate, to prevent the page from flashing (thus all the child services
+        // get reloaded and pagination get massed up), and offer better performance.
+        var serviceId: string = this._activatedRoute.snapshot.params['id'];
+        var basePath = this._browserLocation.path();
+
+        if (_.isUndefined(this._selectedChildServiceId)) {
+            this._browserLocation.replaceState(basePath.replace(serviceId, `${serviceId}/${childServiceId}`));
+        } else {
+            this._browserLocation.replaceState(basePath.replace(this._selectedChildServiceId, childServiceId));
+        }
+
+        this._selectedChildServiceId = childServiceId;
+    }
+
+    onLoadNextPage(): void {
+        if (_.isUndefined(this._childServiceNextPageLink) || this._childServiceNextPageLinkRequestLocked) {
+            return;
+        }
+
+        this._childServiceNextPageLinkRequestLocked = true;
+        this._baseServiceGetChildServiceListNextPageSubscription =
+            this._baseService.getDocument(this._childServiceNextPageLink, '', false).subscribe(
+                (document: QueryTask) => {
+                    if (_.isEmpty(document.results) || this._childServiceNextPageLink === document.results.nextPageLink) {
+                        return;
+                    }
+
+                    this._childServiceNextPageLinkRequestLocked = false;
+                    this._childServicesLinks = _.concat(this._childServicesLinks, document.results.documentLinks);
+
+                    // NOTE: Need to use forwarding link here since the paginated data is stored on a particular node
+                    if (document.results.nextPageLink) {
+                        this._childServiceNextPageLink = this._baseService.getForwardingLink(document.results.nextPageLink);
+                    }
+                },
+                (error) => {
+                    // TODO: Better error handling
+                    this._notificationService.set([{
+                        type: 'ERROR',
+                        messages: [`Failed to retrieve factory service details: [${error.statusCode}] ${error.message}`]
+                    }]);
+                });
+    }
+
     private _getData(): void {
         // Only get _serviceLinks once
         if (_.isEmpty(this._serviceLinks)) {
@@ -175,7 +237,7 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
             this._baseServiceGetLinksSubscription =
                 this._baseService.post(URL.Root, URL.RootPostBody).subscribe(
                     (document: ServiceDocumentQueryResult) => {
-                        this._serviceLinks = document.documentLinks;
+                        this._serviceLinks = _.sortBy(document.documentLinks);
                     },
                     (error) => {
                         // TODO: Better error handling
@@ -186,23 +248,22 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
                     });
         }
 
-        // - When _childServicesLinks is not available, get it
-        // - When switching between child services (thus _selectedChildServiceId is
-        //      available), skip querying child services since it will
-        //      not change anyway
-        if (_.isEmpty(this._childServicesLinks) || _.isNull(this._selectedChildServiceId)) {
-            this._baseServiceGetChildServiceListSubscription =
-                this._baseService.getDocumentLinks(this._selectedServiceId).subscribe(
-                    (childServiceLinks: string[]) => {
-                        this._childServicesLinks = childServiceLinks;
-                    },
-                    (error) => {
-                        // TODO: Better error handling
-                        this._notificationService.set([{
-                            type: 'ERROR',
-                            messages: [`Failed to retrieve factory service details: [${error.statusCode}] ${error.message}`]
-                        }]);
-                    });
-        }
+        this._baseServiceGetChildServiceListSubscription =
+            this._baseService.getDocument(this._selectedServiceId, `${ODataUtil.limit()}&${ODataUtil.orderBy('documentSelfLink')}`).subscribe(
+                (document: ServiceDocumentQueryResult) => {
+                    this._childServicesLinks = document.documentLinks;
+
+                    // NOTE: Need to use forwarding link here since the paginated data is stored on a particular node
+                    if (document.nextPageLink) {
+                        this._childServiceNextPageLink = this._baseService.getForwardingLink(document.nextPageLink);
+                    }
+                },
+                (error) => {
+                    // TODO: Better error handling
+                    this._notificationService.set([{
+                        type: 'ERROR',
+                        messages: [`Failed to retrieve factory service details: [${error.statusCode}] ${error.message}`]
+                    }]);
+                });
     }
 }
