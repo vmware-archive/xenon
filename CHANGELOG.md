@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.4.1-SNAPSHOT
+## 1.4.1
 
 * Fix migration task bug that may cause data loss when combined with transformation service.
   https://www.pivotaltracker.com/story/show/141885113
