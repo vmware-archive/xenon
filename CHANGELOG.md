@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.1.0-CR6-SNAPSHOT
+
 ## 1.1.0-CR5
 
 * Bug fix related to synchronization of deleted documents
