@@ -530,6 +530,8 @@ public class SynchronizationTaskService
         };
 
         sendRequest(Operation.createGet(task.queryPageReference)
+                .setConnectionSharing(true)
+                .setConnectionTag(ServiceClient.CONNECTION_TAG_SYNCHRONIZATION)
                 .setExpiration(
                         Utils.fromNowMicrosUtc(NodeGroupService.PEER_REQUEST_TIMEOUT_MICROS))
                 .setCompletion(c));
@@ -635,6 +637,8 @@ public class SynchronizationTaskService
                 .setBody(d)
                 .setCompletion(c)
                 .setReferer(getUri())
+                .setConnectionSharing(true)
+                .setConnectionTag(ServiceClient.CONNECTION_TAG_SYNCHRONIZATION)
                 .addPragmaDirective(Operation.PRAGMA_DIRECTIVE_SYNCH_OWNER)
                 .setExpiration(
                         Utils.fromNowMicrosUtc(NodeGroupService.PEER_REQUEST_TIMEOUT_MICROS))
@@ -656,6 +660,8 @@ public class SynchronizationTaskService
         Operation put = Operation.createPut(
                 UriUtils.buildAvailableUri(this.getHost(), task.factorySelfLink))
                 .setBody(body)
+                .setConnectionSharing(true)
+                .setConnectionTag(ServiceClient.CONNECTION_TAG_SYNCHRONIZATION)
                 .setCompletion((o, e) -> {
                     if (parentOp != null) {
                         parentOp.complete();
