@@ -2,6 +2,8 @@ export class ODataUtil {
     static DEFAULT_PAGE_SIZE: number = 25;
     static PAGE_LIMIT: number = 10000;
 
+    static DEFAULT_LOG_SIZE: number = 1000;
+
     static EXPAND: string = '$expand';
     static FILTER: string = '$filter';
     static SKIP: string = '$skip';

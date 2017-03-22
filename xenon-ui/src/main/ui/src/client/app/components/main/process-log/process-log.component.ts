@@ -9,7 +9,7 @@ import { BaseComponent } from '../../../frameworks/core/index';
 import { URL } from '../../../frameworks/app/enums/index';
 import { Node, ProcessLog } from '../../../frameworks/app/interfaces/index';
 import { BaseService, NodeSelectorService, NotificationService } from '../../../frameworks/app/services/index';
-import { StringUtil } from '../../../frameworks/app/utils/index';
+import { ODataUtil, StringUtil } from '../../../frameworks/app/utils/index';
 
 import { ProcessLogTypeUtil } from './process-log-type.util';
 
@@ -107,6 +107,10 @@ export class ProcessLogComponent implements OnInit, OnDestroy {
         return logItems;
     }
 
+    getFullLogLink(): string {
+        return this._baseService.getForwardingLink(URL.Log);
+    }
+
     getLogItemType(logItem: string): string {
         var logItemTypeSegments = logItem.match(StringUtil.LOG_ITEM_TYPE_REGEX);
 
@@ -154,6 +158,10 @@ export class ProcessLogComponent implements OnInit, OnDestroy {
         return ProcessLogTypeUtil.getLogType(logType).iconClassName;
     }
 
+    isPartialLog(): boolean {
+        return this._log ? this._log.items.length === ODataUtil.DEFAULT_LOG_SIZE : false;
+    }
+
     onFilterApplied(event: MouseEvent, filter: string): void {
         event.stopPropagation();
 
@@ -167,7 +175,8 @@ export class ProcessLogComponent implements OnInit, OnDestroy {
         this._severeLogItems = [];
 
         this._baseServiceSubscription =
-            this._baseService.getDocument(URL.Log).subscribe(
+            // Get the logs that limit to the most recent 1000 lines
+            this._baseService.getDocument(URL.Log, `lineCount=${ODataUtil.DEFAULT_LOG_SIZE}`).subscribe(
                 (log: ProcessLog) => {
                     this._log = log;
 

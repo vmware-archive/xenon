@@ -28,6 +28,9 @@
         </aside>
     </nav>
     <main class="content-area">
+        <p class="log-item" *ngIf="isPartialLog()">
+            <a [href]="getFullLogLink()" target="_blank">{{ 'PROCESS_VIEW_FULL_LOGS' | translate }}</a>
+        </p>
         <p class="log-item" *ngFor="let logItem of getLogItems(activeFilter)">
             <span [class]="getLogItemTypeClass(logItem, 'log-type')">
                 <i [class]="getLogItemTypeIconClass(logItem)"></i>

@@ -134,7 +134,7 @@ export class ServiceGridComponent implements OnInit, OnDestroy {
             this._baseService.post(URL.Root, URL.RootPostBody).subscribe(
                 (document: ServiceDocumentQueryResult) => {
                     this._baseServiceGetDocumentSubscription =
-                        this._baseService.getDocuments(document.documentLinks, `${ODataUtil.pageLimit()}&${ODataUtil.count()}`).subscribe(
+                        this._baseService.getDocuments(document.documentLinks, `${ODataUtil.count()}`).subscribe(
                             (services: ServiceDocument[]) => {
                                 this._coreServices = _.sortBy(_.filter(services, (service: ServiceDocument) => {
                                     return this._coreServiceRegExp.test(service.documentSelfLink);

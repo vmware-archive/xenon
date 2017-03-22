@@ -42,6 +42,7 @@
     "PROCESS_LOG_FILTER_INFO": "Info",
     "PROCESS_LOG_FILTER_WARNING": "Warning",
     "PROCESS_LOG_FILTER_ERROR": "Error",
+    "PROCESS_VIEW_FULL_LOGS": "View Full Logs",
 
     "QUERY_TITLE": "Queries",
     "QUERY_MODE_INTERACTIVE_TITLE": "Interactive",
