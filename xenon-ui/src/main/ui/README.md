@@ -43,22 +43,20 @@ Xenon UI comes as a web application with every Xenon jar after 0.9.6 and is avai
 
 - Node Selector: displays all the peer nodes and their system info in the current group, and you can select a specific node so the UI shows all the information relevant to this node.
 - Dashboard: shows stats for CPU, Memory and Disk usage, and logs.
-- Lists all the available factory services and their status and options, as well as detailed information of service instances under the factory services.
-- Create, Edit(PATCH/PUT) and Delete instances.
+- Lists all the available factory services and their status and options, as well as detailed information of child services under the factory services.
+- Create, Edit(PATCH/PUT) and Delete child services.
 - Logs for each node.
-- Query UI that allows building queries using either the interactive "Query Builder" or JSON editor, and displays the results right below.
+- Query UI: allows building queries using either the interactive "Query Builder" or JSON editor, and displays the results right below.
+- Operation Tracing: provides a visual way for you to see what operation hits which service at what time. This is very helpful when debugging Xenon’s asynchronous operations.
 - Login/logout mechanism.
-- Conceptual about page, we can either create a page like this with documentations or point the ? icon to xenon wiki (which would be easier).
 - (PARTIAL) i18n support
 
 #### Planned Improvements
 
-- Operation Tracing.
-- Pagination: not implemented for any of the lists, which will cause performance issue when it scales. Need some refactoring once having a clearer idea on how Xenon does it.
 - Reactive: right now data all come from one off http calls, no change will be reflected on the UI without page refresh. Need some work here.
 - Node Selector: Need to cover more complex topology scenarios.
-- Dashboard improvements: Aggregated service instance stats and index usage stats needs to be added to the dashboard.
-- Form improvements: UX revisit and validation on Create, Edit and Delete instance model forms.
+- Dashboard improvements: Aggregated child service stats and index usage stats needs to be added to the dashboard.
+- Form improvements: UX revisit and validation on Create, Edit and Delete child service model forms.
 - System configuration: should allow edits of some system properties.
 - Performance: definitely need some tuning.
 - Improvements/fixes based on your feedback.

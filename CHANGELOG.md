@@ -2,6 +2,8 @@
 
 ## 1.4.2-SNAPSHOT
 
+* Xenon UI: Introduce pagination on factory services and query results, which allows the UI to handle large amount of documents.
+
 ## 1.4.1
 
 * Fix migration task bug that may cause data loss when combined with transformation service.
