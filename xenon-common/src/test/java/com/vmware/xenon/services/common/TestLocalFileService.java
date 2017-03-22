@@ -20,9 +20,9 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Collections;
 import java.util.EnumSet;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -35,7 +35,7 @@ import com.vmware.xenon.common.test.TestContext;
 import com.vmware.xenon.common.test.TestRequestSender;
 import com.vmware.xenon.services.common.LocalFileService.LocalFileServiceState;
 
-@Ignore("https://www.pivotaltracker.com/story/show/142084897")
+
 public class TestLocalFileService extends BasicReusableHostTestCase {
 
     @Rule
@@ -56,8 +56,9 @@ public class TestLocalFileService extends BasicReusableHostTestCase {
         this.host.startService(post, new LocalFileService());
         this.host.waitForServiceAvailable(serviceLink);
 
-
-        File fileToUpload = new File(getClass().getResource("example_bodies.json").getFile());
+        // create a file to upload
+        File fileToUpload = this.tmpDir.newFile("upload.txt");
+        Files.write(fileToUpload.toPath(), Collections.singletonList("hello"));
 
         // upload file
         TestContext testCtx = this.host.testCreate(1);
@@ -75,8 +76,10 @@ public class TestLocalFileService extends BasicReusableHostTestCase {
 
     @Test
     public void readFile() throws Throwable {
-        File fileToRead = new File(getClass().getResource("example_bodies.json").getFile());
-        String content = new String(Files.readAllBytes(Paths.get(fileToRead.toURI())));
+        // create a file to read
+        File fileToRead = this.tmpDir.newFile("to-read.txt");
+        Files.write(fileToRead.toPath(), Collections.singletonList("hello"));
+        String content = new String(Files.readAllBytes(fileToRead.toPath()));
 
         // create local file service
         String serviceLink = LocalFileService.SERVICE_PREFIX + "/read";
@@ -127,7 +130,9 @@ public class TestLocalFileService extends BasicReusableHostTestCase {
         this.host.waitForServiceAvailable(writeServiceLink);
 
 
-        File fileToUpload = new File(getClass().getResource("example_bodies.json").getFile());
+        // create a file to upload
+        File fileToUpload = this.tmpDir.newFile("upload.txt");
+        Files.write(fileToUpload.toPath(), Collections.singletonList("hello"));
 
         // upload file
         TestContext testCtx = this.host.testCreate(1);
