@@ -102,14 +102,7 @@ public class NettyHttpServiceClientTest {
         HOST.setMaintenanceIntervalMicros(
                 TimeUnit.MILLISECONDS.toMicros(VerificationHost.FAST_MAINT_INTERVAL_MILLIS));
 
-        ServiceClient client = NettyHttpServiceClient.create(
-                NettyHttpServiceClientTest.class.getSimpleName(),
-                Executors.newFixedThreadPool(4),
-                Executors.newScheduledThreadPool(1), HOST);
-
-        SSLContext clientContext = SSLContext.getInstance(ServiceClient.TLS_PROTOCOL_NAME);
-        clientContext.init(null, InsecureTrustManagerFactory.INSTANCE.getTrustManagers(), null);
-        client.setSSLContext(clientContext);
+        ServiceClient client = createNettyServiceClient();
         HOST.setClient(client);
 
         SelfSignedCertificate ssc = new SelfSignedCertificate();
@@ -139,7 +132,18 @@ public class NettyHttpServiceClientTest {
             HOST.testWait();
             HOST.resetAuthorizationContext();
         }
+    }
 
+    private static ServiceClient createNettyServiceClient() throws Throwable {
+        ServiceClient client = NettyHttpServiceClient.create(
+                NettyHttpServiceClientTest.class.getSimpleName(),
+                Executors.newFixedThreadPool(4),
+                Executors.newScheduledThreadPool(1), HOST);
+
+        SSLContext clientContext = SSLContext.getInstance(ServiceClient.TLS_PROTOCOL_NAME);
+        clientContext.init(null, InsecureTrustManagerFactory.INSTANCE.getTrustManagers(), null);
+        client.setSSLContext(clientContext);
+        return client;
     }
 
     @AfterClass
@@ -254,12 +258,19 @@ public class NettyHttpServiceClientTest {
     }
 
     private void validateTagInfo(String tag) {
+        validateTagInfo(this.host.getClient(), tag, null);
+    }
+
+    private void validateTagInfo(ServiceClient client, String tag, Integer limit) {
         this.host.waitFor("pending requests", () -> {
-            ConnectionPoolMetrics tagInfo = this.host.getClient().getConnectionPoolMetrics(tag);
+            ConnectionPoolMetrics tagInfo = client.getConnectionPoolMetrics(tag);
             if (tagInfo == null) {
                 return false;
             }
             this.host.log("%s", Utils.toJson(tagInfo));
+            if (limit != null && tagInfo.availableConnectionCount > limit) {
+                throw new IllegalStateException("Available: " + tagInfo.availableConnectionCount);
+            }
             if (tagInfo.pendingRequestCount != 0 || tagInfo.inUseConnectionCount > 0) {
                 this.host.log("Requests still pending: %s", Utils.toJson(tagInfo));
                 return false;
@@ -857,6 +868,45 @@ public class NettyHttpServiceClientTest {
 
         tag = this.host.connectionTag;
         validateTagInfo(tag);
+    }
+
+    @Test
+    public void testConnectionLimit() throws Throwable {
+
+        List<Service> services = this.host.doThroughputServiceStart(this.serviceCount,
+                MinimalTestService.class,
+                this.host.buildMinimalTestState(),
+                null, null);
+
+        String tag = "http1.1ConnectionLimitTag";
+        int limit = 8;
+        ServiceClient serviceClient = createNettyServiceClient();
+        serviceClient.setConnectionLimitPerTag(tag, limit);
+        serviceClient.start();
+
+        for (int i = 0; i < this.iterationCount; i++) {
+            doConnectionLimit(services, serviceClient, tag, limit);
+        }
+
+        serviceClient.stop();
+    }
+
+    private void doConnectionLimit(List<Service> services, ServiceClient serviceClient, String tag,
+            int limit) throws Throwable {
+        this.host.testStart(this.requestCount * services.size());
+        for (int i = 0; i < this.requestCount; i++) {
+            for (Service service : services) {
+                Operation getOp = Operation.createGet(service.getUri())
+                        .setReferer(this.host.getReferer())
+                        .setConnectionTag(tag)
+                        .forceRemote()
+                        .setCompletion(this.host.getCompletion());
+                this.host.run(() -> serviceClient.send(getOp));
+            }
+        }
+        this.host.testWait();
+
+        validateTagInfo(serviceClient, tag, limit);
     }
 
     @Test
