@@ -2779,6 +2779,7 @@ public class TestServiceHost {
 
         // restart
         this.host.stop();
+        this.host.setPort(0);
         this.host.start();
 
         // verify management service is accessible.
