@@ -657,10 +657,9 @@ public class NettyChannelPool {
             pendingOp = group.pendingRequests.poll();
             if (isClose) {
                 group.inUseChannels.remove(context);
-            } else if (!this.isHttp2Only) {
-                if (pendingOp == null) {
+            } else if (!this.isHttp2Only && pendingOp == null) {
+                if (group.inUseChannels.remove(context)) {
                     group.availableChannels.add(context);
-                    group.inUseChannels.remove(context);
                 }
             }
         }

@@ -922,13 +922,49 @@ public class NettyHttpServiceClientTest {
                         .setReferer(this.host.getReferer())
                         .setConnectionTag(tag)
                         .forceRemote()
-                        .setCompletion(this.host.getCompletion());
+                        .setCompletion((o, e) -> this.host.completeIteration());
                 this.host.run(() -> serviceClient.send(getOp));
             }
         }
         this.host.testWait();
 
         validateTagInfo(this.host, serviceClient, tag, limit);
+    }
+
+    @Test
+    public void testConnectionLimitWithOperationTimeout() throws Throwable {
+
+        List<Service> services = this.host.doThroughputServiceStart(this.serviceCount,
+                MinimalTestService.class,
+                this.host.buildMinimalTestState(),
+                null, null);
+
+        this.host.connectionTag = "connectionLimitWithOperationTimeoutTag";
+        this.host.getClient().setConnectionLimitPerTag(this.host.connectionTag,
+                ServiceClient.DEFAULT_CONNECTION_LIMIT_PER_HOST);
+
+        for (int i = 0; i < this.iterationCount; i++) {
+            doConnectionLimitWithOperationTimeout(services);
+        }
+    }
+
+    private void doConnectionLimitWithOperationTimeout(List<Service> services) {
+        this.host.testStart(this.requestCount * services.size());
+        for (int i = 0; i < this.requestCount; i++) {
+            for (Service service : services) {
+                Operation getOp = Operation.createGet(service.getUri())
+                        .setReferer(this.host.getReferer())
+                        .setConnectionTag(this.host.connectionTag)
+                        .forceRemote()
+                        .setExpiration(Utils.getNowMicrosUtc() + 10)
+                        // Ignore timeout failures
+                        .setCompletion((o, e) -> this.host.completeIteration());
+                this.host.run(() -> this.host.send(getOp));
+            }
+        }
+        this.host.testWait();
+        validateTagInfo(this.host, this.host.getClient(), this.host.connectionTag,
+                ServiceClient.DEFAULT_CONNECTION_LIMIT_PER_HOST);
     }
 
     @Test
