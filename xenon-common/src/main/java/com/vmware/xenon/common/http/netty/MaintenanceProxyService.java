@@ -33,6 +33,7 @@ public class MaintenanceProxyService extends StatelessService {
     private Consumer<Operation> parentHandler;
 
     public MaintenanceProxyService(Consumer<Operation> parentHandler) {
+        super.toggleOption(ServiceOption.CORE, true);
         super.toggleOption(ServiceOption.PERIODIC_MAINTENANCE, true);
         this.parentHandler = parentHandler;
     }
