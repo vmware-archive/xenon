@@ -2461,7 +2461,8 @@ public class LuceneDocumentIndexService extends StatelessService {
         // be reflected in the new searcher. If the start time would be used,
         // it is possible to race with updating the searcher and NOT have this
         // change be reflected in the searcher.
-        updateLinkInfoCache(desc, sd.documentSelfLink, sd.documentKind, sd.documentVersion, Utils.getNowMicrosUtc());
+        updateLinkInfoCache(desc, sd.documentSelfLink, sd.documentKind, sd.documentVersion,
+                Utils.getNowMicrosUtc());
         op.setBody(null).complete();
         checkDocumentRetentionLimit(sd, desc);
         applyActiveQueries(op, sd, desc);
@@ -2549,8 +2550,6 @@ public class LuceneDocumentIndexService extends StatelessService {
                 needNewSearcher = true;
             } else if (documentNeedsNewSearcher(selfLink, documentKind, resultLimit, searcherUpdateTime)) {
                 needNewSearcher = !doNotRefresh;
-            } else if (searcherUpdateTime < this.writerUpdateTimeMicros) {
-                needNewSearcher = !doNotRefresh;
             }
         }
 
@@ -2574,7 +2573,6 @@ public class LuceneDocumentIndexService extends StatelessService {
     }
 
     private boolean documentNeedsNewSearcher(String selfLink, String documentKind, int resultLimit, long searcherUpdateTime) {
-
         if (selfLink != null && resultLimit == 1) {
             DocumentUpdateInfo du = this.updatesPerLink.get(selfLink);
             if (du != null
@@ -2592,14 +2590,17 @@ public class LuceneDocumentIndexService extends StatelessService {
             if (documentKindUpdateTime == null) {
                 documentKindUpdateTime = Long.MAX_VALUE;
             }
-
             if (searcherUpdateTime > documentKindUpdateTime) {
                 adjustTimeSeriesStat(STAT_NAME_SEARCHER_REUSE_BY_DOCUMENT_KIND_COUNT, AGGREGATION_TYPE_SUM, 1);
                 return false;
+            } else {
+                return true;
             }
+        } else if (searcherUpdateTime < this.writerUpdateTimeMicros) {
+            return true;
         }
 
-        return true;
+        return false;
     }
 
     @Override
