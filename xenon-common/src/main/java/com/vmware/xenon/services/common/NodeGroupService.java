@@ -737,9 +737,7 @@ public class NodeGroupService extends StatefulService {
                 return;
             }
 
-            long patchCompletionTime = Utils.getSystemNowMicrosUtc();
-
-            updateGossipPatchStat(sendTimeMicros, remotePeer, patchCompletionTime);
+            updateGossipPatchStat(sendTimeMicros, remotePeer);
 
             long updateTime = localState.membershipUpdateTimeMicros;
             if (e != null) {
@@ -790,8 +788,9 @@ public class NodeGroupService extends StatefulService {
 
     }
 
-    private void updateGossipPatchStat(long sendTimeMicros, NodeState remotePeer,
-            long patchCompletionTime) {
+    private void updateGossipPatchStat(long sendTimeMicros, NodeState remotePeer) {
+        long patchCompletionTime = Utils.getSystemNowMicrosUtc();
+
         String statName = remotePeer.id + STAT_NAME_PREFIX_GOSSIP_PATCH_DURATION
                 + ServiceStats.STAT_NAME_SUFFIX_PER_DAY;
         ServiceStat st = getStat(statName);
