@@ -2619,9 +2619,7 @@ public class TestNodeGroupService {
         } while (new Date().before(expiration) && ic < this.iterationCount);
 
         logPerActionThroughput(elapsedTimePerAction, countPerAction);
-        if (this.testDurationSeconds == 0) {
-            this.host.doNodeGroupStatsVerification(this.host.getNodeGroupMap());
-        }
+        this.host.doNodeGroupStatsVerification(this.host.getNodeGroupMap());
     }
 
     private void prepareForReplicationProfiling() {

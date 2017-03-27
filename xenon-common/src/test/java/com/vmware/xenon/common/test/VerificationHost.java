@@ -109,6 +109,7 @@ import com.vmware.xenon.services.common.ExampleService;
 import com.vmware.xenon.services.common.ExampleService.ExampleServiceState;
 import com.vmware.xenon.services.common.ExampleServiceHost;
 import com.vmware.xenon.services.common.MinimalTestService.MinimalTestServiceErrorResponse;
+import com.vmware.xenon.services.common.NodeGroupService;
 import com.vmware.xenon.services.common.NodeGroupService.JoinPeerRequest;
 import com.vmware.xenon.services.common.NodeGroupService.NodeGroupConfig;
 import com.vmware.xenon.services.common.NodeGroupService.NodeGroupState;
@@ -2327,17 +2328,44 @@ public class VerificationHost extends ExampleServiceHost {
     }
 
     public void doNodeGroupStatsVerification(Map<URI, URI> defaultNodeGroupsPerHost) {
-        List<Operation> ops = new ArrayList<>();
-        for (URI nodeGroup : defaultNodeGroupsPerHost.values()) {
-            Operation get = Operation.createGet(UriUtils.extendUri(nodeGroup,
-                    ServiceHost.SERVICE_URI_SUFFIX_STATS));
-            ops.add(get);
-        }
-        List<Operation> results = this.sender.sendAndWait(ops);
-        for (Operation result : results) {
-            ServiceStats stats = result.getBody(ServiceStats.class);
-            assertTrue(!stats.entries.isEmpty());
-        }
+        waitFor("peer gossip stats not found", () -> {
+            List<Operation> ops = new ArrayList<>();
+            for (URI nodeGroup : defaultNodeGroupsPerHost.values()) {
+                Operation get = Operation.createGet(UriUtils.extendUri(nodeGroup,
+                        ServiceHost.SERVICE_URI_SUFFIX_STATS));
+                ops.add(get);
+            }
+
+            int peerCount = defaultNodeGroupsPerHost.size();
+            List<Operation> results = this.sender.sendAndWait(ops);
+            for (Operation result : results) {
+                ServiceStats stats = result.getBody(ServiceStats.class);
+                if (stats.entries.isEmpty()) {
+                    return false;
+                }
+                int gossipPatchStatCount = 0;
+                for (ServiceStat st : stats.entries.values()) {
+                    if (!st.name
+                            .contains(NodeGroupService.STAT_NAME_PREFIX_GOSSIP_PATCH_DURATION)) {
+                        continue;
+                    }
+                    gossipPatchStatCount++;
+                    if (st.logHistogram == null) {
+                        return false;
+                    }
+                    if (st.timeSeriesStats == null) {
+                        return false;
+                    }
+                    if (st.version < 1) {
+                        return false;
+                    }
+                }
+                if (gossipPatchStatCount != peerCount - 1) {
+                    return false;
+                }
+            }
+            return true;
+        });
     }
 
     public void setNodeGroupConfig(NodeGroupConfig config) {

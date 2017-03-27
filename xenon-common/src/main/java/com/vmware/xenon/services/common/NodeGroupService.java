@@ -30,6 +30,11 @@ import com.vmware.xenon.common.Operation.CompletionHandler;
 import com.vmware.xenon.common.ServiceClient;
 import com.vmware.xenon.common.ServiceDocument;
 import com.vmware.xenon.common.ServiceHost.ServiceHostState;
+import com.vmware.xenon.common.ServiceStats;
+import com.vmware.xenon.common.ServiceStats.ServiceStat;
+import com.vmware.xenon.common.ServiceStats.ServiceStatLogHistogram;
+import com.vmware.xenon.common.ServiceStats.TimeSeriesStats;
+import com.vmware.xenon.common.ServiceStats.TimeSeriesStats.AggregationType;
 import com.vmware.xenon.common.StatefulService;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.Utils;
@@ -164,6 +169,7 @@ public class NodeGroupService extends StatefulService {
 
     public static final String STAT_NAME_RESTARTING_SERVICES_COUNT = "restartingServicesCount";
     public static final String STAT_NAME_RESTARTING_SERVICES_FAILURE_COUNT = "restartingServicesFailureCount";
+    public static final String STAT_NAME_PREFIX_GOSSIP_PATCH_DURATION = "GossipPatchDurationMicros";
 
     private URI uri;
 
@@ -680,7 +686,9 @@ public class NodeGroupService extends StatefulService {
             // peer AVAILABLE. We just update peer node, we don't currently merge their state
             // 2b) if the PATCH failed, we mark the PEER it UNAVAILABLE
 
-            CompletionHandler ch = (o, e) -> handleGossipPatchCompletion(maint, o, e, localState,
+            long sendTimeMicros = Utils.getSystemNowMicrosUtc();
+            CompletionHandler ch = (o, e) -> handleGossipPatchCompletion(sendTimeMicros, maint, o,
+                    e, localState,
                     patchBody,
                     remaining, remotePeer);
 
@@ -719,7 +727,8 @@ public class NodeGroupService extends StatefulService {
         }
     }
 
-    public void handleGossipPatchCompletion(Operation maint, Operation patch, Throwable e,
+    public void handleGossipPatchCompletion(long sendTimeMicros, Operation maint, Operation patch,
+            Throwable e,
             NodeGroupState localState, NodeGroupState patchBody, AtomicInteger remaining,
             NodeState remotePeer) {
 
@@ -727,6 +736,10 @@ public class NodeGroupService extends StatefulService {
             if (patch == null) {
                 return;
             }
+
+            long patchCompletionTime = Utils.getSystemNowMicrosUtc();
+
+            updateGossipPatchStat(sendTimeMicros, remotePeer, patchCompletionTime);
 
             long updateTime = localState.membershipUpdateTimeMicros;
             if (e != null) {
@@ -775,6 +788,24 @@ public class NodeGroupService extends StatefulService {
             }
         }
 
+    }
+
+    private void updateGossipPatchStat(long sendTimeMicros, NodeState remotePeer,
+            long patchCompletionTime) {
+        String statName = remotePeer.id + STAT_NAME_PREFIX_GOSSIP_PATCH_DURATION
+                + ServiceStats.STAT_NAME_SUFFIX_PER_DAY;
+        ServiceStat st = getStat(statName);
+        if (st.logHistogram == null) {
+            st.logHistogram = new ServiceStatLogHistogram();
+        }
+
+        if (st.timeSeriesStats == null) {
+            st.timeSeriesStats = new TimeSeriesStats((int) TimeUnit.HOURS.toMinutes(1),
+                    TimeUnit.MINUTES.toMillis(1),
+                    EnumSet.of(AggregationType.AVG));
+        }
+
+        setStat(st, patchCompletionTime - sendTimeMicros);
     }
 
     /**
