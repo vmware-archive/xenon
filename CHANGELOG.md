@@ -2,6 +2,11 @@
 
 ## 1.4.2-SNAPSHOT
 
+* Switch QueryTaskService to use the 1X node selector, instead of the full replication
+  selector. This greatly reduces the overhead of creating a query task, but still provides
+  the owner selection load balancing benefit. This change should be transparent to users,
+  since all requests to a query task are forwarded to owner (before and after this change).
+
 * Isolate scheduled task execution for core services from any other service. This
   is a internal change with no visible API changes (backwards compatible).
 

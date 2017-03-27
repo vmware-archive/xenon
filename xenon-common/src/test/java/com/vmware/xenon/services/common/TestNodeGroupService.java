@@ -2324,15 +2324,13 @@ public class TestNodeGroupService {
         Map<URI, ReplicationTestServiceState> serviceMap = this.host.doFactoryChildServiceStart(
                 null, serviceCount, ReplicationTestServiceState.class, setBodyCallback, factoryUri);
 
-        Date expiration = this.host.getTestExpiration();
-        boolean isConverged = true;
+
         Map<URI, String> uriToSignature = new HashMap<>();
-        while (new Date().before(expiration)) {
-            isConverged = true;
+        this.host.waitFor("factory results did not converge", () -> {
+            boolean isConverged = true;
             uriToSignature.clear();
             for (Entry<URI, VerificationHost> e : this.host.getInProcessHostMap().entrySet()) {
                 URI baseUri = e.getKey();
-                VerificationHost h = e.getValue();
                 URI u = UriUtils.buildUri(baseUri, factoryUri.getPath());
                 u = UriUtils.buildExpandLinksQueryUri(u);
                 ServiceDocumentQueryResult r = this.host.getFactoryState(u);
@@ -2391,30 +2389,15 @@ public class TestNodeGroupService {
                                     sig, newSig, instanceUri);
                         }
                     }
-
-                    ProcessingStage ps = h.getServiceStage(newState.queryTaskLink);
-                    if (ps == null || ps != ProcessingStage.AVAILABLE) {
-                        this.host.log("missing query task service from %s", newState.queryTaskLink,
-                                instanceUri);
-                        isConverged = false;
-                        break;
-                    }
                 }
 
                 if (isConverged == false) {
                     break;
                 }
             }
-            if (isConverged == true) {
-                break;
-            }
 
-            Thread.sleep(100);
-        }
-
-        if (!isConverged) {
-            throw new TimeoutException("States did not converge");
-        }
+            return isConverged;
+        });
 
         return serviceMap;
     }
