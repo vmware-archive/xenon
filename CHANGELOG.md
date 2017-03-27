@@ -2,6 +2,8 @@
 
 ## 1.4.2-SNAPSHOT
 
+* MigrationTask default page size is increased from 500 to 10,000.
+
 * Switch QueryTaskService to use the 1X node selector, instead of the full replication
   selector. This greatly reduces the overhead of creating a query task, but still provides
   the owner selection load balancing benefit. This change should be transparent to users,

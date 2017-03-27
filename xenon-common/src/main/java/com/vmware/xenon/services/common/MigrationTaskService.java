@@ -115,6 +115,11 @@ public class MigrationTaskService extends StatefulService {
     public static final String STAT_NAME_RETRIEVAL_QUERY_TIME_DURATION_MICRO_FORMAT = "retrievalQueryTimeDurationMicros-%s";
     public static final String FACTORY_LINK = ServiceUriPaths.MIGRATION_TASKS;
 
+    private static final Integer DEFAULT_PAGE_SIZE = 10_000;
+    private static final Long DEFAULT_MAINTENANCE_INTERVAL_MILLIS = TimeUnit.MINUTES.toMicros(1);
+    private static final Integer DEFAULT_MAXIMUM_CONVERGENCE_CHECKS = 10;
+
+
     public enum MigrationOption {
         /**
          * Enables continuous data migration.
@@ -261,10 +266,6 @@ public class MigrationTaskService extends StatefulService {
          */
         public Map<String, String> destinationLinks;
     }
-
-    private static final Integer DEFAULT_PAGE_SIZE = 500;
-    private static final Long DEFAULT_MAINTENANCE_INTERVAL_MILLIS = TimeUnit.MINUTES.toMicros(1);
-    private static final Integer DEFAULT_MAXIMUM_CONVERGENCE_CHECKS = 10;
 
     public MigrationTaskService() {
         super(MigrationTaskService.State.class);
