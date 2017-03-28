@@ -2353,6 +2353,11 @@ public class LuceneDocumentIndexService extends StatelessService {
      * assumes the caller has acquired the writer semaphore
      */
     private void checkFailureAndRecover(Throwable e) {
+
+        // When document create or update fails with an exception. Clear the threadLocalDoc.
+        Document threadLocalDoc = this.indexDocumentHelper.get().getDoc();
+        threadLocalDoc.clear();
+
         if (getHost().isStopping()) {
             logInfo("Exception after host stop, on index service thread: %s", e.toString());
             return;
