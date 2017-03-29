@@ -4342,7 +4342,7 @@ public class TestQueryTaskService {
         // we expect an update for initial state indexed as part of POST to the factory,
         // then another for the PUT we do on each service, and another for the DELETE.
         // For services with expiration there will be one more PATCH to set expiration.
-        int totalCount = this.serviceCount + servicesWithExpirationCount;
+        int totalCount = (this.serviceCount * 3) + servicesWithExpirationCount;
 
         QueryValidationServiceState newState = new QueryValidationServiceState();
         final String textValue = UUID.randomUUID().toString();
@@ -4404,7 +4404,9 @@ public class TestQueryTaskService {
 
         this.host.waitFor("Query task never completed", () -> {
             QueryTask state = this.host.getServiceState(null, QueryTask.class, taskUri);
-            if (totalCount == state.results.continuousResults.documentCountUpdated) {
+
+            if (this.serviceCount + servicesWithExpirationCount ==
+                    state.results.continuousResults.documentCountUpdated) {
                 return true;
             }
 
@@ -4448,18 +4450,17 @@ public class TestQueryTaskService {
                 (notifyOp) -> {
                     try {
                         QueryTask body = notifyOp.getBody(QueryTask.class);
-                        if (body.results == null || body.results.continuousResults == null
-                                || body.results.continuousResults.documentCountUpdated < totalCount) {
+                        if (body.results == null || body.results.continuousResults == null) {
                             return;
                         }
+
                         assertNotNull(body.results.documentCount);
                         assertNotNull(body.results.continuousResults);
                         assertNull(body.results.documentLinks);
                         assertNull(body.results.documents);
+                        ctx.complete();
                     } catch (Throwable e) {
                         ctx.fail(e);
-                    } finally {
-                        ctx.complete();
                     }
                 });
         // wait for subscription to go through before we start issuing updates
