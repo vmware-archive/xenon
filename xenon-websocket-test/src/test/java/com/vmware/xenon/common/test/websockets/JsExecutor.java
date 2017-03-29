@@ -13,14 +13,15 @@
 
 package com.vmware.xenon.common.test.websockets;
 
+import java.time.Duration;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.vmware.xenon.common.Operation.AuthorizationContext;
 import com.vmware.xenon.common.OperationContext;
+import com.vmware.xenon.common.test.TestContext;
 import com.vmware.xenon.common.test.VerificationHost;
 
 /**
@@ -51,37 +52,22 @@ public class JsExecutor {
      * @return Value returned by callable.
      */
     public static <V> V executeSynchronously(Callable<V> c) {
-        try {
-            final AtomicReference<V> result = new AtomicReference<>();
-            final AtomicReference<Exception> err = new AtomicReference<>();
-            final CountDownLatch doneLatch = new CountDownLatch(1);
-            final AuthorizationContext context = OperationContext.getAuthorizationContext();
-            executor.execute(() -> {
-                try {
-                    if (host != null) {
-                        host.setAuthorizationContext(context);
-                    }
-                    result.set(c.call());
-                } catch (Exception e) {
-                    err.set(e);
-                } finally {
-                    doneLatch.countDown();
+        final AtomicReference<V> result = new AtomicReference<V>();
+        final TestContext ctx = new TestContext(1, Duration.ofSeconds(30));
+        final AuthorizationContext context = OperationContext.getAuthorizationContext();
+        executor.execute(() -> {
+            try {
+                if (host != null) {
+                    host.setAuthorizationContext(context);
                 }
-            });
-            doneLatch.await();
-            Exception ex = err.get();
-            if (ex != null) {
-                throw ex;
-            } else {
-                return result.get();
+                result.set(c.call());
+                ctx.complete();
+            } catch (Exception e) {
+                ctx.fail(e);
             }
-        } catch (Exception e) {
-            if (e instanceof RuntimeException) {
-                throw (RuntimeException) e;
-            } else {
-                throw new RuntimeException(e);
-            }
-        }
+        });
+        ctx.await();
+        return result.get();
     }
 
     /**

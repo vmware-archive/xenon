@@ -13,15 +13,14 @@
 
 package com.vmware.xenon.common.serialization;
 
-import static org.junit.Assert.assertNull;
-
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 
+import com.vmware.xenon.common.test.TestContext;
 import com.vmware.xenon.services.common.QueryTask.Query;
 import com.vmware.xenon.services.common.QueryTask.Query.Builder;
 
@@ -35,7 +34,6 @@ public class TestJsonMapper {
     @Test
     public void testConcurrency() throws InterruptedException {
         final ExecutorService executor = Executors.newFixedThreadPool(NUM_THREADS);
-        final AtomicReference<Throwable> failure = new AtomicReference<>();
 
         Query q = Builder.create()
                 .addFieldClause(
@@ -48,7 +46,7 @@ public class TestJsonMapper {
 
         for (int i = 0; i < 1000; i++) {
             final CountDownLatch start = new CountDownLatch(1);
-            final CountDownLatch finish = new CountDownLatch(NUM_THREADS);
+            final TestContext finish = new TestContext(NUM_THREADS, Duration.ofSeconds(30));
             final JsonMapper mapper = new JsonMapper();
 
             for (int j = 0; j < NUM_THREADS; j++) {
@@ -56,17 +54,15 @@ public class TestJsonMapper {
                     try {
                         start.await();
                         mapper.toJson(q);
+                        finish.complete();
                     } catch (Throwable t) {
-                        failure.set(t);
-                    } finally {
-                        finish.countDown();
+                        finish.fail(t);
                     }
                 });
             }
 
             start.countDown();
             finish.await();
-            assertNull(failure.get());
         }
     }
 }

@@ -37,7 +37,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1633,15 +1632,12 @@ public class TestNodeGroupService {
                 peerNodes.append(peer.getUri().toString()).append(",");
             }
 
-            CountDownLatch notifications = new CountDownLatch(this.nodeCount);
             for (URI nodeGroup : this.host.getNodeGroupMap().values()) {
                 this.host.subscribeForNodeGroupConvergence(nodeGroup, this.nodeCount + 1,
                         (o, e) -> {
                             if (e != null) {
-                                this.host.log("Error in notificaiton: %s", Utils.toString(e));
-                                return;
+                                this.host.log("Error in notification: %s", Utils.toString(e));
                             }
-                            notifications.countDown();
                         });
             }
 
