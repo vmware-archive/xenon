@@ -4342,7 +4342,7 @@ public class TestQueryTaskService {
         // we expect an update for initial state indexed as part of POST to the factory,
         // then another for the PUT we do on each service, and another for the DELETE.
         // For services with expiration there will be one more PATCH to set expiration.
-        int totalCount = (this.serviceCount * 3) + servicesWithExpirationCount;
+        int totalCount = this.serviceCount + servicesWithExpirationCount;
 
         QueryValidationServiceState newState = new QueryValidationServiceState();
         final String textValue = UUID.randomUUID().toString();
@@ -4350,29 +4350,7 @@ public class TestQueryTaskService {
 
         TestContext ctx = this.host.testCreate(totalCount);
         // create the continuous task monitoring updates across the index
-        Query query = Query.Builder.create()
-                .addFieldClause(QueryValidationServiceState.FIELD_NAME_TEXT_VALUE, newState.textValue)
-                .build();
-
-        QueryTask task = QueryTask.Builder.create()
-                .addOptions(EnumSet.of(QueryOption.CONTINUOUS, QueryOption.COUNT))
-                .setQuery(query)
-                .build();
-
-        // If the expiration time is not set, then the query will receive the default
-        // query expiration time of 1 minute.
-        task.documentExpirationTimeMicros = Utils
-                .fromNowMicrosUtc(TimeUnit.DAYS.toMicros(1));
-
-        URI taskUri = this.host.createQueryTaskService(
-                UriUtils.buildUri(this.host.getUri(), ServiceUriPaths.CORE_QUERY_TASKS),
-                task, false, false, task, null);
-
-        Operation post = Operation.createPost(taskUri)
-                .setReferer(this.host.getReferer())
-                .setCompletion(this.host.getCompletion());
-
-        URI notificationTarget = createContinuousQueryTasksCount(ctx, newState, taskUri, post);
+        URI taskUri = createContinuousQueryTasksCount(ctx, newState, totalCount);
 
         this.host.log("Query task is active in index service");
         long start = System.nanoTime() / 1000;
@@ -4418,11 +4396,6 @@ public class TestQueryTaskService {
         this.host.testWait();
 
         ctx.await();
-
-        // Cleanup subscription service.
-        Operation delete = post.clone().setUri(taskUri).setAction(Action.DELETE);
-        this.host.stopSubscriptionService(delete, notificationTarget);
-
         long end = System.nanoTime() / 1000;
 
         double thpt = totalCount / ((end - start) / 1000000.0);
@@ -4431,9 +4404,7 @@ public class TestQueryTaskService {
 
         this.host.waitFor("Query task never completed", () -> {
             QueryTask state = this.host.getServiceState(null, QueryTask.class, taskUri);
-
-            if (this.serviceCount + servicesWithExpirationCount ==
-                    state.results.continuousResults.documentCountUpdated) {
+            if (totalCount == state.results.continuousResults.documentCountUpdated) {
                 return true;
             }
 
@@ -4445,27 +4416,50 @@ public class TestQueryTaskService {
      * Creates query task for continuous + count option.
      */
     private URI createContinuousQueryTasksCount(TestContext ctx,
-            QueryValidationServiceState newState, URI taskUri, Operation post)
+            QueryValidationServiceState newState, int totalCount)
             throws Throwable {
 
+        Query query = Query.Builder.create()
+                .addFieldClause(QueryValidationServiceState.FIELD_NAME_TEXT_VALUE, newState.textValue)
+                .build();
+
+        QueryTask task = QueryTask.Builder.create()
+                .addOptions(EnumSet.of(QueryOption.CONTINUOUS, QueryOption.COUNT))
+                .setQuery(query)
+                .build();
+
+        // If the expiration time is not set, then the query will receive the default
+        // query expiration time of 1 minute.
+        task.documentExpirationTimeMicros = Utils
+                .fromNowMicrosUtc(TimeUnit.DAYS.toMicros(1));
+
+        URI taskUri = this.host.createQueryTaskService(
+                UriUtils.buildUri(this.host.getUri(), ServiceUriPaths.CORE_QUERY_TASKS),
+                task, false, false, task, null);
+
         this.host.testStart(1);
+        Operation post = Operation.createPost(taskUri)
+                .setReferer(this.host.getReferer())
+                .setCompletion(this.host.getCompletion());
+
         // subscribe to state update query task
-        URI notificationTarget = this.host.startSubscriptionService(
+        this.host.startSubscriptionService(
                 post,
                 (notifyOp) -> {
                     try {
                         QueryTask body = notifyOp.getBody(QueryTask.class);
-                        if (body.results == null || body.results.continuousResults == null) {
+                        if (body.results == null || body.results.continuousResults == null
+                                || body.results.continuousResults.documentCountUpdated < totalCount) {
                             return;
                         }
-
                         assertNotNull(body.results.documentCount);
                         assertNotNull(body.results.continuousResults);
                         assertNull(body.results.documentLinks);
                         assertNull(body.results.documents);
-                        ctx.complete();
                     } catch (Throwable e) {
                         ctx.fail(e);
+                    } finally {
+                        ctx.complete();
                     }
                 });
         // wait for subscription to go through before we start issuing updates
@@ -4473,6 +4467,7 @@ public class TestQueryTaskService {
 
         // wait for filter to be active in the index service, which happens asynchronously
         // in relation to query task creation, before issuing updates.
+
         this.host.waitFor("task never activated", () -> {
             ServiceStats indexStats = this.host.getServiceState(null, ServiceStats.class,
                     UriUtils.buildStatsUri(this.host.getDocumentIndexServiceUri()));
@@ -4485,6 +4480,6 @@ public class TestQueryTaskService {
             return true;
         });
 
-        return notificationTarget;
+        return taskUri;
     }
 }
