@@ -432,13 +432,23 @@ public final class UriUtils {
             boolean doExpand,
             boolean includeDeleted,
             EnumSet<ServiceOption> serviceCaps) {
+        String indexServicePath = host.getDocumentIndexServiceUri().getPath();
+        return buildDocumentQueryUri(host, indexServicePath, selfLink, doExpand, includeDeleted, serviceCaps);
+    }
+
+    public static URI buildDocumentQueryUri(ServiceHost host,
+            String indexServicePath,
+            String selfLink,
+            boolean doExpand,
+            boolean includeDeleted,
+            EnumSet<ServiceOption> serviceCaps) {
         ServiceOption queryCap = ServiceOption.NONE;
         if (serviceCaps.contains(ServiceOption.IMMUTABLE)) {
             queryCap = ServiceOption.IMMUTABLE;
         } else if (serviceCaps.contains(ServiceOption.PERSISTENCE)) {
             queryCap = ServiceOption.PERSISTENCE;
         }
-        return buildDocumentQueryUri(host, selfLink, doExpand, includeDeleted, queryCap);
+        return buildDocumentQueryUri(host, indexServicePath, selfLink, doExpand, includeDeleted, queryCap);
     }
 
     public static URI buildDocumentQueryUri(ServiceHost host,
@@ -447,9 +457,19 @@ public final class UriUtils {
             boolean includeDeleted,
             ServiceOption cap) {
 
-        URI indexUri = host.getDocumentIndexServiceUri();
-        return buildIndexQueryUri(indexUri,
-                selfLink, doExpand, includeDeleted, cap);
+        String indexServicePath = host.getDocumentIndexServiceUri().getPath();
+        return buildDocumentQueryUri(host, indexServicePath, selfLink, doExpand, includeDeleted, cap);
+    }
+
+    public static URI buildDocumentQueryUri(ServiceHost host,
+            String indexServicePath,
+            String selfLink,
+            boolean doExpand,
+            boolean includeDeleted,
+            ServiceOption cap) {
+
+        URI indexServiceUri = buildUri(host, indexServicePath);
+        return buildIndexQueryUri(indexServiceUri, selfLink, doExpand, includeDeleted, cap);
     }
 
     public static URI buildDefaultDocumentQueryUri(URI hostUri,

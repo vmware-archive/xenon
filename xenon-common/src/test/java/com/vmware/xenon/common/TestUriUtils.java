@@ -350,4 +350,11 @@ public class TestUriUtils {
         assertTrue(queryParams.get("e").equals("f=g"));
         assertTrue(queryParams.get("h").equals(""));
     }
+
+    @Test
+    public void buildDocumentQueryUri() throws Throwable {
+        ServiceHost host = ServiceHost.create();
+        URI uri = UriUtils.buildDocumentQueryUri(host, "/my-index-service", "my-service", false, false, EnumSet.of(ServiceOption.NONE));
+        assertEquals("/my-index-service", uri.getPath());
+    }
 }

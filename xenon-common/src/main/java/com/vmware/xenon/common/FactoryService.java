@@ -769,6 +769,7 @@ public abstract class FactoryService extends StatelessService {
         }
 
         URI u = UriUtils.buildDocumentQueryUri(getHost(),
+                this.documentIndexLink,
                 UriUtils.buildUriPath(getSelfLink(), UriUtils.URI_WILDCARD_CHAR),
                 doExpand,
                 false,

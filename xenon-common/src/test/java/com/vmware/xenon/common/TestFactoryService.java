@@ -13,18 +13,23 @@
 
 package com.vmware.xenon.common;
 
+import static java.util.stream.Collectors.toSet;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.Field;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
@@ -50,10 +55,12 @@ import com.vmware.xenon.common.test.TestRequestSender.FailureResponse;
 import com.vmware.xenon.common.test.VerificationHost;
 import com.vmware.xenon.services.common.ExampleService;
 import com.vmware.xenon.services.common.ExampleService.ExampleServiceState;
+import com.vmware.xenon.services.common.InMemoryLuceneDocumentIndexService;
 import com.vmware.xenon.services.common.MinimalFactoryTestService;
 import com.vmware.xenon.services.common.MinimalTestService;
 import com.vmware.xenon.services.common.ServiceUriPaths;
 import com.vmware.xenon.services.common.TaskService;
+import com.vmware.xenon.services.common.TestLuceneDocumentIndexService.InMemoryExampleService;
 
 class ControlledStateSynchTaskService extends TaskService<ControlledStateSynchTaskService.State> {
 
@@ -1600,6 +1607,30 @@ public class TestFactoryService extends BasicReusableHostTestCase {
         Operation get = Operation.createGet(configUri);
         FactoryServiceConfiguration config = this.host.getTestRequestSender().sendAndWait(get, FactoryServiceConfiguration.class);
         assertEquals(exampleOptions, config.childOptions);
+    }
+
+    @Test
+    public void inMemoryIndexServiceFactoryGet() throws Throwable {
+        this.host.startServiceAndWait(InMemoryLuceneDocumentIndexService.class,
+                InMemoryLuceneDocumentIndexService.SELF_LINK);
+        Service exampleFactory = InMemoryExampleService.createFactory();
+        this.host.startServiceAndWait(exampleFactory, InMemoryExampleService.FACTORY_LINK, null);
+
+        List<Operation> posts = new ArrayList<>();
+        int count = 100;
+        for (int i = 0; i < count; i++) {
+            ExampleServiceState state = new ExampleServiceState();
+            state.name = "foo-" + i;
+            posts.add(Operation.createPost(this.host, InMemoryExampleService.FACTORY_LINK).setBody(state));
+        }
+        List<ExampleServiceState> states = this.sender.sendAndWait(posts, ExampleServiceState.class);
+        Set<String> links = states.stream().map(state -> state.documentSelfLink).collect(toSet());
+
+        Operation factoryGet = Operation.createGet(this.host, InMemoryExampleService.FACTORY_LINK);
+        ServiceDocumentQueryResult result = this.sender.sendAndWait(factoryGet, ServiceDocumentQueryResult.class);
+
+        assertEquals(count, result.documentLinks.size());
+        assertTrue("factory get should return all selfLinks", result.documentLinks.containsAll(links));
     }
 
     public static class SomeFactoryService extends FactoryService {
