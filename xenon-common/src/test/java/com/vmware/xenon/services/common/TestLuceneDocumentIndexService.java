@@ -260,6 +260,8 @@ public class TestLuceneDocumentIndexService {
 
     private String indexLink = ServiceUriPaths.CORE_DOCUMENT_INDEX;
 
+    private URI inMemoryIndexServiceUri;
+
     private void setUpHost(boolean isAuthEnabled) throws Throwable {
         if (this.host != null) {
             return;
@@ -273,6 +275,7 @@ public class TestLuceneDocumentIndexService {
             // on index stats.
             this.host.setPeerSynchronizationEnabled(false);
             this.indexService = new FaultInjectionLuceneDocumentIndexService();
+            InMemoryLuceneDocumentIndexService inMemoryIndexService = new InMemoryLuceneDocumentIndexService();
             if (this.host.isStressTest()) {
                 this.indexService.toggleOption(ServiceOption.INSTRUMENTATION,
                         this.enableInstrumentation);
@@ -285,7 +288,9 @@ public class TestLuceneDocumentIndexService {
                 this.indexService.toggleOption(ServiceOption.INSTRUMENTATION, true);
                 this.host.setMaintenanceIntervalMicros(TimeUnit.MILLISECONDS
                         .toMicros(VerificationHost.FAST_MAINT_INTERVAL_MILLIS));
+                inMemoryIndexService.toggleOption(ServiceOption.INSTRUMENTATION, true);
             }
+
             this.host.setDocumentIndexingService(this.indexService);
             this.host.setPeerSynchronizationEnabled(false);
 
@@ -304,7 +309,12 @@ public class TestLuceneDocumentIndexService {
             this.host.start();
 
             this.host.setSystemAuthorizationContext();
-            createInMemoryIndexAndExampleService(this.host);
+
+            // start in-memory index service AFTER host has started, so that it can get correct service uri
+            this.host.startServiceAndWait(inMemoryIndexService, InMemoryLuceneDocumentIndexService.SELF_LINK, null);
+            this.inMemoryIndexServiceUri = inMemoryIndexService.getUri();
+            createInMemoryExampleServiceFactory(this.host);
+
             this.host.resetAuthorizationContext();
 
             if (isAuthEnabled) {
@@ -333,6 +343,7 @@ public class TestLuceneDocumentIndexService {
         try {
             this.host.setSystemAuthorizationContext();
             this.host.logServiceStats(this.host.getDocumentIndexServiceUri(), this.testResults);
+            this.host.logServiceStats(this.inMemoryIndexServiceUri, this.testResults);
         } catch (Throwable e) {
             this.host.log("Error logging stats: %s", e.toString());
         }
@@ -2036,10 +2047,7 @@ public class TestLuceneDocumentIndexService {
         return factoryUri;
     }
 
-    URI createInMemoryIndexAndExampleService(VerificationHost h) throws Throwable {
-        h.startServiceAndWait(InMemoryLuceneDocumentIndexService.class,
-                InMemoryLuceneDocumentIndexService.SELF_LINK);
-
+    URI createInMemoryExampleServiceFactory(VerificationHost h) throws Throwable {
         Service exampleFactory = InMemoryExampleService.createFactory();
         exampleFactory = h.startServiceAndWait(exampleFactory,
                 InMemoryExampleService.FACTORY_LINK, null);
