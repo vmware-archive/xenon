@@ -15,6 +15,7 @@ package com.vmware.xenon.host;
 
 import java.net.URI;
 import java.nio.file.Path;
+import java.security.Security;
 import java.util.logging.Level;
 
 import io.netty.handler.codec.http2.Http2SecurityUtil;
@@ -42,6 +43,12 @@ import com.vmware.xenon.ui.UiService;
  * A URL with port=0 is valid for --nodeGroupPublicUri and in this case a random free port will be used.
  */
 public class XenonHostWithPeerListener extends ServiceHost {
+
+    static {
+        String disabledAlgorithms = Security.getProperty("jdk.tls.disabledAlgorithms");
+        disabledAlgorithms = "TLSv1, TLSv1.1, " + disabledAlgorithms;
+        Security.setProperty("jdk.tls.disabledAlgorithms", disabledAlgorithms);
+    }
 
     private CustomArguments hostArgs;
 
