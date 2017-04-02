@@ -47,6 +47,9 @@
   Using backup/restore API on LuceneDocumentIndexService directly is deprecated.
   API on ServiceHostManagementService must be used.
 
+* Document signature is computed differently and this may cause issues if signatures are
+  stored externally.
+
 
 ## 1.4.1
 
