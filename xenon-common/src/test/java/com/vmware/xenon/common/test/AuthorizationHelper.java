@@ -41,7 +41,6 @@ import com.vmware.xenon.services.common.ServiceUriPaths;
 import com.vmware.xenon.services.common.UserGroupService.UserGroupState;
 import com.vmware.xenon.services.common.UserService.UserState;
 import com.vmware.xenon.services.common.authn.AuthenticationRequest;
-import com.vmware.xenon.services.common.authn.BasicAuthenticationService;
 
 /**
  * Consider using {@link com.vmware.xenon.common.AuthorizationSetupHelper}
@@ -160,8 +159,7 @@ public class AuthorizationHelper {
 
         Operation loginPost = Operation.createPost(loginUri)
                 .setBody(login)
-                .addRequestHeader(BasicAuthenticationService.AUTHORIZATION_HEADER_NAME,
-                        basicAuth)
+                .addRequestHeader(Operation.AUTHORIZATION_HEADER, basicAuth)
                 .forceRemote()
                 .setCompletion((op, ex) -> {
                     if (ex != null) {

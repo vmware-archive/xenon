@@ -13,6 +13,7 @@
 
 package com.vmware.xenon.services.common.authn;
 
+
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -37,12 +38,11 @@ import com.vmware.xenon.services.common.ServiceUriPaths;
  */
 public final class BasicAuthenticationUtils {
 
-    public static final String WWW_AUTHENTICATE_HEADER_NAME = "WWW-Authenticate";
+    public static final String WWW_AUTHENTICATE_HEADER_NAME = "www-authenticate";
     public static final String WWW_AUTHENTICATE_HEADER_VALUE = "Basic realm=\"xenon\"";
-    public static final String AUTHORIZATION_HEADER_NAME = "Authorization";
     public static final String BASIC_AUTH_NAME = "Basic";
-    private static final String BASIC_AUTH_SEPERATOR = " ";
-    private static final String BASIC_AUTH_USER_SEPERATOR = ":";
+    private static final String BASIC_AUTH_SEPARATOR = " ";
+    private static final String BASIC_AUTH_USER_SEPARATOR = ":";
 
     private static final long AUTH_TOKEN_EXPIRATION_MICROS = Long.getLong(
             Utils.PROPERTY_NAME_PREFIX + "BasicAuthenticationService.AUTH_TOKEN_EXPIRATION_MICROS",
@@ -97,11 +97,11 @@ public final class BasicAuthenticationUtils {
      */
     public static String[] parseRequest(StatelessService service, Operation op) {
         // Attempt to fetch and use userInfo, if AUTHORIZATION_HEADER_NAME is null.
-        String authHeader = op.getRequestHeader(AUTHORIZATION_HEADER_NAME);
+        String authHeader = op.getRequestHeader(Operation.AUTHORIZATION_HEADER);
         String userInfo = op.getUri().getUserInfo();
         String authString;
         if (authHeader != null) {
-            String[] authHeaderParts = authHeader.split(BASIC_AUTH_SEPERATOR);
+            String[] authHeaderParts = authHeader.split(BASIC_AUTH_SEPARATOR);
             // malformed header; send a 400 response
             if (authHeaderParts.length != 2 || !authHeaderParts[0].equalsIgnoreCase(BASIC_AUTH_NAME)) {
                 op.fail(Operation.STATUS_CODE_BAD_REQUEST);
@@ -125,7 +125,7 @@ public final class BasicAuthenticationUtils {
             return null;
         }
 
-        String[] userNameAndPassword = authString.split(BASIC_AUTH_USER_SEPERATOR);
+        String[] userNameAndPassword = authString.split(BASIC_AUTH_USER_SEPARATOR);
         if (userNameAndPassword.length != 2) {
             op.fail(Operation.STATUS_CODE_BAD_REQUEST);
             return null;

@@ -356,7 +356,7 @@ public class TestAuthentication {
                 .createPost(UriUtils.buildUri(host, BasicAuthenticationService.SELF_LINK))
                 .setBody(authReq)
                 .forceRemote()
-                .addRequestHeader(BasicAuthenticationUtils.AUTHORIZATION_HEADER_NAME, headerVal);
+                .addRequestHeader(Operation.AUTHORIZATION_HEADER, headerVal);
         Operation response = sender.sendAndWait(requestOp);
         assertEquals(Operation.STATUS_CODE_OK, response.getStatusCode());
         assertNotNull(response.getResponseHeader(SET_COOKIE_HEADER));
@@ -457,7 +457,7 @@ public class TestAuthentication {
 
         // make a request to verification service
         Operation requestOp = Operation.createPost(host, TestAuthenticationService.SELF_LINK)
-                .addPragmaDirective(Operation.PRAGMA_DIRECTIVE_VERIFY_TOKEN);;
+                .addPragmaDirective(Operation.PRAGMA_DIRECTIVE_VERIFY_TOKEN);
 
         FailureResponse failureResponse = sender.sendAndWaitFailure(requestOp);
         assertNotNull(failureResponse.failure);

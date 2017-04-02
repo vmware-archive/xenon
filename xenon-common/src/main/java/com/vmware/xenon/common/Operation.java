@@ -460,7 +460,7 @@ public class Operation implements Cloneable {
     public static final String HOST_HEADER = "host";
     public static final String ACCEPT_HEADER = "accept";
     public static final String ACCEPT_ENCODING_HEADER = "accept-encoding";
-    public static final String AUTHORIZATION_HEADER = "Authorization";
+    public static final String AUTHORIZATION_HEADER = "authorization";
     public static final String ACCEPT_LANGUAGE_HEADER = "accept-language";
 
     // HTTP2 Header definitions

@@ -102,7 +102,7 @@ public class TestExternalAuth extends BasicTestCase {
         Operation returnOp = sender.sendAndWait((Operation
                 .createPost(authServiceUri)
                 .setBody(new Object())
-                .addRequestHeader(BasicAuthenticationUtils.AUTHORIZATION_HEADER_NAME, headerVal)));
+                .addRequestHeader(Operation.AUTHORIZATION_HEADER, headerVal)));
         assertTrue(returnOp.getStatusCode() == Operation.STATUS_CODE_OK);
     }
 

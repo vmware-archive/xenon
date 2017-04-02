@@ -25,12 +25,7 @@ import com.vmware.xenon.services.common.authn.BasicAuthenticationUtils.BasicAuth
 
 public class BasicAuthenticationService extends StatelessService {
 
-    public static String SELF_LINK = ServiceUriPaths.CORE_AUTHN_BASIC;
-
-    public static final String WWW_AUTHENTICATE_HEADER_NAME = BasicAuthenticationUtils.WWW_AUTHENTICATE_HEADER_NAME;
-    public static final String WWW_AUTHENTICATE_HEADER_VALUE = BasicAuthenticationUtils.WWW_AUTHENTICATE_HEADER_VALUE;
-    public static final String AUTHORIZATION_HEADER_NAME = BasicAuthenticationUtils.AUTHORIZATION_HEADER_NAME;
-    public static final String BASIC_AUTH_NAME = BasicAuthenticationUtils.BASIC_AUTH_NAME;
+    public static final String SELF_LINK = ServiceUriPaths.CORE_AUTHN_BASIC;
 
     @Override
     public void authorizeRequest(Operation op) {

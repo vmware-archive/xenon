@@ -16,8 +16,6 @@ package com.vmware.xenon.common;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import static com.vmware.xenon.services.common.authn.BasicAuthenticationUtils.constructBasicAuth;
-
 import java.net.URI;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +28,7 @@ import com.vmware.xenon.services.common.ExampleServiceHost;
 import com.vmware.xenon.services.common.ServiceUriPaths;
 import com.vmware.xenon.services.common.UserService;
 import com.vmware.xenon.services.common.authn.AuthenticationRequest;
-import com.vmware.xenon.services.common.authn.BasicAuthenticationService;
+import com.vmware.xenon.services.common.authn.BasicAuthenticationUtils;
 
 public class TestExampleServiceHost extends BasicReusableHostTestCase {
 
@@ -87,7 +85,7 @@ public class TestExampleServiceHost extends BasicReusableHostTestCase {
         // wait for factory availability
         this.host.waitForReplicatedFactoryServiceAvailable(usersLink);
 
-        String basicAuth = constructBasicAuth(adminUser, adminUser);
+        String basicAuth = BasicAuthenticationUtils.constructBasicAuth(adminUser, adminUser);
         URI loginUri = UriUtils.buildUri(hostUri, ServiceUriPaths.CORE_AUTHN_BASIC);
         AuthenticationRequest login = new AuthenticationRequest();
         login.requestType = AuthenticationRequest.AuthenticationRequestType.LOGIN;
@@ -99,8 +97,7 @@ public class TestExampleServiceHost extends BasicReusableHostTestCase {
         while (new Date().before(exp)) {
             Operation loginPost = Operation.createPost(loginUri)
                     .setBody(login)
-                    .addRequestHeader(BasicAuthenticationService.AUTHORIZATION_HEADER_NAME,
-                            basicAuth)
+                    .addRequestHeader(Operation.AUTHORIZATION_HEADER, basicAuth)
                     .forceRemote()
                     .setCompletion((op, ex) -> {
                         if (ex != null) {
