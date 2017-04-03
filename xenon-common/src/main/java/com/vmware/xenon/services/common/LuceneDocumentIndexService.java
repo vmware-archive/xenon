@@ -2073,8 +2073,8 @@ public class LuceneDocumentIndexService extends StatelessService {
             // a field with a collection of links. We do not store those in lucene, they are
             // part of the binary serialized state.
             if (state == null) {
-                d = s.doc(docId, this.fieldsToLoadWithExpand);
-                state = getStateFromLuceneDocument(d, link);
+                Document docWithState = s.doc(docId, this.fieldsToLoadWithExpand);
+                state = getStateFromLuceneDocument(docWithState, link);
                 if (state == null) {
                     logWarning("Skipping link term %s for %s, can not find serialized state",
                             qt.propertyName, link);

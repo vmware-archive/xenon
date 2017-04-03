@@ -1013,6 +1013,7 @@ public class TestQueryTaskService {
         queryTask = QueryTask.Builder.create()
                 .addOption(QueryOption.SELECT_LINKS)
                 .addOption(QueryOption.EXPAND_LINKS)
+                .addLinkTerm("badLinkName")
                 .addLinkTerm(QueryValidationServiceState.FIELD_NAME_SERVICE_LINK)
                 .setQuery(query).build();
 
