@@ -32,7 +32,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -57,6 +59,7 @@ import com.esotericsoftware.kryo.serializers.VersionFieldSerializer;
 import com.google.gson.reflect.TypeToken;
 
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
 import org.objenesis.strategy.StdInstantiatorStrategy;
 
@@ -79,6 +82,9 @@ public class TestUtils {
      * large iteration count benchmarks
      */
     public boolean checkHashCollisions = true;
+
+    @Rule
+    public TestResults testResults = new TestResults();
 
     @Test
     public void registerKind() {
@@ -134,6 +140,7 @@ public class TestUtils {
             log.info("Total chars: " + sum);
             double thpt = this.iterationCount / ((end - start) / 1000000000.0);
             log.info("Throughput (calls / sec): " + thpt);
+            this.testResults.getReport().lastValue(TestResults.KEY_THROUGHPUT, thpt);
         } finally {
             Utils.setTimeDriftThreshold(Utils.DEFAULT_TIME_DRIFT_THRESHOLD_MICROS);
         }
@@ -164,6 +171,8 @@ public class TestUtils {
         }
         long e = System.nanoTime() / 1000;
         double thpt = this.iterationCount / ((e - s) / 1000000.0);
+
+        this.testResults.getReport().lastValue(TestResults.KEY_THROUGHPUT, thpt);
         Logger.getAnonymousLogger().info("Throughput: " + thpt);
         Logger.getAnonymousLogger().info("Collisions: " + collisionCount);
     }
@@ -273,6 +282,7 @@ public class TestUtils {
                 String.format(
                         "Binary serializations per second: %f, iterations: %d, byte count: %d",
                         thpt, count, byteCount));
+        this.testResults.getReport().lastValue(TestResults.KEY_THROUGHPUT, thpt);
     }
 
     @Test
@@ -517,15 +527,15 @@ public class TestUtils {
         // now change derived fields and expect the signature to change
         QueryValidationServiceState changed = Utils.clone(original);
         changed.documentExpirationTimeMicros = Utils.getNowMicrosUtc();
-        assertTrue(false == ServiceDocument.equals(desc, original, changed));
+        assertFalse(ServiceDocument.equals(desc, original, changed));
 
         changed = Utils.clone(original);
         changed.textValue = UUID.randomUUID().toString();
-        assertTrue(false == ServiceDocument.equals(desc, original, changed));
+        assertFalse(ServiceDocument.equals(desc, original, changed));
 
         changed = Utils.clone(original);
         changed.mapOfStrings.put(UUID.randomUUID().toString(), UUID.randomUUID().toString());
-        assertTrue(false == ServiceDocument.equals(desc, original, changed));
+        assertFalse(ServiceDocument.equals(desc, original, changed));
 
         // finally do a simple throughput test
         logThroughput(this.iterationCount, useBinary, desc, original);
@@ -571,6 +581,50 @@ public class TestUtils {
                         "Binary: %s, PODO: %s, Ser+des+signature per second: %f, byte count: %d",
                         useBinary, original.getClass().getSimpleName(),
                         throughput, length));
+    }
+
+    @Test
+    public void signatureThroughput() {
+        CommandLineArgumentParser.parseFromProperties(this);
+        ServiceDocumentDescription desc = Builder.create()
+                .buildDescription(QueryValidationServiceState.class);
+
+        QueryValidationServiceState document = VerificationHost.buildQueryValidationState();
+        document.documentKind = Utils.buildKind(document.getClass());
+        document.documentSelfLink = UUID.randomUUID().toString();
+        document.documentVersion = 0;
+        document.documentExpirationTimeMicros = Utils.getNowMicrosUtc();
+        document.documentSourceLink = UUID.randomUUID().toString();
+        document.documentOwner = UUID.randomUUID().toString();
+        document.documentUpdateTimeMicros = Utils.getNowMicrosUtc();
+        document.documentAuthPrincipalLink = UUID.randomUUID().toString();
+        document.documentUpdateAction = UUID.randomUUID().toString();
+
+        document.mapOfStrings = new LinkedHashMap<>();
+        document.mapOfStrings.put("key1", "value1");
+        document.mapOfStrings.put("key2", "value2");
+        document.mapOfStrings.put("key3", "value3");
+        document.binaryContent = document.documentKind.getBytes();
+        document.booleanValue = false;
+        document.doublePrimitive = 3;
+        document.doubleValue = Double.valueOf(3);
+        document.id = document.documentSelfLink;
+        document.serviceLink = document.documentSelfLink;
+        document.dateValue = new Date();
+        document.listOfStrings = Arrays.asList("1", "2", "3", "4", "5");
+
+        long start = System.nanoTime();
+        for (int i = 0; i < this.iterationCount; i++) {
+            Utils.computeSignature(document, desc);
+        }
+
+        long duration = System.nanoTime() - start;
+
+        double thpt = this.iterationCount * 1000.0 * 1000.0 * 1000.0 / duration;
+        Logger.getAnonymousLogger().info(
+                String.format(
+                        "Signature calculation throughput: %.2f/sec", thpt));
+        this.testResults.getReport().lastValue(TestResults.KEY_THROUGHPUT, thpt);
     }
 
     public QueryValidationServiceState serializedAndCompareDocuments(
