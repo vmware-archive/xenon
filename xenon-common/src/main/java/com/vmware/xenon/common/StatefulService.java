@@ -42,6 +42,14 @@ import com.vmware.xenon.services.common.ServiceUriPaths;
  */
 public class StatefulService implements Service {
 
+    private static class AdditionalContext {
+        public long maintenanceInterval;
+        public transient OperationProcessingChain opProcessingChain;
+        public String nodeSelectorLink = ServiceUriPaths.DEFAULT_NODE_SELECTOR;
+        public String documentIndexLink = ServiceUriPaths.CORE_DOCUMENT_INDEX;
+        public Set<String> txCoordinatorLinks;
+    }
+
     private static class RuntimeContext {
         public ProcessingStage processingStage = ProcessingStage.CREATED;
         public String selfLink;
@@ -50,21 +58,17 @@ public class StatefulService implements Service {
 
         public EnumSet<ServiceOption> options = EnumSet.noneOf(ServiceOption.class);
         public Class<? extends ServiceDocument> stateType;
-        public long maintenanceInterval;
+
         public OperationQueue synchQueue;
         public OperationQueue operationQueue;
         public boolean isUpdateActive;
         public int getActiveCount;
 
         public transient ServiceHost host;
-        public transient OperationProcessingChain opProcessingChain;
-
         public UtilityService utilityService;
-        public String nodeSelectorLink = ServiceUriPaths.DEFAULT_NODE_SELECTOR;
-        public String documentIndexLink = ServiceUriPaths.CORE_DOCUMENT_INDEX;
-
-        public Set<String> txCoordinatorLinks;
         public long lastCommitTimeMicros;
+
+        public AdditionalContext extras;
     }
 
     private final RuntimeContext context = new RuntimeContext();
@@ -85,7 +89,10 @@ public class StatefulService implements Service {
 
     @Override
     public OperationProcessingChain getOperationProcessingChain() {
-        return this.context.opProcessingChain;
+        if (this.context.extras == null) {
+            return null;
+        }
+        return this.context.extras.opProcessingChain;
     }
 
     @Override
@@ -1674,7 +1681,8 @@ public class StatefulService implements Service {
 
     @Override
     public void setOperationProcessingChain(OperationProcessingChain opProcessingChain) {
-        this.context.opProcessingChain = opProcessingChain;
+        allocateExtraContext();
+        this.context.extras.opProcessingChain = opProcessingChain;
     }
 
     protected void setOperationQueueLimit(int limit) {
@@ -1957,7 +1965,10 @@ public class StatefulService implements Service {
 
     @Override
     public String getPeerNodeSelectorPath() {
-        return this.context.nodeSelectorLink;
+        if (this.context.extras == null) {
+            return ServiceUriPaths.DEFAULT_NODE_SELECTOR;
+        }
+        return this.context.extras.nodeSelectorLink;
     }
 
     @Override
@@ -1970,12 +1981,16 @@ public class StatefulService implements Service {
             throw new IllegalArgumentException("link is required");
         }
 
-        this.context.nodeSelectorLink = link;
+        allocateExtraContext();
+        this.context.extras.nodeSelectorLink = link;
     }
 
     @Override
     public String getDocumentIndexPath() {
-        return this.context.documentIndexLink;
+        if (this.context.extras == null) {
+            return ServiceUriPaths.CORE_DOCUMENT_INDEX;
+        }
+        return this.context.extras.documentIndexLink;
     }
 
     @Override
@@ -1988,7 +2003,8 @@ public class StatefulService implements Service {
             throw new IllegalArgumentException("link is required");
         }
 
-        this.context.documentIndexLink = link;
+        allocateExtraContext();
+        this.context.extras.documentIndexLink = link;
     }
 
     @Override
@@ -2077,12 +2093,16 @@ public class StatefulService implements Service {
             micros = Service.MIN_MAINTENANCE_INTERVAL_MICROS;
         }
 
-        this.context.maintenanceInterval = micros;
+        allocateExtraContext();
+        this.context.extras.maintenanceInterval = micros;
     }
 
     @Override
     public long getMaintenanceIntervalMicros() {
-        return this.context.maintenanceInterval;
+        if (this.context.extras == null) {
+            return this.getHost().getMaintenanceIntervalMicros();
+        }
+        return this.context.extras.maintenanceInterval;
     }
 
     @Override
@@ -2190,15 +2210,24 @@ public class StatefulService implements Service {
         }
     }
 
+    private void allocateExtraContext() {
+        synchronized (this.context) {
+            if (this.context.extras == null) {
+                this.context.extras = new AdditionalContext();
+            }
+        }
+    }
+
     /**
      * Adds the specified coordinator link to this service' pending transactions
      */
     void addPendingTransaction(String txCoordinatorLink) {
         synchronized (this.context) {
-            if (this.context.txCoordinatorLinks == null) {
-                this.context.txCoordinatorLinks = new HashSet<>();
+            allocateExtraContext();
+            if (this.context.extras.txCoordinatorLinks == null) {
+                this.context.extras.txCoordinatorLinks = new HashSet<>();
             }
-            this.context.txCoordinatorLinks.add(txCoordinatorLink);
+            this.context.extras.txCoordinatorLinks.add(txCoordinatorLink);
         }
 
         toggleOption(ServiceOption.TRANSACTION_PENDING, true);
@@ -2211,11 +2240,12 @@ public class StatefulService implements Service {
         boolean toggleTransactionPending = false;
 
         synchronized (this.context) {
-            if (this.context.txCoordinatorLinks == null) {
+            allocateExtraContext();
+            if (this.context.extras.txCoordinatorLinks == null) {
                 return;
             }
-            this.context.txCoordinatorLinks.remove(txCoordinatorLink);
-            toggleTransactionPending = this.context.txCoordinatorLinks.isEmpty();
+            this.context.extras.txCoordinatorLinks.remove(txCoordinatorLink);
+            toggleTransactionPending = this.context.extras.txCoordinatorLinks.isEmpty();
         }
 
         if (toggleTransactionPending) {
@@ -2230,7 +2260,9 @@ public class StatefulService implements Service {
      */
     Operation setPendingTransactionsAsBody(Operation op, Operation.TransactionContext opLogRecord) {
         synchronized (this.context) {
-            opLogRecord.coordinatorLinks = this.context.txCoordinatorLinks;
+            if (this.context.extras != null) {
+                opLogRecord.coordinatorLinks = this.context.extras.txCoordinatorLinks;
+            }
             return op.setBody(opLogRecord);
         }
     }
@@ -2241,8 +2273,9 @@ public class StatefulService implements Service {
      */
     private boolean hasPendingTransactions() {
         synchronized (this.context) {
-            return this.context.txCoordinatorLinks != null
-                    && !this.context.txCoordinatorLinks.isEmpty();
+            return this.context.extras != null
+                    && this.context.extras.txCoordinatorLinks != null
+                    && !this.context.extras.txCoordinatorLinks.isEmpty();
         }
     }
 
@@ -2251,10 +2284,10 @@ public class StatefulService implements Service {
      */
     private void allocatePendingTransactions() {
         synchronized (this.context) {
-            if (this.context.txCoordinatorLinks == null) {
-                this.context.txCoordinatorLinks = new HashSet<>();
+            allocateExtraContext();
+            if (this.context.extras.txCoordinatorLinks == null) {
+                this.context.extras.txCoordinatorLinks = new HashSet<>();
             }
         }
     }
-
 }

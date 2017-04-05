@@ -617,7 +617,7 @@ public class TestFactoryService extends BasicReusableHostTestCase {
             MinimalTestServiceState initialState = (MinimalTestServiceState) this.host
                     .buildMinimalTestState();
 
-            initialState.documentSelfLink = UUID.randomUUID().toString();
+            initialState.documentSelfLink = this.host.nextUUID();
             initialStates.put(UriUtils.extendUri(factoryUri,
                     initialState.documentSelfLink), initialState);
 
