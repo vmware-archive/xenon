@@ -1525,6 +1525,7 @@ public class LuceneDocumentIndexService extends StatelessService {
         do {
             results = searcher.searchAfter(after, termQuery, resultLimit);
             long queryEndTimeMicros = Utils.getNowMicrosUtc();
+            long luceneQueryDurationMicros = queryEndTimeMicros - start;
             long queryDurationMicros = queryEndTimeMicros - queryStartTimeMicros;
             response.queryTimeMicros = queryDurationMicros;
 
@@ -1533,7 +1534,7 @@ public class LuceneDocumentIndexService extends StatelessService {
             }
 
             setTimeSeriesHistogramStat(STAT_NAME_QUERY_ALL_VERSIONS_DURATION_MICROS,
-                    AGGREGATION_TYPE_AVG_MAX, queryDurationMicros);
+                    AGGREGATION_TYPE_AVG_MAX, luceneQueryDurationMicros);
 
             after = processQueryResults(querySpec, queryOptions, resultLimit, searcher,
                     response,
