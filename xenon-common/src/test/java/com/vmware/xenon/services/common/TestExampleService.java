@@ -100,6 +100,51 @@ public class TestExampleService {
         this.hostsToCleanup.clear();
     }
 
+    @Test
+    public void strictUpdateVersionCheck() throws Throwable {
+        VerificationHost host = createAndStartHost(false);
+        // Make sure example factory is started. the host does not wait for it
+        // to start since its not a core service. Note that in production code
+        // this is all asynchronous, you should not block and wait, just pass a
+        // completion.
+        host.waitForServiceAvailable(ExampleService.FACTORY_LINK);
+
+        TestRequestSender sender = new TestRequestSender(host);
+
+        ExampleServiceState initialState = new ExampleServiceState();
+        initialState.name = UUID.randomUUID().toString();
+        initialState.counter = Long.MAX_VALUE;
+
+        // Create an example service
+        Operation createPost = Operation.createPost(host, ExampleService.FACTORY_LINK).setBody(initialState);
+        ExampleServiceState rsp = sender.sendAndWait(createPost, ExampleServiceState.class);
+
+        // Make some regular updates
+        initialState.name = rsp.name + "update-1";
+        ExampleServiceState state = sender.sendAndWait(Operation.createPatch(host, rsp.documentSelfLink)
+                .setBody(initialState), ExampleServiceState.class);
+        assertTrue(state.name.endsWith("update-1"));
+
+        initialState.name = rsp.name + "update-2";
+        initialState.counter = 1L;
+        state = sender.sendAndWait(Operation.createPatch(host, rsp.documentSelfLink)
+                .setBody(initialState), ExampleServiceState.class);
+        assertTrue(state.name.endsWith("update-2"));
+
+        // Verify that strict update succeeds with correct version
+        ExampleService.StrictUpdateRequest strictUpdateRequest = new ExampleService.StrictUpdateRequest();
+        strictUpdateRequest.documentVersion = state.documentVersion;
+        strictUpdateRequest.name = rsp.name + "update-3";
+        strictUpdateRequest.kind = Utils.buildKind(ExampleService.StrictUpdateRequest.class);
+        state = sender.sendAndWait(Operation.createPatch(host, rsp.documentSelfLink)
+                .setBody(strictUpdateRequest), ExampleServiceState.class);
+        assertTrue(state.name.endsWith("update-3"));
+
+        // Verify that strict update fails with wrong version
+        strictUpdateRequest.documentVersion = state.documentVersion - 1;
+        sender.sendAndWaitFailure(Operation.createPatch(host, rsp.documentSelfLink)
+                .setBody(strictUpdateRequest));
+    }
 
     @Test
     public void singleNodeFactoryPost() throws Throwable {

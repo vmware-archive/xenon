@@ -20,6 +20,8 @@ import java.util.Set;
 
 import com.vmware.xenon.common.FactoryService;
 import com.vmware.xenon.common.Operation;
+import com.vmware.xenon.common.OperationProcessingChain;
+import com.vmware.xenon.common.RequestRouter;
 import com.vmware.xenon.common.ServiceDocument;
 import com.vmware.xenon.common.ServiceDocumentDescription.PropertyDescription;
 import com.vmware.xenon.common.ServiceDocumentDescription.PropertyIndexingOption;
@@ -33,6 +35,26 @@ import com.vmware.xenon.common.Utils;
 public class ExampleService extends StatefulService {
 
     public static final String FACTORY_LINK = ServiceUriPaths.CORE + "/examples";
+
+    /**
+     * Request for strict update version check of a service.  This shows an example of implementing
+     * compareAndSet operation in a service.  We implement handler that will check the supplied documentVersion
+     * with documentVersion in current state and only apply the change of name if the two versions are equal.
+     * See {@code getOperationProcessingChain} and {@code handlePatchForStrictUpdate} for implementation details.
+     */
+    public static class StrictUpdateRequest {
+        public static final String KIND = Utils.buildKind(StrictUpdateRequest.class);
+
+        // Field used by RequestRouter to route this 'kind' of request to
+        // special handler. See {@code getOperationProcessingChain}.
+        public String kind;
+
+        // Field to be updated after version check.
+        public String name;
+
+        // Version to match before update.
+        public long documentVersion;
+    }
 
     /**
      * Create a default factory service that starts instances of this service on POST.
@@ -124,6 +146,60 @@ public class ExampleService extends StatefulService {
     public void handlePatch(Operation patch) {
         updateState(patch);
         // updateState method already set the response body with the merged state
+        patch.complete();
+    }
+
+    /**
+     * A chain of filters, each of them is a {@link java.util.function.Predicate <Operation>}. When {@link #processRequest} is called
+     * the filters are evaluated sequentially, where each filter's {@link java.util.function.Predicate <Operation>#test} can return
+     * <code>true</code> to have the next filter in the chain continue process the request or
+     * <code>false</code> to stop processing.
+     */
+    @Override
+    public OperationProcessingChain getOperationProcessingChain() {
+        if (super.getOperationProcessingChain() != null) {
+            return super.getOperationProcessingChain();
+        }
+
+        RequestRouter myRouter = new RequestRouter();
+        myRouter.register(
+                Action.PATCH,
+                new RequestRouter.RequestBodyMatcher<>(
+                        StrictUpdateRequest.class, "kind",
+                        StrictUpdateRequest.KIND),
+                this::handlePatchForStrictUpdate, "Strict update version check");
+
+        OperationProcessingChain opProcessingChain = new OperationProcessingChain(this);
+        opProcessingChain.add(myRouter);
+        setOperationProcessingChain(opProcessingChain);
+        return opProcessingChain;
+    }
+
+    private void handlePatchForStrictUpdate(Operation patch) {
+        ExampleServiceState currentState = getState(patch);
+        StrictUpdateRequest body = patch.getBody(StrictUpdateRequest.class);
+
+        if (body.kind == null || !body.kind.equals(Utils.buildKind(StrictUpdateRequest.class))) {
+            patch.fail(new IllegalArgumentException("invalid kind: %s" + body.kind));
+            return;
+        }
+
+        if (body.name == null) {
+            patch.fail(new IllegalArgumentException("name is required"));
+            return;
+        }
+
+        if (body.documentVersion != currentState.documentVersion) {
+            String errorString = String
+                    .format("Current version %d. Request version %d",
+                            currentState.documentVersion,
+                            body.documentVersion);
+            patch.fail(new IllegalArgumentException(errorString));
+            return;
+        }
+
+        currentState.name = body.name;
+        patch.setBody(currentState);
         patch.complete();
     }
 
