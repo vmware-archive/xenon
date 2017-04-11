@@ -817,6 +817,7 @@ public class UtilityService implements Service {
             ServiceStat st = this.stats.entries.get(name);
             if (st == null && create) {
                 st = initialStat != null ? initialStat : new ServiceStat();
+                name = name.intern();
                 st.name = name;
                 this.stats.entries.put(name, st);
             }
