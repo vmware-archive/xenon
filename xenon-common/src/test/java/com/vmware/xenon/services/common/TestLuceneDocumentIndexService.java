@@ -52,6 +52,7 @@ import javax.xml.bind.DatatypeConverter;
 import org.apache.lucene.search.IndexSearcher;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -3070,6 +3071,7 @@ public class TestLuceneDocumentIndexService {
         });
     }
 
+    @Ignore("https://www.pivotaltracker.com/n/projects/1471320/stories/143671417")
     @Test
     public void testBackupAndRestoreFromZipFile() throws Throwable {
         setUpHost(false);
