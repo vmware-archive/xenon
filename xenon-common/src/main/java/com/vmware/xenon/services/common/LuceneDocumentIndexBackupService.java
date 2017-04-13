@@ -300,7 +300,7 @@ public class LuceneDocumentIndexBackupService extends StatelessService {
         Directory from = commit.getDirectory();
         Directory to = new NIOFSDirectory(directoryPath);
 
-        for (String filename : from.listAll()) {
+        for (String filename : commit.getFileNames()) {
             to.copyFrom(from, filename, filename, IOContext.DEFAULT);
         }
     }
