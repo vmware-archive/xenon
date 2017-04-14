@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.4.2-SNAPSHOT
+## 1.4.2
 
 * Add ability to expand only selected fields in queries
   See QueryOption.EXPAND_SELECTED_FIELDS and querySpec.selectTerms
