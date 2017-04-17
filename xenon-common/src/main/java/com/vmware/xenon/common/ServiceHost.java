@@ -490,6 +490,12 @@ public class ServiceHost implements ServiceRequestSender {
                         ServiceUriPaths.CORE_LOCAL_QUERY_TASKS,
                         ServiceUriPaths.CORE_QUERY_TASKS }));
         public String[] initialPeerNodes;
+
+        /**
+         * Infrastructure use only. Minimum interval required for checking service periodic
+         * maintenance
+         */
+        public Long maintenanceCheckIntervalMicros;
     }
 
     public enum HttpScheme {
@@ -1061,6 +1067,17 @@ public class ServiceHost implements ServiceRequestSender {
         return this.state.storageSandboxFileReference;
     }
 
+    public long getMaintenanceIntervalMicros() {
+        return this.state.maintenanceIntervalMicros;
+    }
+
+    public long getMaintenanceCheckIntervalMicros() {
+        if (this.state.maintenanceCheckIntervalMicros == null) {
+            return this.state.maintenanceIntervalMicros;
+        }
+        return this.state.maintenanceCheckIntervalMicros;
+    }
+
     public ServiceHost setMaintenanceIntervalMicros(long micros) {
         if (micros <= 0) {
             throw new IllegalArgumentException(
@@ -1074,6 +1091,7 @@ public class ServiceHost implements ServiceRequestSender {
             micros = Service.MIN_MAINTENANCE_INTERVAL_MICROS;
         }
 
+        long minInterval = micros;
         // verify that attached services have intervals greater or equal to suggested value
         for (Service s : this.attachedServices.values()) {
             if (s.getProcessingStage() == ProcessingStage.STOPPED) {
@@ -1087,10 +1105,18 @@ public class ServiceHost implements ServiceRequestSender {
                         "Service %s has a small maintenance interval %d than new interval %d",
                         s.getSelfLink(), s.getMaintenanceIntervalMicros(), micros);
                 log(Level.WARNING, error);
+                minInterval = s.getMaintenanceIntervalMicros();
             }
         }
 
         this.state.maintenanceIntervalMicros = micros;
+        if (this.state.maintenanceCheckIntervalMicros != null
+                && this.state.maintenanceCheckIntervalMicros != minInterval) {
+            this.state.maintenanceCheckIntervalMicros = minInterval;
+        } else if (minInterval < micros) {
+            log(Level.WARNING, "Setting maintenance check interval to %d", minInterval);
+            this.state.maintenanceCheckIntervalMicros = minInterval;
+        }
 
         // we need to cancel the current task and re-schedule and the new
         // interval
@@ -1101,6 +1127,11 @@ public class ServiceHost implements ServiceRequestSender {
         task.cancel(true);
         scheduleMaintenance();
 
+        return this;
+    }
+
+    ServiceHost setMaintenanceCheckIntervalMicros(long intervalMicros) {
+        this.state.maintenanceCheckIntervalMicros = intervalMicros;
         return this;
     }
 
@@ -5037,7 +5068,8 @@ public class ServiceHost implements ServiceRequestSender {
                     MaintenanceStage.UTILS, deadline);
         };
 
-        this.maintenanceTask = schedule(r, getMaintenanceIntervalMicros(), TimeUnit.MICROSECONDS);
+        long intervalMicros = getMaintenanceCheckIntervalMicros();
+        this.maintenanceTask = schedule(r, intervalMicros, TimeUnit.MICROSECONDS);
     }
 
     /**
@@ -5184,10 +5216,6 @@ public class ServiceHost implements ServiceRequestSender {
 
     public void setClient(ServiceClient client) {
         this.client = client;
-    }
-
-    public long getMaintenanceIntervalMicros() {
-        return this.state.maintenanceIntervalMicros;
     }
 
     void saveServiceState(Service s, Operation op, ServiceDocument state) {
