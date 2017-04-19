@@ -337,36 +337,28 @@ public class NettyChannelPool {
             // Connect, then wait for the connection to complete before either
             // sending data (HTTP/1.1) or negotiating settings (HTTP/2)
             ChannelFuture connectFuture = this.bootStrap.connect(key.host, key.port);
-            connectFuture.addListener(new ChannelFutureListener() {
+            connectFuture.addListener((ChannelFutureListener) future -> {
+                if (future.isSuccess()) {
+                    Channel channel = future.channel();
+                    if (this.isHttp2Only) {
+                        // We tell the channel what its channel context is, so we can use it
+                        // later to manage the mapping between streams and operations
+                        channel.attr(NettyChannelContext.CHANNEL_CONTEXT_KEY).set(context);
 
-                @Override
-                public void operationComplete(ChannelFuture future)
-                        throws Exception {
-
-                    if (future.isSuccess()) {
-                        Channel channel = future.channel();
-                        if (NettyChannelPool.this.isHttp2Only) {
-                            // We tell the channel what its channel context is, so we can use it
-                            // later to manage the mapping between streams and operations
-                            channel.attr(NettyChannelContext.CHANNEL_CONTEXT_KEY).set(context);
-
-                            // We also note that this is an HTTP2 channel--it simplifies some other code
-                            channel.attr(NettyChannelContext.HTTP2_KEY).set(true);
-                            waitForSettings(channel, context, request, group);
-                        } else {
-                            context.setOpenInProgress(false);
-                            context.setChannel(channel).setOperation(request);
-                            sendAfterConnect(channel, context, request, null);
-                        }
+                        // We also note that this is an HTTP2 channel--it simplifies some other code
+                        channel.attr(NettyChannelContext.HTTP2_KEY).set(true);
+                        waitForSettings(channel, context, request, group);
                     } else {
-                        returnOrClose(context, true);
-                        request.setSocketContext(null);
-                        fail(request, future.cause());
+                        context.setOpenInProgress(false);
+                        context.setChannel(channel).setOperation(request);
+                        sendAfterConnect(request);
                     }
+                } else {
+                    returnOrClose(context, true);
+                    request.setSocketContext(null);
+                    fail(request, future.cause());
                 }
-
             });
-
         } catch (Throwable e) {
             fail(request, e);
         }
@@ -397,8 +389,7 @@ public class NettyChannelPool {
         }
 
         NettyChannelGroup group = getChannelGroup(tag, host, port);
-        NettyChannelContext context = selectHttp2Context(null, group, "");
-        return context;
+        return selectHttp2Context(null, group, "");
     }
 
     private NettyChannelContext selectContext(Operation op, NettyChannelGroup group) {
@@ -432,7 +423,7 @@ public class NettyChannelPool {
                 // Increase locality: we want to re-use a HTTP2 context, for the same target link
                 int index = Math.abs(link.hashCode() % group.inUseChannels.size());
                 NettyChannelContext ctx = group.inUseChannels.get(index);
-                if (ctx.isValid()) {
+                if (ctx.hasRemainingStreamIds()) {
                     context = ctx;
                 } else {
                     LOGGER.info(ctx.getLargestStreamId() + ":" + group.getKey());
@@ -459,7 +450,7 @@ public class NettyChannelPool {
                 // This is rare: do a search until we find a valid channel, the modulo scheme did
                 // not produce a valid context
                 for (NettyChannelContext ctx : group.inUseChannels) {
-                    if (ctx.isValid()) {
+                    if (ctx.hasRemainingStreamIds()) {
                         context = ctx;
                         break;
                     }
@@ -550,34 +541,29 @@ public class NettyChannelPool {
      * When using HTTP/2, we have to wait for the settings to be negotiated before we can send
      * data. We wait for a promise that comes from the HTTP client channel pipeline
      */
-    private void waitForSettings(Channel ch, NettyChannelContext contextFinal, Operation request,
+    private void waitForSettings(Channel ch, NettyChannelContext context, Operation request,
             NettyChannelGroup group) {
         ChannelPromise settingsPromise = ch.attr(NettyChannelContext.SETTINGS_PROMISE_KEY).get();
-        settingsPromise.addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future)
-                    throws Exception {
-
-                if (future.isSuccess()) {
-                    // retrieve pending operations
-                    List<Operation> pendingOps = new ArrayList<>();
-                    synchronized (group) {
-                        contextFinal.setOpenInProgress(false);
-                        contextFinal.setChannel(future.channel()).setOperation(request);
-                        group.pendingRequests.transferAll(pendingOps);
-                    }
-
-                    sendAfterConnect(future.channel(), contextFinal, request, group);
-
-                    // trigger pending operations
-                    for (Operation pendingOp : pendingOps) {
-                        pendingOp.setSocketContext(contextFinal);
-                        pendingOp.complete();
-                    }
-                } else {
-                    returnOrClose(contextFinal, true);
-                    fail(request, future.cause());
+        settingsPromise.addListener((ChannelFutureListener) future -> {
+            if (future.isSuccess()) {
+                // retrieve pending operations
+                List<Operation> pendingOps = new ArrayList<>();
+                synchronized (group) {
+                    context.setOpenInProgress(false);
+                    context.setChannel(future.channel()).setOperation(request);
+                    group.pendingRequests.transferAll(pendingOps);
                 }
+
+                sendAfterConnect(request);
+
+                // trigger pending operations
+                for (Operation pendingOp : pendingOps) {
+                    pendingOp.setSocketContext(context);
+                    pendingOp.complete();
+                }
+            } else {
+                returnOrClose(context, true);
+                fail(request, future.cause());
             }
         });
     }
@@ -586,8 +572,7 @@ public class NettyChannelPool {
      * Now that the connection is open (and if using HTTP/2, settings have been negotiated), send
      * the request.
      */
-    private void sendAfterConnect(Channel ch, NettyChannelContext contextFinal, Operation request,
-            NettyChannelGroup group) {
+    private void sendAfterConnect(Operation request) {
         if (request.getStatusCode() < Operation.STATUS_CODE_FAILURE_THRESHOLD) {
             request.complete();
         } else {
@@ -629,7 +614,7 @@ public class NettyChannelPool {
 
         if (ch != null) {
             if (this.isHttp2Only) {
-                isClose = isClose || !ch.isOpen() || !context.isValid();
+                isClose = isClose || !ch.isOpen() || !context.hasRemainingStreamIds();
             } else {
                 isClose = isClose || !ch.isWritable() || !ch.isOpen();
             }
@@ -789,7 +774,7 @@ public class NettyChannelPool {
                 }
 
                 long delta = now - http2Channel.getLastUseTimeMicros();
-                if (delta < CHANNEL_EXPIRATION_MICROS && http2Channel.isValid()) {
+                if (delta < CHANNEL_EXPIRATION_MICROS && http2Channel.hasRemainingStreamIds()) {
                     continue;
                 }
 

@@ -33,24 +33,24 @@ import com.vmware.xenon.common.Utils;
 import com.vmware.xenon.common.http.netty.NettyChannelPool.NettyChannelGroupKey;
 
 public class NettyChannelContext extends SocketContext {
-    static final Logger logger = Logger.getLogger(NettyChannelPool.class.getName());
+
+    private static final Logger logger = Logger.getLogger(NettyChannelPool.class.getName());
 
     // For HTTP/1.1 channels, this stores the operation associated with the channel
-    static final AttributeKey<Operation> OPERATION_KEY = AttributeKey
-            .<Operation> valueOf("operation");
+    static final AttributeKey<Operation> OPERATION_KEY = AttributeKey.valueOf("operation");
+
     // For HTTP/2 channels, the promise lets us know when the HTTP/2 settings
     // negotiation is complete
-    static final AttributeKey<ChannelPromise> SETTINGS_PROMISE_KEY = AttributeKey
-            .<ChannelPromise> valueOf("settings-promise");
+    static final AttributeKey<ChannelPromise> SETTINGS_PROMISE_KEY = AttributeKey.valueOf("settings-promise");
+
     // For HTTP/2 connections, we store the channel context as an attribute on the
     // channel so we can get access to the context and stream mapping when needed
-    static final AttributeKey<NettyChannelContext> CHANNEL_CONTEXT_KEY = AttributeKey
-            .<NettyChannelContext> valueOf("channel-context");
+    static final AttributeKey<NettyChannelContext> CHANNEL_CONTEXT_KEY = AttributeKey.valueOf("channel-context");
+
     // The presence attribute tell us that a channel is using HTTP/2
-    static final AttributeKey<Boolean> HTTP2_KEY = AttributeKey.<Boolean> valueOf("http2");
+    static final AttributeKey<Boolean> HTTP2_KEY = AttributeKey.valueOf("http2");
 
     public static final int BUFFER_SIZE = 4096 * 16;
-
     public static final int MAX_INITIAL_LINE_LENGTH = 4096;
     public static final int MAX_HEADER_SIZE = 65536;
     public static final int MAX_CHUNK_SIZE = 65536;
@@ -101,7 +101,7 @@ public class NettyChannelContext extends SocketContext {
 
     // An HTTP/2 connection may have multiple simultaneous operations. This map
     // Will associate each stream with the operation happening on the stream
-    public final Map<Integer, Operation> streamIdMap;
+    private final Map<Integer, Operation> streamIdMap;
 
     // We need to know if an HTTP/2 connection is being opened so that we can queue
     // pending operations instead of adding a new HTTP/2 connection
@@ -116,7 +116,7 @@ public class NettyChannelContext extends SocketContext {
         this.key = key;
         this.protocol = protocol;
         if (protocol == Protocol.HTTP2) {
-            this.streamIdMap = new HashMap<Integer, Operation>();
+            this.streamIdMap = new HashMap<>();
         } else {
             this.streamIdMap = null;
         }
@@ -226,7 +226,7 @@ public class NettyChannelContext extends SocketContext {
      * Returns true if we can't allocate any more streams. Used by NettyChannelPool
      * to decide when it's time to close the connection and open a new one.
      */
-    public boolean isValid() {
+    public boolean hasRemainingStreamIds() {
         if (this.protocol == Protocol.HTTP11) {
             throw new IllegalStateException(
                     "Internal error: checked for stream exhaustion on HTTP/1.1 connection");
