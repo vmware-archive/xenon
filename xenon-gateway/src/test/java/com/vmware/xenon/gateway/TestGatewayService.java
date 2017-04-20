@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.vmware.xenon.common.CommandLineArgumentParser;
@@ -242,6 +243,7 @@ public class TestGatewayService {
      * GatewayService, when the gateway service is expected
      * to fail incoming requests.
      */
+    @Ignore("https://www.pivotaltracker.com/story/show/140611423")
     @Test
     public void testGatewayErrors() throws Throwable {
         // Gateway is currently UNAVAILABLE. All http requests
@@ -305,6 +307,7 @@ public class TestGatewayService {
      * This test verifies that the gateway cached state reflects any
      * configuration changes made.
      */
+    @Ignore("https://www.pivotaltracker.com/story/show/139564041")
     @Test
     public void testGatewayConfigChanges() throws Throwable {
         // Add config.
