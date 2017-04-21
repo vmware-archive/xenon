@@ -2583,7 +2583,7 @@ public class TestServiceHost {
     }
 
     @Test
-    public void getAvailableServicesWithOptions() throws Throwable {
+    public void queryServiceUris() throws Throwable {
         setUp(false);
         int serviceCount = 5;
         this.host.createExampleServices(this.host, serviceCount, Utils.getNowMicrosUtc());
@@ -2603,14 +2603,23 @@ public class TestServiceHost {
             this.host.completeIteration();
         });
 
+        // use path prefix match
+        this.host.testStart(1);
+        this.host.queryServiceUris(ExampleService.FACTORY_LINK + "/*", get.clone());
+        this.host.testWait();
+        assertEquals(serviceCount, results[0].documentLinks.size());
+        assertEquals((long) serviceCount, (long) results[0].documentCount);
+
         this.host.testStart(1);
         this.host.queryServiceUris(options, true, get.clone());
         this.host.testWait();
         assertEquals(serviceCount, results[0].documentLinks.size());
+        assertEquals((long) serviceCount, (long) results[0].documentCount);
         this.host.testStart(1);
         this.host.queryServiceUris(options, false, get.clone());
         this.host.testWait();
         assertTrue(results[0].documentLinks.size() >= serviceCount);
+        assertEquals((long) results[0].documentLinks.size(), (long) results[0].documentCount);
     }
 
     /**

@@ -5468,6 +5468,7 @@ public class ServiceHost implements ServiceRequestSender {
             r.documentLinks.add(path);
         }
         r.documentOwner = getId();
+        r.documentCount = (long) r.documentLinks.size();
         get.setBodyNoCloning(r).complete();
     }
 
@@ -5529,6 +5530,7 @@ public class ServiceHost implements ServiceRequestSender {
             }
         }
         r.documentOwner = getId();
+        r.documentCount = (long) r.documentLinks.size();
         get.setBodyNoCloning(r).complete();
     }
 
