@@ -23,10 +23,10 @@ public class ODataTokenList implements Iterator<ODataToken> {
      * (https://github.com/apache/olingo-odata2).
      */
     private ArrayList<ODataToken> tokens = null;
-    int currentODataToken = 0;
+    private int currentODataToken = 0;
 
     public ODataTokenList() {
-        this.tokens = new ArrayList<ODataToken>();
+        this.tokens = new ArrayList<>();
     }
 
     /**

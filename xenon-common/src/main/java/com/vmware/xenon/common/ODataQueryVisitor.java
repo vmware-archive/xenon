@@ -32,9 +32,9 @@ public class ODataQueryVisitor {
         ADD("add"), SUB("sub"),
         MUL("mul"), DIV("div"), MODULO("mod");
 
-        private String operator;
+        public final String operator;
 
-        private BinaryVerb(final String op) {
+        BinaryVerb(final String op) {
             this.operator = op;
         }
 

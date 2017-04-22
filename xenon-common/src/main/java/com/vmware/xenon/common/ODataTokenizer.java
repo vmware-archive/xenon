@@ -32,9 +32,9 @@ public class ODataTokenizer {
     private static final String ODATA_NESTED_SEPARATOR = "/";
     private static final String DEFAULT_NESTED_SEPARATOR = ".";
 
-    int curPosition;
-    final String expression;
-    final int expressionLength;
+    private int curPosition;
+    private final String expression;
+    private final int expressionLength;
     ODataTokenList tokens;
 
     public ODataTokenizer(final String expression) {
