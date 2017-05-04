@@ -1453,7 +1453,7 @@ public class TestMigrationTaskService extends BasicReusableHostTestCase {
 
         // start migration with calculateEstimate option
         MigrationTaskService.State migrationState = validMigrationState(ExampleService.FACTORY_LINK);
-        migrationState.calculateEstimate = true;
+        migrationState.migrationOptions = EnumSet.of(MigrationOption.ESTIMATE_COUNT);
         Operation post = Operation.createPost(this.destinationFactoryUri).setBody(migrationState);
 
         ServiceDocument taskState = this.sender.sendAndWait(post, ServiceDocument.class);

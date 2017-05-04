@@ -16,8 +16,8 @@
 
 * In MigrationTaskService, calculation of migration target docs(available in
   "estimatedTotalServiceCount" stats) became optional and default is disabled.
-  To enable getting estimate count, "calculateEstimate" option needs to be
-  set to true when triggering a migration task.
+  To enable getting estimate count, "ESTIMATE_COUNT" migration option needs to be
+  set in migration request.
 
 
 ## 1.4.2

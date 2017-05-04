@@ -149,6 +149,18 @@ public class MigrationTaskService extends StatefulService {
          * existing histories.
          */
         ALL_VERSIONS,
+
+        /**
+         * When this option is specified, the migration task calculates estimated number of documents to migrate
+         * before starting actual migration.
+         * The number is available via "estimatedTotalServiceCount" stats and in the log.
+         *
+         * NOTE:
+         * It uses count query to calculate the estimate. If target is not IMMUTABLE documents, count is expensive
+         * operation especially when target has a large number of documents. Thus, specifying this option may cause a
+         * delay to start actual migration.
+         */
+        ESTIMATE_COUNT,
     }
 
     /**
@@ -230,11 +242,6 @@ public class MigrationTaskService extends StatefulService {
         @UsageOption(option = PropertyUsageOption.AUTO_MERGE_IF_NOT_NULL)
         public EnumSet<MigrationOption> migrationOptions;
 
-        /**
-         * (Optional) Flag enabling calculation of estimated number of documents to migrate (default: false).
-         */
-        @UsageOption(option = PropertyUsageOption.AUTO_MERGE_IF_NOT_NULL)
-        public Boolean calculateEstimate;
 
         // The following attributes are the outputs of the task.
         /**
@@ -352,9 +359,6 @@ public class MigrationTaskService extends StatefulService {
         }
         if (initState.continuousMigration) {
             initState.migrationOptions.add(MigrationOption.CONTINUOUS);
-        }
-        if (initState.calculateEstimate == null) {
-            initState.calculateEstimate = Boolean.FALSE;
         }
         return initState;
     }
@@ -600,7 +604,7 @@ public class MigrationTaskService extends StatefulService {
                     }
 
 
-                    if (currentState.calculateEstimate) {
+                    if (currentState.migrationOptions.contains(MigrationOption.ESTIMATE_COUNT)) {
                         countQuery.documentExpirationTimeMicros = documentExpirationTimeMicros;
                         Operation countOp = Operation.createPost(UriUtils.buildUri(sourceHostUri, ServiceUriPaths.CORE_QUERY_TASKS))
                                 .setBody(countQuery);
