@@ -2118,23 +2118,6 @@ public class StatefulService implements Service {
         return this.context.stateType;
     }
 
-    public boolean isConfigurationUpdate(Operation request) {
-        if (request.getAction() == Action.GET || request.getAction() == Action.DELETE) {
-            return false;
-        }
-
-        if (!request.hasBody()) {
-            return false;
-        }
-
-        ServiceConfigUpdateRequest body = request.getBody(ServiceConfigUpdateRequest.class);
-        if (!ServiceConfigUpdateRequest.KIND.equals(body.kind)) {
-            return false;
-        }
-
-        return true;
-    }
-
     @Override
     public void handleConfigurationRequest(Operation request) {
         if (request.getAction() == Action.PATCH) {
