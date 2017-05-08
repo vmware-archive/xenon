@@ -13,9 +13,11 @@
 
 package com.vmware.xenon.workshop;
 
+import java.util.logging.Level;
+
 import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.ServiceHost;
-import com.vmware.xenon.services.common.RootNamespaceService;
+import com.vmware.xenon.common.Utils;
 
 public class Demo {
 
@@ -24,9 +26,6 @@ public class Demo {
         ServiceHost host = ServiceHost.create("--sandbox=/tmp/xenon-demo");
         host.start();
         host.startDefaultCoreServicesSynchronously();
-
-        // A simple stateless service which enumerates all the factory services started on the service host.
-        host.startService(new RootNamespaceService());
 
         // A simple stateless service.
         host.startService(new DemoStatelessService());
@@ -38,6 +37,22 @@ public class Demo {
         host.startService(post, new DemoStatefulService());
 
         // A simple factory service.
-        host.startService(new DemoFactoryService());
+        host.startFactoryServicesSynchronously(new DemoFactoryService());
+
+        // A POST operation to create a single child service of the factory.
+        post = Operation.createPost(host, DemoFactoryService.SELF_LINK)
+                .setBody(initialState)
+                .setReferer(host.getUri())
+                .setCompletion((o, e) -> {
+                    if (e != null) {
+                        host.log(Level.SEVERE, "Post failed: %s", Utils.toString(e));
+                        return;
+                    }
+                    host.log(Level.INFO, "Post completed with code %d and state %s",
+                            o.getStatusCode(),
+                            Utils.toJsonHtml(o.getBody(DemoStatefulService.State.class)));
+                });
+
+        host.sendRequest(post);
     }
 }
