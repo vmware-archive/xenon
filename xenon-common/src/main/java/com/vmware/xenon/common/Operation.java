@@ -1232,7 +1232,7 @@ public class Operation implements Cloneable {
             fail(new TimeoutException());
             break;
         default:
-            fail(new Exception("request failed, no additional details provided"));
+            fail(new Exception("request failed with " + statusCode + ", no additional details provided"));
             break;
         }
     }
