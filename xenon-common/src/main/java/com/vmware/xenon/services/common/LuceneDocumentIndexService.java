@@ -2235,10 +2235,7 @@ public class LuceneDocumentIndexService extends StatelessService {
 
             Field linkCollectionField = ReflectionUtils
                     .getField(state.getClass(), qt.propertyName);
-
             if (linkCollectionField == null) {
-                logWarning("Skipping link term %s for %s, can not find field", qt.propertyName,
-                        link);
                 continue;
             }
             Object fieldValue = linkCollectionField.get(state);
