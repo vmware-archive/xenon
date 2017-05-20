@@ -29,7 +29,7 @@ if (environment_1.environment.production) {
     core_1.enableProdMode();
 }
 platform_browser_dynamic_1.platformBrowserDynamic().bootstrapModule(_1.AppModule);
-//# sourceMappingURL=/Users/druk/Sites/xenon/src/src/src/main.js.map
+//# sourceMappingURL=/Users/druk/ID&D Assets/Open Source Software/xenon/src/src/src/main.js.map
 
 /***/ }),
 
@@ -76,7 +76,7 @@ AppModule = __decorate([
     })
 ], AppModule);
 exports.AppModule = AppModule;
-//# sourceMappingURL=/Users/druk/Sites/xenon/src/src/src/app/app.module.js.map
+//# sourceMappingURL=/Users/druk/ID&D Assets/Open Source Software/xenon/src/src/src/app/app.module.js.map
 
 /***/ }),
 
@@ -91,7 +91,7 @@ exports.ROUTES = [
     { path: '', redirectTo: 'home', pathMatch: 'full' }
 ];
 exports.ROUTING = router_1.RouterModule.forRoot(exports.ROUTES);
-//# sourceMappingURL=/Users/druk/Sites/xenon/src/src/src/app/app.routing.js.map
+//# sourceMappingURL=/Users/druk/ID&D Assets/Open Source Software/xenon/src/src/src/app/app.routing.js.map
 
 /***/ }),
 
@@ -106,7 +106,7 @@ function __export(m) {
 Object.defineProperty(exports, "__esModule", { value: true });
 __export(__webpack_require__(89));
 __export(__webpack_require__(158));
-//# sourceMappingURL=/Users/druk/Sites/xenon/src/src/src/app/index.js.map
+//# sourceMappingURL=/Users/druk/ID&D Assets/Open Source Software/xenon/src/src/src/app/index.js.map
 
 /***/ }),
 
@@ -123,7 +123,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.environment = {
     production: true
 };
-//# sourceMappingURL=/Users/druk/Sites/xenon/src/src/src/environments/environment.js.map
+//# sourceMappingURL=/Users/druk/ID&D Assets/Open Source Software/xenon/src/src/src/environments/environment.js.map
 
 /***/ }),
 
@@ -151,7 +151,7 @@ __webpack_require__(177);
 __webpack_require__(175);
 __webpack_require__(180);
 __webpack_require__(358);
-//# sourceMappingURL=/Users/druk/Sites/xenon/src/src/src/polyfills.js.map
+//# sourceMappingURL=/Users/druk/ID&D Assets/Open Source Software/xenon/src/src/src/polyfills.js.map
 
 /***/ }),
 
@@ -214,7 +214,7 @@ HashListener = __decorate([
 ], HashListener);
 exports.HashListener = HashListener;
 var _a;
-//# sourceMappingURL=/Users/druk/Sites/xenon/src/src/src/utils/hash-listener.directive.js.map
+//# sourceMappingURL=/Users/druk/ID&D Assets/Open Source Software/xenon/src/src/src/utils/hash-listener.directive.js.map
 
 /***/ }),
 
@@ -309,7 +309,7 @@ ScrollSpy = __decorate([
 ], ScrollSpy);
 exports.ScrollSpy = ScrollSpy;
 var _a, _b, _c, _d;
-//# sourceMappingURL=/Users/druk/Sites/xenon/src/src/src/utils/scrollspy.directive.js.map
+//# sourceMappingURL=/Users/druk/ID&D Assets/Open Source Software/xenon/src/src/src/utils/scrollspy.directive.js.map
 
 /***/ }),
 
@@ -352,7 +352,7 @@ UtilsModule = __decorate([
     })
 ], UtilsModule);
 exports.UtilsModule = UtilsModule;
-//# sourceMappingURL=/Users/druk/Sites/xenon/src/src/src/utils/utils.module.js.map
+//# sourceMappingURL=/Users/druk/ID&D Assets/Open Source Software/xenon/src/src/src/utils/utils.module.js.map
 
 /***/ }),
 
@@ -377,7 +377,7 @@ module.exports = module.exports.toString();
 /***/ 329:
 /***/ (function(module, exports) {
 
-module.exports = "<clr-main-container>\n    <header class=\"header header-6\">\n        <div class=\"branding\">\n            <a href=\"https://vmware.github.io/\" class=\"nav-link\">\n                <span class=\"clr-icon clr-clarity-logo\"></span>\n                <span class=\"title\">VMware&reg; Open Source Program Office</span>\n            </a>\n        </div>\n    </header>\n    <div class=\"hero\">\n        <div class=\"hero-image\"><img src=\"images/xenon.png\" alt=\"VMware Xenon&trade;\"></div>\n        <h3>Decentralized Control Plane Framework</h3>\n        <p><a href=\"https://github.com/vmware/admiral\" class=\"btn btn-primary\"><i class=\"icon icon-github\"></i> Fork Xenon&trade;</a></p>\n    </div>\n    <div class=\"content-container\">\n        <div id=\"content-area\" class=\"content-area\" hash-listener #scrollable>\n            <div id=\"overview\" class=\"section\">\n                <h2>What is Xenon&trade;</h2>\n\n                <p>Xenon&trade; is a technology preview of a decentralized control plane framework.</p>\n\n                <br>\n\n                <ul>\n                    <li><strong>Lightweight, Decentralized Services</strong> - Quickly build orchestration in the form of cooperating REST services using a shared data fabric across many nodes;</li>\n                    <li><strong>Built-in Query/Index/Filter</strong> - Query and filter across decentralized document-oriented services;</li>\n                    <li><strong>Decentralized Persistence, Consensus, and Replication</strong> - create stateful distributed services with built-in concurrency, tunable replication, and persistence;</li>\n                    <li><strong>Dynamic Discovery, Declarative API and RESTful Services</strong> - orchestrate between multiple services, build simple document-centric REST APIs, and easy-to-use clients;</li>\n                </ul>\n\n                <p>See the <a href=\"https://github.com/vmware/xenon/wiki/FAQ\">FAQ</a> for more information.</p>\n            </div>\n\n            <div id=\"gettingAdmiral\" class=\"section\">\n                <h2>Getting Xenon&trade;</h2>\n\n                <p>Xenon&trade; source code is available on the VMware <a href=\"https://github.com/vmware/xenon\">Xenon&trade; GitHub source repository</a>. You can build Xenon&trade; by cloning the repo and running</p>\n                <pre><code clr-code-highlight=\"language-bash\">mvn install</code></pre>\n            </div>\n\n            <div id=\"support\" class=\"section\">\n                <h2>Support</h2>\n                <p>Xenon&trade; is released as open source software and comes with no commercial support.</p>\n\n                <p>But since we want to ensure success and recognize that Xenon&trade; consumers might fall into a range of roles - from developers that are steeped in the conventions of open-source to customers that are more accustomed to VMware commercial offerings, we offer several methods of engaging with the Xenon&trade; team and community.</p>\n\n                <p>For any questions, visit the Xenon&trade; on GitHub and <a href=\"https://github.com/vmware/xenon/issues\">post a new issue</a>.</p>\n            </div>\n            \n            <div id=\"contributing\" class=\"section\">\n                <h2>Contributing</h2>\n\n                <p>The Xenon team welcomes contributions from the community. If you wish to contribute code, we require that you first sign our <a href=\"https://vmware.github.io/xenon/files/vmware_cla.pdf\">Contributor License Agreement</a> and return a copy to <a href=\"mailto:osscontributions@vmware.com\">osscontributions@vmware.com</a> before we can merge your contribution.</p>\n            </div>\n\n            <div id=\"license\" class=\"section\">\n                <h2>License</h2>\n\n                <p>Xenon&trade; is distributed under the Open Source <a href=\"https://github.com/vmware/xenon/blob/master/LICENSE\">Apache 2 Software License</a>.</p>\n            </div>\n        </div>\n        <nav class=\"sidenav\" [clr-nav-level]=\"2\">\n            <section class=\"sidenav-content\">\n                <section class=\"nav-group\" [scrollspy]=\"scrollable\">\n                    <label><a class=\"nav-link active\" routerLink=\".\" routerLinkActive=\"active\" fragment=\"overview\">Overview</a></label>\n                    <label class=\"bump-down\"><a class=\"nav-link\" routerLink=\".\" fragment=\"gettingAdmiral\">Getting Xenon&trade;</a></label>\n                    <label class=\"bump-down\"><a class=\"nav-link\" routerLink=\".\" fragment=\"support\">Support</a></label>\n                    <label class=\"bump-down\"><a class=\"nav-link\" routerLink=\".\" fragment=\"contributing\">Contributing</a></label>\n                    <label class=\"bump-down\"><a class=\"nav-link\" routerLink=\".\" fragment=\"license\">License</a></label>\n                </section>\n            </section>\n        </nav>\n    </div>\n</clr-main-container>\n"
+module.exports = "<clr-main-container>\n    <header class=\"header header-6\">\n        <div class=\"branding\">\n            <a href=\"https://vmware.github.io/\" class=\"nav-link\">\n                <span class=\"clr-icon clr-clarity-logo\"></span>\n                <span class=\"title\">VMware&reg; Open Source Program Office</span>\n            </a>\n        </div>\n    </header>\n    <div class=\"hero\">\n        <div class=\"hero-image\"><img src=\"images/xenon.png\" alt=\"VMware Xenon&trade;\"></div>\n        <h3>Decentralized Control Plane Framework</h3>\n        <p><a href=\"https://github.com/vmware/xenon\" class=\"btn btn-primary\"><i class=\"icon icon-github\"></i> Fork Xenon&trade;</a></p>\n    </div>\n    <div class=\"content-container\">\n        <div id=\"content-area\" class=\"content-area\" hash-listener #scrollable>\n            <div id=\"overview\" class=\"section\">\n                <h2>What is Xenon&trade;</h2>\n\n                <p>Xenon&trade; is a technology preview of a decentralized control plane framework.</p>\n\n                <br>\n\n                <ul>\n                    <li><strong>Lightweight, Decentralized Services</strong> - Quickly build orchestration in the form of cooperating REST services using a shared data fabric across many nodes;</li>\n                    <li><strong>Built-in Query/Index/Filter</strong> - Query and filter across decentralized document-oriented services;</li>\n                    <li><strong>Decentralized Persistence, Consensus, and Replication</strong> - create stateful distributed services with built-in concurrency, tunable replication, and persistence;</li>\n                    <li><strong>Dynamic Discovery, Declarative API and RESTful Services</strong> - orchestrate between multiple services, build simple document-centric REST APIs, and easy-to-use clients;</li>\n                </ul>\n\n                <p>See the <a href=\"https://github.com/vmware/xenon/wiki/FAQ\">FAQ</a> for more information.</p>\n            </div>\n\n            <div id=\"gettingAdmiral\" class=\"section\">\n                <h2>Getting Xenon&trade;</h2>\n\n                <p>Xenon&trade; source code is available on the VMware <a href=\"https://github.com/vmware/xenon\">Xenon&trade; GitHub source repository</a>. You can build Xenon&trade; by cloning the repo and running</p>\n                <pre><code clr-code-highlight=\"language-bash\">mvn install</code></pre>\n            </div>\n\n            <div id=\"support\" class=\"section\">\n                <h2>Support</h2>\n                <p>Xenon&trade; is released as open source software and comes with no commercial support.</p>\n\n                <p>But since we want to ensure success and recognize that Xenon&trade; consumers might fall into a range of roles - from developers that are steeped in the conventions of open-source to customers that are more accustomed to VMware commercial offerings, we offer several methods of engaging with the Xenon&trade; team and community.</p>\n\n                <p>For any questions, visit the Xenon&trade; on GitHub and <a href=\"https://github.com/vmware/xenon/issues\">post a new issue</a>.</p>\n            </div>\n            \n            <div id=\"contributing\" class=\"section\">\n                <h2>Contributing</h2>\n\n                <p>The Xenon team welcomes contributions from the community. If you wish to contribute code, we require that you first sign our <a href=\"https://vmware.github.io/xenon/files/vmware_cla.pdf\">Contributor License Agreement</a> and return a copy to <a href=\"mailto:osscontributions@vmware.com\">osscontributions@vmware.com</a> before we can merge your contribution.</p>\n            </div>\n\n            <div id=\"license\" class=\"section\">\n                <h2>License</h2>\n\n                <p>Xenon&trade; is distributed under the Open Source <a href=\"https://github.com/vmware/xenon/blob/master/LICENSE\">Apache 2 Software License</a>.</p>\n            </div>\n        </div>\n        <nav class=\"sidenav\" [clr-nav-level]=\"2\">\n            <section class=\"sidenav-content\">\n                <section class=\"nav-group\" [scrollspy]=\"scrollable\">\n                    <label><a class=\"nav-link active\" routerLink=\".\" routerLinkActive=\"active\" fragment=\"overview\">Overview</a></label>\n                    <label class=\"bump-down\"><a class=\"nav-link\" routerLink=\".\" fragment=\"gettingAdmiral\">Getting Xenon&trade;</a></label>\n                    <label class=\"bump-down\"><a class=\"nav-link\" routerLink=\".\" fragment=\"support\">Support</a></label>\n                    <label class=\"bump-down\"><a class=\"nav-link\" routerLink=\".\" fragment=\"contributing\">Contributing</a></label>\n                    <label class=\"bump-down\"><a class=\"nav-link\" routerLink=\".\" fragment=\"license\">License</a></label>\n                </section>\n            </section>\n        </nav>\n    </div>\n</clr-main-container>\n"
 
 /***/ }),
 
@@ -422,7 +422,7 @@ AppComponent = __decorate([
 ], AppComponent);
 exports.AppComponent = AppComponent;
 var _a;
-//# sourceMappingURL=/Users/druk/Sites/xenon/src/src/src/app/app.component.js.map
+//# sourceMappingURL=/Users/druk/ID&D Assets/Open Source Software/xenon/src/src/src/app/app.component.js.map
 
 /***/ })
 
