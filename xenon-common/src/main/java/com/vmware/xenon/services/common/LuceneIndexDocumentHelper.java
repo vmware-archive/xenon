@@ -343,7 +343,7 @@ class LuceneIndexDocumentHelper {
                 continue;
             }
             Object v = ReflectionUtils.getPropertyValue(pd, podo);
-            addIndexableFieldToDocument(v, pd, name, false);
+            addIndexableFieldToDocument(v, pd, name, false, true);
         }
     }
 
@@ -352,7 +352,7 @@ class LuceneIndexDocumentHelper {
      * This function recurses if the field value is a PODO, map, array, or collection.
      */
     private void addIndexableFieldToDocument(Object podo, PropertyDescription pd,
-            String fieldName, boolean isCollectionItem) {
+            String fieldName, boolean isCollectionItem, boolean allowSortedField) {
         Field luceneField = null;
         Field luceneDocValuesField = null;
         Field.Store fsv = Field.Store.NO;
@@ -450,7 +450,7 @@ class LuceneIndexDocumentHelper {
             luceneField = getAndSetStringField(fieldName, v.toString(), fsv, isCollectionItem);
         }
 
-        if (isSortedField) {
+        if (isSortedField && allowSortedField) {
             luceneDocValuesField = getAndSetSortedStoredField(
                     createSortFieldPropertyName(fieldName), v.toString());
         }
@@ -477,7 +477,7 @@ class LuceneIndexDocumentHelper {
             }
             String fieldName = QuerySpecification.buildCompositeFieldName(fieldNamePrefix,
                     e.getKey());
-            addIndexableFieldToDocument(fieldValue, fieldDescription, fieldName, false);
+            addIndexableFieldToDocument(fieldValue, fieldDescription, fieldName, false, true);
         }
     }
 
@@ -503,15 +503,13 @@ class LuceneIndexDocumentHelper {
             // names for queries to be useful. Even 1M discrete field names should be OK on a loaded
             // node
             addIndexableFieldToDocument(entry.getValue(), pd.elementDescription,
-                    QuerySpecification.buildCompositeFieldName(fieldNamePrefix, (String) mapKey),
-                    false);
+                    QuerySpecification.buildCompositeFieldName(fieldNamePrefix, (String) mapKey), false, true);
 
             if (pd.indexingOptions.contains(PropertyIndexingOption.FIXED_ITEM_NAME)) {
-                addIndexableFieldToDocument(entry.getKey(), new PropertyDescription(),
-                        fieldNamePrefix, true);
+                addIndexableFieldToDocument(entry.getKey(), new PropertyDescription(), fieldNamePrefix, true, true);
 
                 addIndexableFieldToDocument(entry.getValue(), pd.elementDescription,
-                        fieldNamePrefix, true);
+                        fieldNamePrefix, true, false);
             }
         }
     }
@@ -535,7 +533,7 @@ class LuceneIndexDocumentHelper {
                 continue;
             }
 
-            addIndexableFieldToDocument(cv, pd.elementDescription, fieldNamePrefix, true);
+            addIndexableFieldToDocument(cv, pd.elementDescription, fieldNamePrefix, true, true);
         }
     }
 
