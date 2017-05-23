@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.5.0-SNAPSHOT
+## 1.5.0
 
 * Breaking change: Links to QueryPageService instances (e.g. the nextPageLink
   and prevPageLink in ServiceDocumentQueryResult) are now provided through a
