@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.5.1-SNAPSHOT
+
 ## 1.5.0
 
 * Breaking change: Links to QueryPageService instances (e.g. the nextPageLink
