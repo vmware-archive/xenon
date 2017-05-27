@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.4.2-CR2-SNAPSHOT
+
 ## 1.4.2-CR1
 
 * Bug fix related to serialized QuerySpecification objects in Kryo
