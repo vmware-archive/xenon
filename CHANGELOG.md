@@ -1,6 +1,9 @@
 # CHANGELOG
 
-## 1.4.2-CR2-SNAPSHOT
+## 1.4.2-CR2
+
+* Bug fix related to null pointer exceptions during synchronization. For
+  details, see https://www.pivotaltracker.com/story/show/146316827
 
 ## 1.4.2-CR1
 
