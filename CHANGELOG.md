@@ -3,7 +3,11 @@
 ## 1.5.1-SNAPSHOT
 
 * Breaking change: replace usage of Set with List in NodeGroupBroadcastResult
-  to avoid edge case with equal results documents.
+  to avoid edge case with equal results documents. In the event that
+  ServiceDocument types properly implement `equals`, per-node results in
+  NodeGroupBroadcastResult can contain fewer results than expected -- in
+  particular, `getSuccessesAs` is vulnerable to this bug. For more details, see
+  https://www.pivotaltracker.com/story/show/132633309
 
 * MigrationTaskService has added two new parameters: "sourceReferences" and
   "destinationReferences".  When specified, migration directly use them as source
