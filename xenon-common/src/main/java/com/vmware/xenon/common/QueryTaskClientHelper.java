@@ -42,7 +42,7 @@ import com.vmware.xenon.services.common.ServiceUriPaths;
  * The result is kind of iterator completion that can process the results in an unified way without
  * need to know if paginated, direct or expanded.
  *
-  * Example usage:
+ * Example usage:
  *
  *<pre>
  *
@@ -86,6 +86,7 @@ public class QueryTaskClientHelper<T extends ServiceDocument> {
     private QueryTask queryTask;
     private ResultHandler<T> resultHandler;
     private URI baseUri;
+    private String factoryPath;
 
     private QueryTaskClientHelper(Class<T> type) {
         this.type = type;
@@ -230,6 +231,19 @@ public class QueryTaskClientHelper<T extends ServiceDocument> {
     }
 
     /**
+     * Set the factory path to be used when generating the initial query {@link Operation}.
+     *
+     * @param factoryPath
+     *
+     * @return QueryTaskClientHelper
+     */
+    public QueryTaskClientHelper<T> setFactoryPath(String factoryPath) {
+        assertNotNull(factoryPath, "'factoryPath' must not be null.");
+        this.factoryPath = factoryPath;
+        return this;
+    }
+
+    /**
      * Set ResultHandler to be used during completion handling of every element. Either the list of
      * ServiceDocuments will be passed as parameter or exception in case of errors.
      *
@@ -257,8 +271,12 @@ public class QueryTaskClientHelper<T extends ServiceDocument> {
             this.baseUri = this.host.getUri();
         }
 
+        if (this.factoryPath == null) {
+            this.factoryPath = ServiceUriPaths.CORE_QUERY_TASKS;
+        }
+
         this.serviceRequestSender.sendRequest(Operation
-                .createPost(UriUtils.extendUri(this.baseUri, ServiceUriPaths.CORE_QUERY_TASKS))
+                .createPost(UriUtils.extendUri(this.baseUri, this.factoryPath))
                 .setBody(this.queryTask)
                 .setReferer(this.host.getUri())
                 .setCompletion((o, e) -> {

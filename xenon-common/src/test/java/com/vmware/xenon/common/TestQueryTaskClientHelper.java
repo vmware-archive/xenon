@@ -38,6 +38,7 @@ import com.vmware.xenon.services.common.QueryTask;
 import com.vmware.xenon.services.common.QueryTask.Query;
 import com.vmware.xenon.services.common.QueryTask.Query.Builder;
 import com.vmware.xenon.services.common.QueryTask.QuerySpecification.QueryOption;
+import com.vmware.xenon.services.common.ServiceUriPaths;
 
 public class TestQueryTaskClientHelper extends BasicReusableHostTestCase {
     private QueryTaskClientHelper<MinimalTestServiceState> queryHelper;
@@ -135,6 +136,33 @@ public class TestQueryTaskClientHelper extends BasicReusableHostTestCase {
 
         delete(minimalTestState);
         this.minimalTestStates = queryDocumentWithBaseUri(minimalTestState.documentSelfLink);
+        assertEquals(0, this.minimalTestStates.size());
+    }
+
+    @Test
+    public void testQueryDocumentWithFactoryPath() throws Throwable {
+        try {
+            this.queryHelper.setFactoryPath(null);
+            fail("IllegalArgumentException expected with null factoryPath.");
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
+
+        this.minimalTestStates = queryDocumentWithFactoryPath("testLink");
+        assertEquals(0, this.minimalTestStates.size());
+
+        MinimalTestServiceState minimalTestState = new MinimalTestServiceState();
+        minimalTestState.id = this.idValue1;
+        minimalTestState = doPost(minimalTestState);
+
+        this.minimalTestStates = queryDocumentWithFactoryPath(minimalTestState.documentSelfLink);
+        assertEquals(1, this.minimalTestStates.size());
+        assertEquals(minimalTestState.documentSelfLink,
+                this.minimalTestStates.get(0).documentSelfLink);
+        assertEquals(this.idValue1, this.minimalTestStates.get(0).id);
+
+        delete(minimalTestState);
+        this.minimalTestStates = queryDocumentWithFactoryPath(minimalTestState.documentSelfLink);
         assertEquals(0, this.minimalTestStates.size());
     }
 
@@ -516,6 +544,16 @@ public class TestQueryTaskClientHelper extends BasicReusableHostTestCase {
         this.queryHelper.setDocumentLink(documentSelfLink)
                 .setResultHandler(handler())
                 .setBaseUri(this.host.getUri())
+                .sendWith(this.host);
+        this.host.testWait();
+        return this.minimalTestStates;
+    }
+
+    private List<MinimalTestServiceState> queryDocumentWithFactoryPath(String documentSelfLink) throws Throwable {
+        this.host.testStart(1);
+        this.queryHelper.setDocumentLink(documentSelfLink)
+                .setResultHandler(handler())
+                .setFactoryPath(ServiceUriPaths.CORE_LOCAL_QUERY_TASKS)
                 .sendWith(this.host);
         this.host.testWait();
         return this.minimalTestStates;
