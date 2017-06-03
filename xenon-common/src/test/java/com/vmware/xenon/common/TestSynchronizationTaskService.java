@@ -40,7 +40,6 @@ import com.vmware.xenon.services.common.ExampleService;
 import com.vmware.xenon.services.common.NodeGroupService;
 import com.vmware.xenon.services.common.ServiceUriPaths;
 
-
 class SynchRetryExampleService extends StatefulService {
 
     public static final String FACTORY_LINK = ServiceUriPaths.CORE + "/test-retry-examples";
@@ -135,9 +134,9 @@ public class TestSynchronizationTaskService extends BasicTestCase {
         SynchronizationTaskService.State task = createSynchronizationTaskState(membershipUpdateTimeMicros);
         List<Operation> ops = this.host.getInProcessHostMap().keySet().stream()
                 .map(uri -> Operation
-                    .createPost(UriUtils.buildUri(uri, SynchronizationTaskService.FACTORY_LINK))
-                    .setBody(task)
-                    .setReferer(this.host.getUri())
+                        .createPost(UriUtils.buildUri(uri, SynchronizationTaskService.FACTORY_LINK))
+                        .setBody(task)
+                        .setReferer(this.host.getUri())
                 ).collect(toList());
 
         TestRequestSender sender = new TestRequestSender(this.host);
@@ -190,20 +189,20 @@ public class TestSynchronizationTaskService extends BasicTestCase {
         waitForSynchRetries(result, SynchronizationTaskService.STAT_NAME_CHILD_SYNCH_FAILURE_COUNT,
                 (synchRetryCount) -> synchRetryCount.latestValue == task.queryResultLimit);
 
-        // Test after all retries the task will be in passed state with at-least half
+        // Test after all retries the task will be in failed state with at-least half
         // successful synched services in each page.
         createExampleServices(sender, this.host, this.serviceCount * 3, "pass");
-        task.queryResultLimit = this.serviceCount * 2;
+        task.queryResultLimit = this.serviceCount * 4;
         op = Operation
                 .createPost(UriUtils.buildUri(this.host, SynchronizationTaskService.FACTORY_LINK))
                 .setBody(task);
 
         result = sender.sendAndWait(op, SynchronizationTaskService.State.class);
 
-        assertEquals(TaskState.TaskStage.FINISHED, result.taskInfo.stage);
-        assertEquals(this.serviceCount * 4, result.synchCompletionCount);
+        assertEquals(TaskState.TaskStage.FAILED, result.taskInfo.stage);
+        assertEquals(this.serviceCount * 3, result.synchCompletionCount);
 
-        // Verify that half of the child services were failed.
+        // Verify that this.serviceCount of the child services were failed.
         waitForSynchRetries(result, SynchronizationTaskService.STAT_NAME_CHILD_SYNCH_FAILURE_COUNT,
                 (synchRetryCount) -> synchRetryCount.latestValue == this.serviceCount);
 
@@ -212,7 +211,7 @@ public class TestSynchronizationTaskService extends BasicTestCase {
     }
 
     private void waitForSynchRetries(SynchronizationTaskService.State state, String statName,
-                                     Function<ServiceStats.ServiceStat, Boolean> check) {
+            Function<ServiceStats.ServiceStat, Boolean> check) {
         this.host.waitFor("Expected retries not completed", () -> {
             URI statsURI = UriUtils.buildStatsUri(this.host, state.documentSelfLink);
             ServiceStats stats = this.host.getServiceState(null, ServiceStats.class, statsURI);
@@ -255,8 +254,8 @@ public class TestSynchronizationTaskService extends BasicTestCase {
         SynchronizationTaskService.State result = sender
                 .sendAndWait(op, SynchronizationTaskService.State.class);
 
-        assertTrue (result.taskInfo.stage == TaskState.TaskStage.FINISHED);
-        assertTrue (result.synchCompletionCount == this.serviceCount);
+        assertTrue(result.taskInfo.stage == TaskState.TaskStage.FINISHED);
+        assertTrue(result.synchCompletionCount == this.serviceCount);
 
         // Restart the task to verify counter was reset.
         task = createSynchronizationTaskState(Long.MAX_VALUE);
@@ -267,8 +266,8 @@ public class TestSynchronizationTaskService extends BasicTestCase {
                 .setBody(task);
         result = sender.sendAndWait(op, SynchronizationTaskService.State.class);
 
-        assertTrue (result.taskInfo.stage == TaskState.TaskStage.FINISHED);
-        assertTrue (result.synchCompletionCount == this.serviceCount);
+        assertTrue(result.taskInfo.stage == TaskState.TaskStage.FINISHED);
+        assertTrue(result.synchCompletionCount == this.serviceCount);
     }
 
     @Test
@@ -430,7 +429,7 @@ public class TestSynchronizationTaskService extends BasicTestCase {
 
     private void validateInvalidStartState(URI taskFactoryUri,
             boolean expectFailure, Consumer<SynchronizationTaskService.State> stateSetter)
-    throws Throwable {
+            throws Throwable {
         String factorySelfLink = UUID.randomUUID().toString();
         URI taskUri = UriUtils.extendUri(
                 taskFactoryUri, UriUtils.convertPathCharsFromLink(factorySelfLink));
