@@ -52,10 +52,10 @@ public class TestDeserializeArrayJsonMapper {
         for (Iterator<?> iterator = arr.iterator(); iterator.hasNext(); ) {
             Object nextObj = iterator.next();
             Assert.assertTrue(nextObj instanceof Map);
-            Map<String, ?> nextMap = (Map) nextObj;
+            Map<String, ?> nextMap = (Map<String, ?>) nextObj;
             Object nextMapDataObj = nextMap.get("data");
             Assert.assertTrue(nextMapDataObj instanceof Map);
-            Map<String, ?> nextMapData = (Map) nextMapDataObj;
+            Map<String, ?> nextMapData = (Map<String, ?>) nextMapDataObj;
             Assert.assertTrue("next: " + nextObj,
                     equal(data_lst_1.data, nextMapData)
                             || equal(data_lst_2.data, nextMapData));
@@ -68,7 +68,7 @@ public class TestDeserializeArrayJsonMapper {
             if (entryValue == null) {
                 return false;
             }
-            Object value = ((Map) entryValue).get("value");
+            Object value = ((Map<?, ?>) entryValue).get("value");
             TestEntity testEntity = (TestEntity) entry.getValue();
             if (!testEntity.value.toString().equals(value)) {
                 return false;
