@@ -132,7 +132,7 @@ public class TestMigrationTaskService extends BasicReusableHostTestCase {
             this.host.setUpPeerHosts(this.nodeCount);
             getSourceHost().setNodeGroupQuorum(this.nodeCount);
             this.host.joinNodesAndVerifyConvergence(this.nodeCount, true);
-            this.host.setNodeGroupQuorum(this.nodeCount);;
+            this.host.setNodeGroupQuorum(this.nodeCount);
 
             for (VerificationHost host : this.host.getInProcessHostMap().values()) {
                 host.startFactory(new MigrationTaskService());
@@ -428,6 +428,34 @@ public class TestMigrationTaskService extends BasicReusableHostTestCase {
             ops.add(get);
         }
         this.sender.sendAndWait(ops);
+    }
+
+    @Test
+    public void successMigrateFactoryWithDifferentSelfLink() throws Throwable {
+        // Start a factory with a different self-link on the destination node-group
+        final String newFactoryLink = "/core/examples-new";
+        for (VerificationHost host : destinationHost.getInProcessHostMap().values()) {
+            host.startServiceAndWait(ExampleService.createFactory(), newFactoryLink, null);
+        }
+
+        // Create some example services in the source node-group
+        this.host.createExampleServices(getSourceHost(), this.serviceCount, null);
+
+        // Kick-off the migration task with the destinationFactoryLink set to the new link
+        MigrationTaskService.State migrationState = validMigrationState(ExampleService.FACTORY_LINK);
+        migrationState.destinationFactoryLink = newFactoryLink;
+
+        Operation op = Operation.createPost(this.destinationFactoryUri).setBody(migrationState);
+        State state = this.sender.sendAndWait(op, State.class);
+
+        State finalServiceState = waitForServiceCompletion(state.documentSelfLink, getDestinationHost());
+        assertEquals(TaskStage.FINISHED, finalServiceState.taskInfo.stage);
+
+        // validate that the new factory got all the documents.
+        ServiceDocumentQueryResult result = this.host
+                .getFactoryState(UriUtils.buildUri(
+                        getDestinationHost(), newFactoryLink));
+        assertEquals(this.serviceCount, result.documentLinks.size());
     }
 
     @Test

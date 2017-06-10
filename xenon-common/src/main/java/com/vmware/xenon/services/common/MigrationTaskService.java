@@ -643,7 +643,7 @@ public class MigrationTaskService extends StatefulService {
         // 3) start migration
 
         URI sourceHostUri = selectRandomUri(sourceURIs);
-        URI factoryUri = UriUtils.buildUri(sourceHostUri, currentState.destinationFactoryLink);
+        URI factoryUri = UriUtils.buildUri(sourceHostUri, currentState.sourceFactoryLink);
         URI factoryConfigUri = UriUtils.buildConfigUri(factoryUri);
         Operation configGet = Operation.createGet(factoryConfigUri);
         this.sendWithDeferredResult(configGet)
