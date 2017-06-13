@@ -2,6 +2,9 @@
 
 ## 1.5.1-SNAPSHOT
 
+* Roll back to Maven 3.3.9 until https://issues.apache.org/jira/browse/MDEPLOY-221
+  can be fixed.
+
 * Breaking change: replace usage of Set with List in NodeGroupBroadcastResult
   to avoid edge case with equal results documents. In the event that
   ServiceDocument types properly implement `equals`, per-node results in
