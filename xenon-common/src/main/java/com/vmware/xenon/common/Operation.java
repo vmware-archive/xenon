@@ -1035,9 +1035,10 @@ public class Operation implements Cloneable {
         return this;
     }
 
-    public void setCookies(Map<String, String> cookies) {
+    public Operation setCookies(Map<String, String> cookies) {
         allocateRemoteContext();
         this.remoteCtx.cookies = cookies;
+        return this;
     }
 
     public Map<String, String> getCookies() {

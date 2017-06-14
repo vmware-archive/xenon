@@ -5,6 +5,10 @@
 * Providing an override for the method ServiceHost.startDefaultCoreServicesSynchronously
   to make joining peer nodes optional.
 
+* Token verification during authentication now returns an AuthorizationContext
+  object instead of a Claims object to ensure ServiceHost has access to the auth
+  token
+
 * Roll back to Maven 3.3.9 until https://issues.apache.org/jira/browse/MDEPLOY-221
   can be fixed.
 
