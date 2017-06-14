@@ -3530,6 +3530,12 @@ public class ServiceHost implements ServiceRequestSender {
         AuthorizationContext ctx = this.authorizationContextCache.get(token);
         if (ctx != null) {
             ctx = checkAndGetAuthorizationContext(ctx, ctx.getClaims(), token, op);
+            if (ctx == null) {
+                // Delegate token verification to the authentication service for handling
+                // cases like token refresh, etc.
+                verifyToken(token, op, authorizationContextHandler);
+                return;
+            }
             authorizationContextHandler.accept(ctx);
             return;
         }
