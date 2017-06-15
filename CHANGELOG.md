@@ -7,6 +7,11 @@
 
   https://www.pivotaltracker.com/n/projects/1471320/stories/143529775
 
+* MigrationTaskService supports migrating deleted documents. When query spec includes 
+  "INCLUDE_DELETED" option, migration task first posts the document, then deletes
+  it in destination nodes.
+
+
 ## 1.5.4
 
 * Updates to migration task service to assert zero documentOwner mismatches
