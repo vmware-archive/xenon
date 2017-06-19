@@ -2,6 +2,9 @@
 
 ## 1.4.2-CR3-SNAPSHOT
 
+* Providing an override for the method ServiceHost.startDefaultCoreServicesSynchronously
+  to make joining peer nodes optional.
+
 * Bug fix related to factory availability being set when node group
   membership quorum is not met. For details, see
   https://www.pivotaltracker.com/story/show/146205717
