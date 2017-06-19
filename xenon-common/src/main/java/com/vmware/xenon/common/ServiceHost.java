@@ -1457,6 +1457,14 @@ public class ServiceHost implements ServiceRequestSender {
      * Starts core singleton services. Should be called once from the service host entry point.
      */
     public void startDefaultCoreServicesSynchronously() throws Throwable {
+        startDefaultCoreServicesSynchronously(true);
+    }
+
+    /**
+     * Starts core singleton services and optionally joins the local host to peer nodes.
+     * Should be called once from the service host entry point.
+     */
+    public void startDefaultCoreServicesSynchronously(boolean joinPeerNodes) throws Throwable {
         if (findService(ServiceHostManagementService.SELF_LINK) != null) {
             throw new IllegalStateException("Already started");
         }
@@ -1570,9 +1578,18 @@ public class ServiceHost implements ServiceRequestSender {
         // Restore authorization context
         OperationContext.setAuthorizationContext(ctx);
 
-        scheduleCore(() -> {
-            joinPeers(peers, ServiceUriPaths.DEFAULT_NODE_GROUP);
-        }, this.state.maintenanceIntervalMicros, TimeUnit.MICROSECONDS);
+        if (joinPeerNodes) {
+            // Joining Peers is optional to allow more control on when the
+            // local node should join other peer nodes in the node-group. A node-group
+            // join triggers Xenon's state replication/ synchronization which requires
+            // all user defined factories to be started and 'Available'. If factories
+            // can take longer during host startup, it is preferable to skip joining
+            // peers during core services startup. Instead do it later after all factories
+            // on the local host have been started and Ready.
+            scheduleCore(() -> {
+                joinPeers(peers, ServiceUriPaths.DEFAULT_NODE_GROUP);
+            }, this.state.maintenanceIntervalMicros, TimeUnit.MICROSECONDS);
+        }
     }
 
     public List<URI> getInitialPeerHosts() {

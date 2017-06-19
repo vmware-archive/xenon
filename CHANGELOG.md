@@ -2,6 +2,9 @@
 
 ## 1.5.1-SNAPSHOT
 
+* Providing an override for the method ServiceHost.startDefaultCoreServicesSynchronously
+  to make joining peer nodes optional.
+
 * Roll back to Maven 3.3.9 until https://issues.apache.org/jira/browse/MDEPLOY-221
   can be fixed.
 
