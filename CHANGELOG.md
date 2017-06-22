@@ -2,6 +2,10 @@
 
 ## 1.4.2-CR4-SNAPSHOT
 
+* Bug fix related to closing HTTP/1.1 channels on client-side operation timeout.
+
+  https://www.pivotaltracker.com/story/show/147682247
+
 ## 1.4.2-CR3
 
 * Update GSON to 2.8.0.
