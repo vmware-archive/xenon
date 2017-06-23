@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.4.2-CR4-SNAPSHOT
+
 ## 1.4.2-CR3
 
 * Update GSON to 2.8.0.
