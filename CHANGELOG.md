@@ -1,6 +1,8 @@
 # CHANGELOG
 
-## 1.4.2-CR3-SNAPSHOT
+## 1.4.2-CR3
+
+* Update GSON to 2.8.0.
 
 * Providing an override for the method ServiceHost.startDefaultCoreServicesSynchronously
   to make joining peer nodes optional.
