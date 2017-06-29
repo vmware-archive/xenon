@@ -2,6 +2,11 @@
 
 ## 1.5.1-CR2-SNAPSHOT
 
+* Bug fix related to documents missing from query results after being deleted
+  and recreated with PRAGMA_DIRECTIVE_FORCE_INDEX_UPDATE.
+
+  https://www.pivotaltracker.com/story/show/147788095
+
 ## 1.5.1-CR1
 
 * Bug fix related to preserving the cookies on an Operation object when saved
