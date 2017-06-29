@@ -2,6 +2,11 @@
 
 ## 1.5.1-CR1
 
+* Bug fix related to preserving the cookies on an Operation object when saved
+  cookies exist.
+
+  https://www.pivotaltracker.com/story/show/148156437
+
 ## 1.5.1
 
 * Providing an override for the method ServiceHost.startDefaultCoreServicesSynchronously
