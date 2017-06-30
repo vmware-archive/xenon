@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.5.1-CR2-SNAPSHOT
+## 1.5.1-CR2
 
 * Bug fix related to documents missing from query results after being deleted
   and recreated with PRAGMA_DIRECTIVE_FORCE_INDEX_UPDATE.
