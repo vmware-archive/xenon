@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.5.1-CR2-SNAPSHOT
+
 ## 1.5.1-CR1
 
 * Bug fix related to preserving the cookies on an Operation object when saved
