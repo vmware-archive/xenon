@@ -3895,6 +3895,7 @@ public class TestLuceneDocumentIndexService {
         // Since it reuses previous sandbox, there will be nothing to commit in lucene.
         // Therefore, until test populates data, commit callback will NOT be called.
         this.host.stop();
+        this.host.setPort(0);
         this.host.start();
         this.host.waitForServiceAvailable(ExampleService.FACTORY_LINK);
 
