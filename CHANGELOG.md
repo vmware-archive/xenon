@@ -8,6 +8,27 @@
   be used with TOP_RESULTS query option and sorting term specified but not
   limited to.
 
+* Breaking change:
+  Following stat creation methods are removed:
+    - `StatefulService#getTimeSeriesStat`
+    - `StatefulService#getTimeSeriesHistogramStat`
+    - `StatelessService#getHistogramStat`
+    - `StatelessService#getTimeSeriesStat`
+    - `StatelessService#getTimeSeriesHistogramStat`
+    - `ServiceStatUtils#getTimeSeriesStat`
+    - `ServiceStatUtils#getTimeSeriesHistogramStat`
+  New methods are added on `ServiceStatUtils` to replace removed methods.
+    - `ServiceStatUtils#getOrCreateHourlyTimeSeriesStat`
+    - `ServiceStatUtils#getOrCreateHourlyTimeSeriesHistogramStat`
+    - `ServiceStatUtils#getOrCreateDailyTimeSeriesStat`
+    - `ServiceStatUtils#getOrCreateDailyTimeSeriesHistogramStat`
+    - `ServiceStatUtils#getOrCreateHistogramStat` (renamed from `getHistogramStat`)
+    - `ServiceStatUtils#getOrCreateTimeSeriesStat`
+
+  Also, `NodeGroupService`(/core/node-groups/default/stats) had a stat
+  "[RemoteHostID]GossipPatchDurationMicrosPerDay". However, it was actually an hourly stat.
+  So, it was renamed to "[RemoteHostID]GossipPatchDurationMicrosPerHour"
+
 
 ## 1.5.1
 
