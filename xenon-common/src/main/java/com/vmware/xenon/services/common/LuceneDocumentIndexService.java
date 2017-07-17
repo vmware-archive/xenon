@@ -325,12 +325,8 @@ public class LuceneDocumentIndexService extends StatelessService {
      */
     protected Map<Long, IndexSearcher> searchers = new HashMap<>();
 
-    private ThreadLocal<LuceneIndexDocumentHelper> indexDocumentHelper = new ThreadLocal<LuceneIndexDocumentHelper>() {
-        @Override
-        public LuceneIndexDocumentHelper initialValue() {
-            return new LuceneIndexDocumentHelper();
-        }
-    };
+    private ThreadLocal<LuceneIndexDocumentHelper> indexDocumentHelper = ThreadLocal
+            .withInitial(LuceneIndexDocumentHelper::new);
 
     /**
      * Searcher refresh time, per searcher (using hash code)
