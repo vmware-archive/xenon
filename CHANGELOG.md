@@ -1,6 +1,10 @@
 # CHANGELOG
 
-## 1.5.2-CR1-SNAPSHOT
+## 1.5.2-CR1
+
+* Bug fix related to population of the service host's service state cache.
+
+  https://www.pivotaltracker.com/story/show/148771711
 
 ## 1.5.2
 
