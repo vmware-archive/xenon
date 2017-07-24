@@ -2,6 +2,10 @@
 
 ## 1.5.4-CR2
 
+* Expose queue depth stats for the LuceneDocumentIndexService.
+
+  https://www.pivotaltracker.com/story/show/149120959
+
 ## 1.5.4-CR1
 
 * Fix migration task bug that causes migraiton to fail on old xenon versions.
