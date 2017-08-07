@@ -82,6 +82,9 @@ public class TestServiceDocumentDescription {
         ServiceDocument body = resp.getBody(ServiceDocument.class);
         ServiceDocumentDescription desc = body.documentDescription;
 
+        // there is a handler for  DELETE + 1 annotated for GET
+        assertEquals(2, desc.serviceRequestRoutes.size());
+
         List<Route> routes = desc.serviceRequestRoutes.get(Action.GET);
         assertEquals(2, routes.size());
 
