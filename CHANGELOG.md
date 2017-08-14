@@ -2,6 +2,9 @@
 
 ## 1.5.4-CR1-SNAPSHOT
 
+* Fix migration task bug that causes migraiton to fail on old xenon versions.
+  https://www.pivotaltracker.com/story/show/150185195
+
 ## 1.5.4
 
 * Updates to migration task service to assert zero documentOwner mismatches 
