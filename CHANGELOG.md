@@ -2,6 +2,9 @@
 
 ## 1.5.4-CR2
 
+* Expose queue depth stats for the ServiceHost executor service and scheduled
+  executor service.
+
 * Expose queue depth stats for the LuceneDocumentIndexService.
 
   https://www.pivotaltracker.com/story/show/149120959
