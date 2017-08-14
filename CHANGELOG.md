@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.5.4-CR1-SNAPSHOT
+
 ## 1.5.4
 
 * Updates to migration task service to assert zero documentOwner mismatches 
