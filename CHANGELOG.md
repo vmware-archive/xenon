@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.5.4-CR1-SNAPSHOT
+## 1.5.4-CR1
 
 * Fix migration task bug that causes migraiton to fail on old xenon versions.
   https://www.pivotaltracker.com/story/show/150185195
