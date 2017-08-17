@@ -2,6 +2,11 @@
 
 ## 1.5.4-CR3-SNAPSHOT
 
+* Bug fix related to document ownership and synchronization after cluster
+  restart.
+
+  https://www.pivotaltracker.com/n/projects/1471320/stories/150028808
+
 ## 1.5.4-CR2
 
 * Added new stats for ServiceHostManagementService to reflect the current size
