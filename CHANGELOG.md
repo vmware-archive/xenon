@@ -2,6 +2,10 @@
 
 ## 1.5.4-CR2
 
+* Bug fix in Netty stats reporting to report metrics for all HTTP/1.1 and
+  HTTP/2 channel groups, rather than just for connections using the default
+  tags.
+
 * Expose queue depth stats for the ServiceHost executor service and scheduled
   executor service.
 
