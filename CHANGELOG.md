@@ -2,6 +2,9 @@
 
 ## 1.5.4-CR2
 
+* Bug fix to generate time-series stats for executor queue depth and HTTP
+  client statistics.
+
 * Bug fix in Netty stats reporting to report metrics for all HTTP/1.1 and
   HTTP/2 channel groups, rather than just for connections using the default
   tags.
