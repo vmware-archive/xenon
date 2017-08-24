@@ -2,6 +2,9 @@
 
 ## 1.5.4-CR2
 
+* Added new stats for ServiceHostManagementService to reflect the current size
+  of the authorization context Cache and the count of cache insertions.
+
 * Bug fix to generate time-series stats for executor queue depth and HTTP
   client statistics.
 

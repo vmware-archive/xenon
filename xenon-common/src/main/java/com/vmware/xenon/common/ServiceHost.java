@@ -3727,6 +3727,11 @@ public class ServiceHost implements ServiceRequestSender {
                 this.authorizationContextCache.remove(token);
                 this.userLinkToTokenMap.remove(claims.getSubject());
             }
+
+            this.managementService.adjustStat(
+                    ServiceHostManagementService.STAT_NAME_AUTHORIZATION_CACHE_SIZE,
+                    this.authorizationContextCache.size());
+
             return null;
         }
 
@@ -3742,6 +3747,13 @@ public class ServiceHost implements ServiceRequestSender {
             this.authorizationContextCache.put(token, ctx);
             addUserToken(this.userLinkToTokenMap, claims.getSubject(), token);
         }
+
+        this.managementService.adjustStat(
+                ServiceHostManagementService.STAT_NAME_AUTHORIZATION_CACHE_INSERT_COUNT, 1);
+        this.managementService.adjustStat(
+                ServiceHostManagementService.STAT_NAME_AUTHORIZATION_CACHE_SIZE,
+                this.authorizationContextCache.size());
+
         return ctx;
     }
 
@@ -5867,6 +5879,12 @@ public class ServiceHost implements ServiceRequestSender {
             this.authorizationContextCache.put(token, ctx);
             addUserToken(this.userLinkToTokenMap, ctx.getClaims().getSubject(), token);
         }
+
+        this.managementService.adjustStat(
+                ServiceHostManagementService.STAT_NAME_AUTHORIZATION_CACHE_INSERT_COUNT, 1);
+        this.managementService.adjustStat(
+                ServiceHostManagementService.STAT_NAME_AUTHORIZATION_CACHE_SIZE,
+                this.authorizationContextCache.size());
     }
 
     /**
@@ -5876,6 +5894,7 @@ public class ServiceHost implements ServiceRequestSender {
         if (!this.isPrivilegedService(s)) {
             throw new RuntimeException("Service not allowed to clear authorization token");
         }
+
         synchronized (this.state) {
             Set<String> tokenSet = this.userLinkToTokenMap.remove(userLink);
             if (tokenSet != null) {
@@ -5884,6 +5903,10 @@ public class ServiceHost implements ServiceRequestSender {
                 }
             }
         }
+
+        this.managementService.adjustStat(
+                ServiceHostManagementService.STAT_NAME_AUTHORIZATION_CACHE_SIZE,
+                this.authorizationContextCache.size());
     }
 
     /**
@@ -5899,9 +5922,16 @@ public class ServiceHost implements ServiceRequestSender {
     private void populateAuthorizationContext(Operation op, Consumer<AuthorizationContext> authorizationContextHandler) {
         getAuthorizationContext(op, authorizationContext -> {
             if (authorizationContext == null) {
-                // No (valid) authorization context, fall back to guest context
                 authorizationContext = getGuestAuthorizationContext();
+
+                // Check if we have an authorizationContext already setup for the Guest user
+                AuthorizationContext cachedGuestCtx = this.authorizationContextCache
+                        .get(authorizationContext.getToken());
+                if (cachedGuestCtx != null) {
+                    authorizationContext = cachedGuestCtx;
+                }
             }
+
             op.setAuthorizationContext(authorizationContext);
             authorizationContextHandler.accept(authorizationContext);
         });
