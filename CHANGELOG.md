@@ -28,6 +28,8 @@
   "INCLUDE_DELETED" option, migration task first posts the document, then deletes
   it in destination nodes.
 
+* Added new stats for ServiceHostManagementService to reflect the current size
+  of the authorization context Cache and the count of cache insertions.
 
 ## 1.5.4
 

@@ -98,6 +98,9 @@ public class ServiceHostManagementService extends StatefulService {
     public static final String STAT_NAME_AUTO_BACKUP_SKIPPED_COUNT = "autoBackupSkippedCount";
     public static final String STAT_NAME_AUTO_BACKUP_PERFORMED_COUNT = "autoBackupPerformedCount";
 
+    public static final String STAT_NAME_AUTHORIZATION_CACHE_SIZE = "authorizationCacheSize";
+    public static final String STAT_NAME_AUTHORIZATION_CACHE_INSERT_COUNT = "authorizationCacheInsertCount";
+
     public ServiceHostManagementService() {
         super(ServiceHostState.class);
         super.toggleOption(ServiceOption.CORE, true);
