@@ -2,6 +2,10 @@
 
 ## 1.5.4-CR3-SNAPSHOT
 
+* Bug fix in authentication-related queries to use pagination.
+
+  https://www.pivotaltracker.com/story/show/150610334
+
 * Bug fix related to document ownership and synchronization after cluster
   restart.
 
