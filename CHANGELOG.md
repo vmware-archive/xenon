@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.5.4-CR3-SNAPSHOT
+
 ## 1.5.4-CR2
 
 * Added new stats for ServiceHostManagementService to reflect the current size
