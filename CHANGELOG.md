@@ -2,6 +2,11 @@
 
 ## 1.5.4-CR4-SNAPSHOT
 
+* Bug fix related to the creation of duplicate Lucene documents during
+  synchronization.
+
+  https://www.pivotaltracker.com/story/show/149126897
+
 ## 1.5.4-CR3
 
 * Bug fix in authentication-related queries to use pagination.
