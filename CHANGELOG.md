@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.5.4-CR4-SNAPSHOT
+
 ## 1.5.4-CR3
 
 * Bug fix in authentication-related queries to use pagination.
