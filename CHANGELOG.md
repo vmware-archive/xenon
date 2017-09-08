@@ -61,6 +61,8 @@
     /core/examples?$skip=5&$limit=10
     /core/examples?$skip=5&$top=2
 
+* Enforce auth check for remote GET access on document-index service
+
 
 ## 1.5.4
 
