@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.5.6-SNAPSHOT
+
 ## 1.5.5
 
 * Added JVM property - enableOdlSynchronization. If set as true, then
