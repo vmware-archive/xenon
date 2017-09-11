@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.5.5-SNAPSHOT
+## 1.5.5
 
 * Added JVM property - enableOdlSynchronization. If set as true, then
   synchronization task will be triggered for ON_DEMAND_LOAD service
