@@ -446,6 +446,15 @@ public class ServiceHost implements ServiceRequestSender {
         public static final long DEFAULT_MAINTENANCE_INTERVAL_MICROS = TimeUnit.SECONDS
                 .toMicros(1);
         public static final long DEFAULT_OPERATION_TIMEOUT_MICROS = TimeUnit.SECONDS.toMicros(60);
+        /**
+         * Inactive services are eligible for stop under memory pressure.
+         * The inactivity threshold is measured as a factor of the host
+         * maintenance interval. The default is 30, which seems suitable
+         * for both production (where the default maintenance interval is
+         * 1 sec) and testing (where the maintenance interval is sometimes
+         * 100 micros).
+         */
+        public static final int DEFAULT_SERVICE_STOP_DELAY_FACTOR = 30;
 
         public String bindAddress;
         public int httpPort;
@@ -454,6 +463,7 @@ public class ServiceHost implements ServiceRequestSender {
         public long maintenanceIntervalMicros = DEFAULT_MAINTENANCE_INTERVAL_MICROS;
         public long operationTimeoutMicros = DEFAULT_OPERATION_TIMEOUT_MICROS;
         public long serviceCacheClearDelayMicros = DEFAULT_OPERATION_TIMEOUT_MICROS;
+        public int serviceStopDelayFactor = DEFAULT_SERVICE_STOP_DELAY_FACTOR;
         public String operationTracingLevel;
         public SslClientAuthMode sslClientAuthMode;
         public int responsePayloadSizeLimit;
@@ -2593,17 +2603,11 @@ public class ServiceHost implements ServiceRequestSender {
 
         synchronized (this.state) {
             existing = this.attachedServices.get(servicePath);
-            if (existing == null &&
-                    this.pendingServiceDeletions.contains(servicePath) &&
+            if (this.pendingServiceDeletions.contains(servicePath) &&
                     post.isSynchronizeOwner()) {
                 // We may receive a synch request while a delete is being processed.
                 // If we don't look at pendingServiceDeletions, we may end up starting
                 // a service that is in the deletion phase.
-                synchPendingDelete = true;
-            } else if (existing != null &&
-                    existing.getProcessingStage() == ProcessingStage.STOPPED &&
-                    post.isSynchronizeOwner()) {
-                // Same as above. We might be in the middle of stopping the service.
                 synchPendingDelete = true;
             } else {
                 if (existing != null) {
@@ -2690,11 +2694,11 @@ public class ServiceHost implements ServiceRequestSender {
             return true;
         }
 
-        log(Level.FINE, "Converting (%d) POST to PUT for idempotent %s in stage %s",
-                post.getId(),
+        // service exists, on IDEMPOTENT factory or sync request. Convert to a PUT
+        String convertReason = post.isSynchronize() ? "synchronizing" : "idempotent";
+        log(Level.FINE, "Converting (%d) POST to PUT for %s %s in stage %s",
+                post.getId(), convertReason,
                 servicePath, existing.getProcessingStage());
-
-        // service exists, on IDEMPOTENT factory. Convert to a PUT
         post.setAction(Action.PUT);
         post.addPragmaDirective(Operation.PRAGMA_DIRECTIVE_POST_TO_PUT);
 
@@ -2704,10 +2708,6 @@ public class ServiceHost implements ServiceRequestSender {
 
     public static boolean isServiceIndexed(Service s) {
         return s.hasOption(ServiceOption.PERSISTENCE);
-    }
-
-    public static boolean isServiceOnDemandLoad(Service s) {
-        return s.hasOption(ServiceOption.ON_DEMAND_LOAD);
     }
 
     public static boolean isServiceImmutable(Service s) {
@@ -2873,9 +2873,8 @@ public class ServiceHost implements ServiceRequestSender {
                 }
 
                 if (!post.hasBody()
-                        && ServiceHost.isServiceOnDemandLoad(s)
                         && post.hasPragmaDirective(Operation.PRAGMA_DIRECTIVE_INDEX_CHECK)) {
-                    // skip handleStart for ODL probes (the POST was issued to check if the service
+                    // skip handleStart for probes (the POST was issued to check if the service
                     // existed
                     post.complete();
                     return;
@@ -2916,22 +2915,8 @@ public class ServiceHost implements ServiceRequestSender {
                         state.documentKind = Utils.buildKind(s.getStateType());
                     }
 
-                    // Skip caching for replication requests if the service
-                    // is indexed.
-                    boolean skipCaching = post.isFromReplication() && isServiceIndexed(s);
-
-                    // A replication request for an ODL service can cause xenon to start the target service with
-                    // POST if the service was stopped in cleanup cycle. That internally triggered POST will have
-                    // isReplicationDisabled flag set.  We skip caching if this is ODL service
-                    // and isReplicationDisabled is set.
-                    skipCaching |= post.isReplicationDisabled() &&
-                            isServiceOnDemandLoad(s) &&
-                            !this.isDocumentOwner(s);
-
-                    if (!skipCaching) {
-                        this.serviceResourceTracker.updateCachedServiceState(s,
+                    this.serviceResourceTracker.updateCachedServiceState(s,
                                 state, post);
-                    }
                 }
 
                 if (!post.hasBody() || !needsIndexing) {
@@ -3122,9 +3107,7 @@ public class ServiceHost implements ServiceRequestSender {
                         return;
                     }
 
-                    if (isDocumentOwner(s)) {
-                        this.serviceResourceTracker.updateCachedServiceState(s, st, op);
-                    }
+                    this.serviceResourceTracker.updateCachedServiceState(s, st, op);
 
                     op.linkState(st).complete();
                 });
@@ -3219,6 +3202,10 @@ public class ServiceHost implements ServiceRequestSender {
         indexService.handleRequest(getLatestState);
     }
 
+    ServiceDocument getCachedServiceState(Service s, Operation op) {
+        return this.serviceResourceTracker.getCachedServiceState(s, op);
+    }
+
     void cacheServiceState(Service s, ServiceDocument st, Operation op) {
         if (op != null && op.hasBody()) {
             Object rsp = op.getBodyRaw();
@@ -3306,10 +3293,6 @@ public class ServiceHost implements ServiceRequestSender {
         boolean isDeleted = ServiceDocument.isDeleted(stateFromStore)
                 || this.pendingServiceDeletions.contains(s.getSelfLink());
 
-        if (isDeleted && serviceStartPost.isSynchronizeOwner()) {
-            return true;
-        }
-
         if (!serviceStartPost.hasBody()) {
             if (isDeleted) {
                 // this POST is due to a restart which will never have a body
@@ -3351,9 +3334,7 @@ public class ServiceHost implements ServiceRequestSender {
         }
 
         if (!s.hasOption(ServiceOption.IDEMPOTENT_POST)) {
-            // ON_DEMAND_LOAD services might not be present in the attachedService map, but will
-            // exist in the index. This is an attempt to start such a service that already exists,
-            // operation
+            // This is an attempt to start a service that already exists
             log(Level.WARNING, "Attempt to start existing service %s.Version: %d, in body: %d",
                     stateFromStore.documentSelfLink,
                     stateFromStore.documentVersion,
@@ -3424,13 +3405,6 @@ public class ServiceHost implements ServiceRequestSender {
         if (options == null || this.managementService == null) {
             return;
         }
-
-        if (options.contains(ServiceOption.ON_DEMAND_LOAD)) {
-            this.managementService.adjustStat(
-                    ServiceHostManagementService.STAT_NAME_ODL_STOP_COUNT,
-                    1);
-        }
-
     }
 
     protected Service findService(String uriPath) {
@@ -3980,10 +3954,9 @@ public class ServiceHost implements ServiceRequestSender {
             Service parent,
             EnumSet<ServiceOption> options) {
 
-        if (options.contains(ServiceOption.ON_DEMAND_LOAD) &&
-                op.getAction() == Action.DELETE &&
+        if (op.getAction() == Action.DELETE &&
                 op.hasPragmaDirective(Operation.PRAGMA_DIRECTIVE_NO_INDEX_UPDATE)) {
-            // This request was to stop an ODL service as part of reducing Xenon's
+            // This request was to stop a service as part of reducing Xenon's
             // memory foot-print (See ServiceResourceTracker). So we will avoid forwarding
             // the request to the owner and instead just stop the local service instance.
             if (s == null) {
@@ -4201,7 +4174,8 @@ public class ServiceHost implements ServiceRequestSender {
                         return false;
                     }
                 }
-                // the service might be ODL-stopped
+
+                // the service might be stopped
                 if (parentService.hasOption(ServiceOption.PERSISTENCE)) {
                     if (this.serviceResourceTracker.checkAndOnDemandStartService(inboundOp)) {
                         return true;
@@ -4214,7 +4188,7 @@ public class ServiceHost implements ServiceRequestSender {
             // If this is a replicated update request but the service is not
             // AVAILABLE, then we fail the request with 404 - NOT FOUND error.
             if (!isServiceAvailable(s) && inboundOp.isUpdate()) {
-                this.log(Level.WARNING, "Service %s is not available. Failing replication request",
+                this.log(Level.WARNING, "Service %s is not available. Failing %s replication request",
                         inboundOp.getUri().getPath());
 
                 IllegalStateException ex = new IllegalStateException("Service not found on replica");
@@ -4274,11 +4248,9 @@ public class ServiceHost implements ServiceRequestSender {
                 handleRequest(null, op);
                 return;
             }
-            if (s.hasOption(ServiceOption.ON_DEMAND_LOAD)) {
-                retryOnDemandLoadConflict(op);
-                return;
-            }
-            op.setStatusCode(Operation.STATUS_CODE_NOT_FOUND);
+
+            retryOnDemandLoadConflict(op);
+            return;
         }
 
         op.fail(new CancellationException("Service not available, in stage: " + stage));
@@ -5412,6 +5384,15 @@ public class ServiceHost implements ServiceRequestSender {
         return this.state.serviceCacheClearDelayMicros;
     }
 
+    public ServiceHost setServiceStopDelayFactor(int delayFactor) {
+        this.state.serviceStopDelayFactor = delayFactor;
+        return this;
+    }
+
+    public int getServiceStopDelayFactor() {
+        return this.state.serviceStopDelayFactor;
+    }
+
     public ServiceHost setProcessOwner(boolean isOwner) {
         this.state.isProcessOwner = isOwner;
         return this;
@@ -5485,20 +5466,7 @@ public class ServiceHost implements ServiceRequestSender {
         body.serializedDocument = op.getLinkedSerializedState();
         op.linkSerializedState(null);
 
-        boolean skipCaching = op.isFromReplication();
-
-        // A replication request for an ODL service can cause xenon to start the target service with
-        // POST if the service was stopped in cleanup cycle. That internally triggered POST will have
-        // isReplicationDisabled flag set.  We skip caching if this is ODL service
-        // and isReplicationDisabled is set.
-        skipCaching |= op.isReplicationDisabled() &&
-                isServiceOnDemandLoad(s) &&
-                !this.isDocumentOwner(s);
-
-        if (!skipCaching) {
-            // Do not cache state, in replicas
-            cacheServiceState(s, state, op);
-        }
+        cacheServiceState(s, state, op);
 
         Operation post = Operation.createPost(indexService.getUri())
                 .setBodyNoCloning(body)

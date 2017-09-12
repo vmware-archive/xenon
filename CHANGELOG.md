@@ -2,6 +2,16 @@
 
 ## 1.6.0-SNAPSHOT
 
+* Deprecated ServiceOption.ON_DEMAND_LOAD. While the option still exists
+  it has no effect. Applications are discouraged from using it.
+  All indexed services are now eligible for on-demand stop
+  (under memory pressure) and on-demand start. The usual rules still
+  apply; specifically, a service needs to be inactive in order to be
+  eligible for stop. Inactivity threshold is measured as a factor of the
+  maintenance interval. The stop delay factor is a host setting
+  and can be overridden via ServiceHost.setServiceStopDelayFactor().
+
+
 ## 1.5.7
 
 * Fix auth check for non-persisted stateful service on document-index GET.
@@ -22,6 +32,7 @@
     "documentSelfLink": "/core/examples",
     "kind": "com:vmware:xenon:services:common:SynchronizationRequest"
   }'
+
 
 ## 1.5.6
 
