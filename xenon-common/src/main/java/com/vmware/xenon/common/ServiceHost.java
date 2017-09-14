@@ -4958,7 +4958,7 @@ public class ServiceHost implements ServiceRequestSender {
         };
 
         long intervalMicros = getMaintenanceCheckIntervalMicros();
-        this.maintenanceTask = schedule(r, intervalMicros, TimeUnit.MICROSECONDS);
+        this.maintenanceTask = scheduleCore(r, intervalMicros, TimeUnit.MICROSECONDS);
     }
 
     /**
