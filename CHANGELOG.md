@@ -40,6 +40,8 @@
   netty-tcnative to [2.0.6](https://github.com/netty/netty-tcnative/releases/tag/netty-tcnative-parent-2.0.6.Final)
 
 
+* Instances java.nio.file.Path are now serializable to JSON
+
 ## 1.5.5
 
 * Added JVM property - enableOdlSynchronization. If set as true, then
