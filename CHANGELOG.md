@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.5.7-SNAPSHOT
+
 ## 1.5.6
 
 * Upgrade Netty to [4.1.15](http://netty.io/news/2017/08/25/4-0-51-Final-4-1-15-Final.html) and
