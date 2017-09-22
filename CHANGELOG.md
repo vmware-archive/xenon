@@ -1,6 +1,17 @@
-CHANGELOG
+# CHANGELOG
 
-## 1.5.4-CR5-SNAPSHOT
+## 1.5.4-CR5
+
+* Support migrating mismatched owner documents
+  A new flag is added in the MigrationTask state that client can use to indicate
+  to task that documents with bad documentOwner should be tried migrating again
+  after all other good documents have got migrated.  If this flag is false
+  (default) then MigrationTask fails if there are any documents with bad
+  documentOwner.
+
+* MigrationTaskService supports migrating deleted documents. When query spec includes 
+  "INCLUDE_DELETED" option, migration task first posts the document, then deletes
+  it in destination nodes.
 
 ## 1.5.4-CR4
 
