@@ -7,6 +7,12 @@
   an issue for non-persisted stateful service when auth check query has a condition against
   document body. It is now fixed in this version.
 
+* New API added to synchronize the factory in a multi-node cluster.
+  Example of calling this API to start the synchronization of the example factory:
+  curl -X PATCH -H "Content-Type: application/json" localhost:8000/core/management/synch -d '{
+    "factorySelfLink": "/core/examples",
+    "kind": "com:vmware:xenon:services:common:SynchronizationRequest"
+  }'
 
 ## 1.5.6
 
