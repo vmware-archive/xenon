@@ -35,8 +35,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -285,11 +287,34 @@ public final class Utils {
      * with the annotation {@link PropertyUsageOption#SENSITIVE}.
      * If hideSensitiveFields is set and the Object is a string with JSON, sensitive fields cannot be discovered will
      * throw an Exception.
+     *
+     * @deprecated Use {@link #toJson(Set, Object)} instead
      */
+    @Deprecated
     public static String toJson(boolean hideSensitiveFields, boolean useHtmlFormatting, Object body)
             throws IllegalArgumentException {
+        Set<JsonMapper.JsonOptions> options = new HashSet<>();
+        if (hideSensitiveFields) {
+            options.add(JsonMapper.JsonOptions.EXCLUDE_SENSITIVE);
+        }
+        if (!useHtmlFormatting) {
+            options.add(JsonMapper.JsonOptions.COMPACT);
+        }
+
+        return toJson(options, body);
+    }
+
+    /**
+     * Outputs {@code body} to a JSON String format based on the provided JSON {@code options}
+     *
+     * @param options See {@link com.vmware.xenon.common.serialization.JsonMapper.JsonOptions} for
+     *                supported JSON output options. This cannot be null.
+     * @param body the object to serialize to JSON
+     * @return the JSON String
+     */
+    public static String toJson(Set<JsonMapper.JsonOptions> options, Object body) {
         if (body instanceof String) {
-            if (hideSensitiveFields) {
+            if (options.contains(JsonMapper.JsonOptions.EXCLUDE_SENSITIVE)) {
                 throw new IllegalArgumentException(
                         "Body is already a string, sensitive fields cannot be discovered");
             }
@@ -297,7 +322,8 @@ public final class Utils {
         }
         StringBuilder content = getBuilder();
         JsonMapper mapper = getJsonMapperFor(body);
-        mapper.toJson(hideSensitiveFields, useHtmlFormatting, body, content);
+
+        mapper.toJson(options, body, content);
         return content.toString();
     }
 
