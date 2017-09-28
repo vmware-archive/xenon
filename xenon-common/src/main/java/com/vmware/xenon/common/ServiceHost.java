@@ -5071,6 +5071,10 @@ public class ServiceHost implements ServiceRequestSender {
             ch.handle(null, new IllegalStateException("service not found"));
             return;
         }
+        String peerNodeSelectorPath = s.getPeerNodeSelectorPath();
+        if (peerNodeSelectorPath != null && !peerNodeSelectorPath.equals(nodeSelectorPath)) {
+            nodeSelectorPath = peerNodeSelectorPath;
+        }
         NodeGroupUtils.checkServiceAvailability(ch, s.getHost(), s.getSelfLink(), nodeSelectorPath);
     }
 
