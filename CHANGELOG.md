@@ -2,6 +2,11 @@
 
 ## 1.5.7-CR1-SNAPSHOT
 
+* Set SearcherRefreshIntervalMicros to 0 by default
+  The current default is set to null which means that
+  any query issued with DO_NOT_REFRESH will end up
+  returning stale documents without any upper bound
+
 * Fix HTTPS inbound request scheme and port
   Currently, when a request is received by netty request handler, we
   translate that request in Operation and while doing that we use
