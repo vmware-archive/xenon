@@ -15,6 +15,15 @@
    Revamped JSON output methods to use JsonOptions enum instead of various boolean flags.
    Deprecated JSON output methods that use boolean flags in favor of the new design.
 
+* Added API in LuceneDocumentIndexService to force delete a document.
+  This is useful for DevOps to clean any bad document that is not deletable
+  with usual route of DELETE to the service. This bad document situation
+  can come because of different reasons including a bug in service delete handler.
+  Also the normal DELETE would be forwarded to the document-owner for
+  processing and we might want to avoid any forwarding and directly fix the index.
+  This deleted document from the index by this API is not recoverable afterwards
+  and should be used with care.
+
 ## 1.5.7
 
 * Fix auth check for non-persisted stateful service on document-index GET.
