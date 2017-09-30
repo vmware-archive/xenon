@@ -102,7 +102,6 @@ import com.vmware.xenon.common.ServiceDocumentDescription;
 import com.vmware.xenon.common.ServiceDocumentDescription.DocumentIndexingOption;
 import com.vmware.xenon.common.ServiceDocumentQueryResult;
 import com.vmware.xenon.common.ServiceHost.ServiceHostState.MemoryLimitType;
-import com.vmware.xenon.common.ServiceHost.ServiceNotFoundException;
 import com.vmware.xenon.common.ServiceStatUtils;
 import com.vmware.xenon.common.ServiceStats.ServiceStat;
 import com.vmware.xenon.common.ServiceStats.TimeSeriesStats.AggregationType;
@@ -463,10 +462,6 @@ public class LuceneDocumentIndexService extends StatelessService {
 
     public static class MaintenanceRequest {
         static final String KIND = Utils.buildKind(MaintenanceRequest.class);
-    }
-
-    public static class ForceDeleteRequest extends ServiceDocument {
-        static final String KIND = Utils.buildKind(ForceDeleteRequest.class);
     }
 
     /**
@@ -900,30 +895,6 @@ public class LuceneDocumentIndexService extends StatelessService {
         sendRequest(patch);
     }
 
-    private void handleForceDelete(Operation op) throws Exception {
-        ForceDeleteRequest req = op.getBody(ForceDeleteRequest.class);
-        String documentSelfLink = req.documentSelfLink;
-        Operation dummyGet = Operation.createGet(null)
-                .setCompletion((o, e) -> {
-                    if (e != null) {
-                        op.fail(e);
-                        return;
-                    }
-                    if (!o.hasBody()) {
-                        op.fail(new ServiceNotFoundException(documentSelfLink));
-                        return;
-                    }
-
-                    ServiceDocument serviceDocument = o.getBody(ServiceDocument.class);
-                    try {
-                        deleteAllDocumentsForSelfLink(op, documentSelfLink, serviceDocument);
-                    } catch (Exception e1) {
-                        op.fail(e1);
-                    }
-                });
-        queryIndexSingle(documentSelfLink, dummyGet, null);
-    }
-
     @Override
     public void authorizeRequest(Operation op) {
         op.complete();
@@ -933,6 +904,12 @@ public class LuceneDocumentIndexService extends StatelessService {
     public void handleRequest(Operation op) {
         Action a = op.getAction();
         if (a == Action.PUT) {
+            Operation.failActionNotSupported(op);
+            return;
+        }
+
+        if (a == Action.PATCH && op.isRemote()) {
+            // PATCH is reserved for in-process QueryTaskService
             Operation.failActionNotSupported(op);
             return;
         }
@@ -964,7 +941,7 @@ public class LuceneDocumentIndexService extends StatelessService {
                     handleGetImpl(op);
                     break;
                 case PATCH:
-                    ServiceDocument sd = Utils.fromJson(op.getBodyRaw(), ServiceDocument.class);
+                    ServiceDocument sd = (ServiceDocument) op.getBodyRaw();
                     if (sd.documentKind != null) {
                         if (sd.documentKind.equals(QueryTask.KIND)) {
                             QueryTask task = (QueryTask) op.getBodyRaw();
@@ -981,10 +958,6 @@ public class LuceneDocumentIndexService extends StatelessService {
                         }
                         if (sd.documentKind.equals(RestoreRequest.KIND)) {
                             handleRestore(op);
-                            break;
-                        }
-                        if (sd.documentKind.equals(ForceDeleteRequest.KIND)) {
-                            handleForceDelete(op);
                             break;
                         }
                     }
