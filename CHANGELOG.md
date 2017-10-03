@@ -2,6 +2,10 @@
 
 ## 1.5.7-CR1-SNAPSHOT
 
+* Breaking change: Restrict service creation with an ID that is not a valid URI.
+  Caller cannot create a service with '/example/({id}}' as documentSelfLink. Any documentSelfLink
+  supplied by the caller should be parsable by URI.create().
+
 ## 1.5.7
 
 * Fix auth check for non-persisted stateful service on document-index GET.
