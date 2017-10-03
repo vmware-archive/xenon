@@ -14,6 +14,7 @@
 package com.vmware.xenon.common;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -381,7 +382,7 @@ public abstract class FactoryService extends StatelessService {
             }
 
             if (!isValidDocumentId(suffix)) {
-                o.fail(new IllegalArgumentException(suffix + ": document id cannot have '/'"));
+                o.fail(new IllegalArgumentException(suffix + " is an invalid id"));
                 return;
             }
 
@@ -439,6 +440,12 @@ public abstract class FactoryService extends StatelessService {
         }
 
         if (id.contains(UriUtils.URI_PATH_CHAR)) {
+            return false;
+        }
+
+        try {
+            new URI(id);
+        } catch (URISyntaxException e) {
             return false;
         }
 
