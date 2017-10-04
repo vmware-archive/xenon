@@ -188,6 +188,11 @@ public class ServiceHostManagementService extends StatefulService {
         public BackupType backupType = BackupType.ZIP;
 
         /**
+         * Link to the backup target document index service
+         */
+        public String indexServiceLink = ServiceUriPaths.CORE_DOCUMENT_INDEX;
+
+        /**
          * Link to the document index backup/restore service
          */
         public String backupServiceLink = ServiceUriPaths.CORE_DOCUMENT_INDEX_BACKUP;
@@ -220,6 +225,12 @@ public class ServiceHostManagementService extends StatefulService {
          * Link to the document index backup/restore service
          */
         public String backupServiceLink = ServiceUriPaths.CORE_DOCUMENT_INDEX_BACKUP;
+
+        /**
+         * Link to the restore target document index service
+         */
+        public String indexServiceLink = ServiceUriPaths.CORE_DOCUMENT_INDEX;
+
     }
 
     public static class AutoBackupConfiguration extends BaseManagementServiceRequest {
