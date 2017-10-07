@@ -2,6 +2,13 @@
 
 ## 1.5.7-CR1-SNAPSHOT
 
+* Fix HTTPS inbound request scheme and port
+  Currently, when a request is received by netty request handler, we
+  translate that request in Operation and while doing that we use
+  hard-coded HTTP scheme and HTTP port instead of scheme and port
+  configured on the host. This bug can be reproduced in multi-node
+  environment when HTTPS requests are forwarded between peers.
+
 * Breaking change: Restrict service creation with an ID that is not a valid URI.
   Caller cannot create a service with '/example/({id}}' as documentSelfLink. Any documentSelfLink
   supplied by the caller should be parsable by URI.create().
