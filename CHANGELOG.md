@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.6.0-SNAPSHOT
+## 1.5.7-CR1-SNAPSHOT
 
 ## 1.5.7
 
