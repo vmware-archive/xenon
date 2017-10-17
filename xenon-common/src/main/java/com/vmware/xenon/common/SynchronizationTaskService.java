@@ -43,10 +43,13 @@ public class SynchronizationTaskService
     public static final String PROPERTY_NAME_MAX_CHILD_SYNCH_RETRY_COUNT =
             Utils.PROPERTY_NAME_PREFIX + "SynchronizationTaskService.MAX_CHILD_SYNCH_RETRY_COUNT";
 
-    // Maximum synch-task retry limit.
-    // We are using exponential backoff for synchronization retry.
+    /**
+     * Maximum synch-task retry limit.
+     * We are using exponential backoff for synchronization retry, that means last synch retry will
+     * be tried after 2 ^ 8 * getMaintenanceIntervalMicros(), which is ~4 minutes if maintenance interval is 1 second.
+     */
     public static final int MAX_CHILD_SYNCH_RETRY_COUNT = Integer.getInteger(
-            PROPERTY_NAME_MAX_CHILD_SYNCH_RETRY_COUNT, 3);
+            PROPERTY_NAME_MAX_CHILD_SYNCH_RETRY_COUNT, 8);
 
 
     public static SynchronizationTaskService create(Supplier<Service> childServiceInstantiator) {
