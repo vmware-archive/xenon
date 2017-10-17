@@ -1,5 +1,7 @@
 # CHANGELOG
 
+## 1.5.7-CR2-SNAPSHOT
+
 ## 1.5.7-CR1
 
 * Fix reuse of paginated searcher
