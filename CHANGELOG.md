@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 1.5.7-CR3
+
+
 ## 1.5.7-CR2
 
 * Fix node-selector bug in SynchronizationTaskService
