@@ -2465,6 +2465,7 @@ public class TestNodeGroupService {
         state.counter = 1L;
 
         VerificationHost peer = this.host.getPeerHost();
+        Map<String, ExampleServiceState> exampleStatesPerSelfLink = new HashMap<>();
 
         TestContext ctx = this.host.testCreate(this.serviceCount * this.updateCount);
         for (int i = 0; i < this.serviceCount; i++) {
@@ -2486,14 +2487,30 @@ public class TestNodeGroupService {
                                     .createPatch(peer, rsp.documentSelfLink)
                                     .setBody(update)
                                     .setReferer(this.host.getUri())
-                                    .setCompletion(ctx.getCompletion());
+                                    .setCompletion((op, ex) -> {
+                                        if (ex != null) {
+                                            ctx.failIteration(ex);
+                                            return;
+                                        }
+
+                                        ExampleServiceState updatedState = op.getBody(ExampleServiceState.class);
+                                        exampleStatesPerSelfLink.put(rsp.documentSelfLink, updatedState);
+                                        ctx.completeIteration();
+                                    });
                             this.host.sendRequest(patch);
                         }
-
                     });
             this.host.sendRequest(post);
         }
         ctx.await();
+
+        this.host.waitForReplicatedFactoryChildServiceConvergence(
+                getFactoriesPerNodeGroup(ExampleService.FACTORY_LINK),
+                exampleStatesPerSelfLink,
+                this.exampleStateConvergenceChecker,
+                exampleStatesPerSelfLink.size(),
+                this.updateCount,
+                this.replicationFactor);
     }
 
     @Test
