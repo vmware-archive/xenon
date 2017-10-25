@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.vmware.xenon.common.filters;
+package com.vmware.xenon.common;
 
 import java.net.URI;
 import java.security.GeneralSecurityException;
@@ -24,18 +24,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
-import com.vmware.xenon.common.AuthUtils;
-import com.vmware.xenon.common.Claims;
-import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.Operation.AuthorizationContext;
 import com.vmware.xenon.common.OperationProcessingChain.Filter;
 import com.vmware.xenon.common.OperationProcessingChain.FilterReturnCode;
 import com.vmware.xenon.common.OperationProcessingChain.OperationProcessingContext;
-import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.Service.ServiceOption;
-import com.vmware.xenon.common.ServiceErrorResponse;
-import com.vmware.xenon.common.ServiceHost;
-import com.vmware.xenon.common.Utils;
 import com.vmware.xenon.common.jwt.Signer;
 import com.vmware.xenon.services.common.ServiceHostManagementService;
 import com.vmware.xenon.services.common.authn.AuthenticationConstants;

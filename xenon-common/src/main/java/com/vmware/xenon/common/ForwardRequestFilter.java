@@ -11,29 +11,21 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.vmware.xenon.common.filters;
+package com.vmware.xenon.common;
 
 import java.util.EnumSet;
 import java.util.concurrent.CancellationException;
 import java.util.logging.Level;
 
-import com.vmware.xenon.common.NodeSelectorService;
 import com.vmware.xenon.common.NodeSelectorService.SelectOwnerResponse;
-import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.Operation.CompletionHandler;
 import com.vmware.xenon.common.Operation.OperationOption;
 import com.vmware.xenon.common.OperationProcessingChain.Filter;
 import com.vmware.xenon.common.OperationProcessingChain.FilterReturnCode;
 import com.vmware.xenon.common.OperationProcessingChain.OperationProcessingContext;
-import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.Service.Action;
 import com.vmware.xenon.common.Service.ServiceOption;
-import com.vmware.xenon.common.ServiceClient;
-import com.vmware.xenon.common.ServiceErrorResponse;
 import com.vmware.xenon.common.ServiceErrorResponse.ErrorDetail;
-import com.vmware.xenon.common.ServiceHost;
-import com.vmware.xenon.common.UriUtils;
-import com.vmware.xenon.common.Utils;
 
 /**
  * This filter forwards the operation to the owner host, if needed.

@@ -11,27 +11,21 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.vmware.xenon.common.filters;
+package com.vmware.xenon.common;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import com.vmware.xenon.common.FactoryService;
-import com.vmware.xenon.common.Operation;
 import com.vmware.xenon.common.Operation.CompletionHandler;
 import com.vmware.xenon.common.OperationProcessingChain.Filter;
 import com.vmware.xenon.common.OperationProcessingChain.FilterReturnCode;
 import com.vmware.xenon.common.OperationProcessingChain.OperationProcessingContext;
-import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.Service.Action;
 import com.vmware.xenon.common.Service.ProcessingStage;
 import com.vmware.xenon.common.Service.ServiceOption;
-import com.vmware.xenon.common.ServiceErrorResponse;
-import com.vmware.xenon.common.ServiceHost;
 import com.vmware.xenon.common.ServiceHost.ServiceAlreadyStartedException;
 import com.vmware.xenon.common.ServiceHost.ServiceNotFoundException;
-import com.vmware.xenon.common.UriUtils;
 
 /**
  * This filter determines if the operation's target service is available to
