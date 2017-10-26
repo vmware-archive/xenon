@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.5.4-CR6
+
+* Support for l10n message files located in jars
+
 ## 1.5.4-CR5
 
 * Support migrating mismatched owner documents
