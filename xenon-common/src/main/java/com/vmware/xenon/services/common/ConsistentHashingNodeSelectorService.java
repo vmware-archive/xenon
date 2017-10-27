@@ -794,6 +794,7 @@ public class ConsistentHashingNodeSelectorService extends StatelessService imple
             if (e != null) {
                 // fail the original update request if one peer update failed
                 op.fail(e);
+                return;
             }
             int p = pending.decrementAndGet();
             if (p != 0) {
