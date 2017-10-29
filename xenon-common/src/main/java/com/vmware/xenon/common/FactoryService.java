@@ -25,6 +25,7 @@ import com.vmware.xenon.common.NodeSelectorService.SelectOwnerResponse;
 import com.vmware.xenon.common.Operation.CompletionHandler;
 import com.vmware.xenon.common.OperationProcessingChain.OperationProcessingContext;
 import com.vmware.xenon.common.ServiceDocumentDescription.PropertyDescription;
+import com.vmware.xenon.common.config.XenonConfiguration;
 import com.vmware.xenon.services.common.NodeGroupBroadcastResponse;
 import com.vmware.xenon.services.common.QueryTask;
 import com.vmware.xenon.services.common.QueryTask.QuerySpecification.QueryOption;
@@ -1123,6 +1124,11 @@ public abstract class FactoryService extends StatelessService {
         task.queryResultLimit = this.selfQueryResultLimit;
         task.taskInfo = TaskState.create();
         task.taskInfo.isDirect = true;
+        task.synchAllVersions = XenonConfiguration.bool(
+                SynchronizationTaskService.class,
+                "SYNCH_ALL_VERSIONS",
+                false
+        );
         return task;
     }
 
