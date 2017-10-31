@@ -2579,7 +2579,7 @@ public class ServiceHost implements ServiceRequestSender {
         }
     }
 
-    private void restoreActionOnChildServiceToPostOnFactory(String link, Operation op) {
+    void restoreActionOnChildServiceToPostOnFactory(String link, Operation op) {
         log(Level.FINE, "Changing URI for (id:%d) %s from %s to factory",
                 op.getId(), op.getAction(), link);
 

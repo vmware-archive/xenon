@@ -68,14 +68,21 @@ public class ServiceAvailabilityFilter implements Filter {
             // service is in the process of starting - we will resume processing when
             // it's available
             Service finalService = service;
-            op.nestCompletion(o -> {
+            op.nestCompletion((o, e) -> {
+                if (e != null || !ServiceHost.isServiceAvailable(finalService)) {
+                    // service might have failed to start and might even be detached -
+                    // we will retry, which will most likely trigger an on-demand start
+                    context.resumeProcessingRequest(op, FilterReturnCode.RESUME_PROCESSING, null);
+                    return;
+                }
+
                 context.setService(finalService);
                 context.resumeProcessingRequest(op, FilterReturnCode.CONTINUE_PROCESSING, null);
             });
 
             final String finalServicePath = servicePath;
             context.setSuspendConsumer(o -> {
-                context.getHost().registerForServiceAvailability(op, finalServicePath);
+                context.getHost().getOperationTracker().trackServiceStartCompletion(finalServicePath, op);
             });
             return FilterReturnCode.SUSPEND_PROCESSING;
         }
