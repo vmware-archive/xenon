@@ -161,6 +161,11 @@ public class LuceneDocumentIndexService extends StatelessService {
 
     private static final String DOCUMENTS_WITHOUT_RESULTS = "DocumentsWithoutResults";
 
+    /**
+     * Try to find a reusable searcher this many times.
+     */
+    private static final int SEARCHER_REUSE_MAX_ATTEMPTS = 50;
+
     protected String indexDirectory;
 
     private static int expiredDocumentSearchThreshold = 1000;
@@ -1197,8 +1202,13 @@ public class LuceneDocumentIndexService extends StatelessService {
             return null;
         }
 
+        int maxAttempts = SEARCHER_REUSE_MAX_ATTEMPTS;
+
         PaginatedSearcherInfo info = null;
         for (PaginatedSearcherInfo i : this.paginatedSearchersByCreationTime.descendingMap().values()) {
+            if (maxAttempts-- < 0) {
+                break;
+            }
 
             if (i.singleUse) {
                 continue;
