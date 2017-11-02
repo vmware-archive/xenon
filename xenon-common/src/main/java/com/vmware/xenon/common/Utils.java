@@ -1267,6 +1267,7 @@ public final class Utils {
 
     /**
      * Return a non-null, zero-length thread-local instance.
+     * Infrastructure use only.
      * @return
      */
     public static StringBuilder getBuilder() {
