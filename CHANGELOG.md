@@ -2,6 +2,10 @@
 
 ## 1.5.7-CR3
 
+* Do not downcast document object for auth check in index-service
+
+* Use GET to retrieve best state for owner mismatched docs
+
 
 ## 1.5.7-CR2
 
