@@ -54,8 +54,6 @@ import com.google.gson.JsonObject;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.SimpleAnalyzer;
 import org.apache.lucene.codecs.Codec;
-import org.apache.lucene.codecs.FieldInfosFormat;
-import org.apache.lucene.codecs.FilterCodec;
 import org.apache.lucene.codecs.lucene60.Lucene60FieldInfosFormat;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.LongPoint;
@@ -419,6 +417,8 @@ public class LuceneDocumentIndexService extends StatelessService {
 
     private URI uri;
 
+    private FieldInfoCache fieldInfoCache;
+
     public static class MetadataUpdateInfo {
         public String selfLink;
         public String kind;
@@ -708,8 +708,6 @@ public class LuceneDocumentIndexService extends StatelessService {
         return this.writer;
     }
 
-    private Lucene60FieldInfosFormatWithCache fieldInfosFormat;
-
     private Codec createCodec() {
         Codec codec = Codec.getDefault();
         if (!(codec.fieldInfosFormat() instanceof Lucene60FieldInfosFormat)) {
@@ -720,14 +718,8 @@ public class LuceneDocumentIndexService extends StatelessService {
             return codec;
         }
 
-        this.fieldInfosFormat = new Lucene60FieldInfosFormatWithCache();
-
-        return new FilterCodec(codec.getName(), codec) {
-            @Override
-            public FieldInfosFormat fieldInfosFormat() {
-                return LuceneDocumentIndexService.this.fieldInfosFormat;
-            }
-        };
+        this.fieldInfoCache = new FieldInfoCache();
+        return new LuceneCodecWithFixes(codec, this.fieldInfoCache);
     }
 
     private void upgradeIndex(Directory dir) throws IOException {
@@ -3054,8 +3046,8 @@ public class LuceneDocumentIndexService extends StatelessService {
 
     @Override
     public void handleMaintenance(Operation post) {
-        if (this.fieldInfosFormat != null) {
-            this.fieldInfosFormat.handleMaintenance();
+        if (this.fieldInfoCache != null) {
+            this.fieldInfoCache.handleMaintenance();
         }
 
         Operation maintenanceOp = Operation
