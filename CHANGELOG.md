@@ -1,6 +1,10 @@
 # CHANGELOG
 
-## 1.6.1-SNAPSHOT
+## 1.6.2-SNAPSHOT
+
+## 1.6.1
+
+  Preparing in different branch
 
 ## 1.6.0
 
