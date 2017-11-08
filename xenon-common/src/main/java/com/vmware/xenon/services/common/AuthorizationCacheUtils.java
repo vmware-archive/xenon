@@ -16,6 +16,7 @@ package com.vmware.xenon.services.common;
 import java.util.EnumSet;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import java.util.logging.Level;
 
 import com.vmware.xenon.common.Operation;
@@ -26,7 +27,6 @@ import com.vmware.xenon.common.ServiceDocument;
 import com.vmware.xenon.common.ServiceDocumentQueryResult;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.Utils;
-import com.vmware.xenon.common.config.XenonConfiguration;
 import com.vmware.xenon.services.common.AuthorizationTokenCacheService.AuthorizationTokenCacheServiceState;
 import com.vmware.xenon.services.common.QueryTask.Query;
 import com.vmware.xenon.services.common.QueryTask.Query.Builder;
@@ -36,11 +36,13 @@ import com.vmware.xenon.services.common.UserGroupService.UserGroupState;
 
 public final class AuthorizationCacheUtils {
 
-    private static final int resultLimit = XenonConfiguration.integer(
-            AuthorizationCacheUtils.class,
-            "defaultResultLimit",
-            1000
-    );
+    public static final String PROPERTY_NAME_DEFAULT_RESULT_LIMIT =
+            Utils.PROPERTY_NAME_PREFIX + "AuthorizationCacheUtils.defaultResultLimit";
+
+    private static final int DEFAULT_RESULT_LIMIT = 1000;
+
+    private static final int resultLimit =
+            Integer.getInteger(PROPERTY_NAME_DEFAULT_RESULT_LIMIT, DEFAULT_RESULT_LIMIT);
 
     private AuthorizationCacheUtils() {
 

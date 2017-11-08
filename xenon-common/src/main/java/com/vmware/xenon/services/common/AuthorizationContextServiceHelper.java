@@ -44,7 +44,6 @@ import com.vmware.xenon.common.ServiceDocumentQueryResult;
 import com.vmware.xenon.common.ServiceHost;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.Utils;
-import com.vmware.xenon.common.config.XenonConfiguration;
 import com.vmware.xenon.services.common.QueryFilter.QueryFilterException;
 import com.vmware.xenon.services.common.QueryTask.Query;
 import com.vmware.xenon.services.common.QueryTask.Query.Occurance;
@@ -62,12 +61,15 @@ import com.vmware.xenon.services.common.UserService.UserState;
  * common operations
  *
  */
-public final class AuthorizationContextServiceHelper {
+public class AuthorizationContextServiceHelper {
 
-    private static final int resultLimit = XenonConfiguration.integer(
-            AuthorizationContextServiceHelper.class,
-            "defaultResultLimit", 1000
-    );
+    public static final String PROPERTY_NAME_DEFAULT_RESULT_LIMIT =
+            Utils.PROPERTY_NAME_PREFIX + "AuthorizationContextServiceHelper.defaultResultLimit";
+
+    private static final int DEFAULT_RESULT_LIMIT = 1000;
+
+    private static final int resultLimit =
+            Integer.getInteger(PROPERTY_NAME_DEFAULT_RESULT_LIMIT, DEFAULT_RESULT_LIMIT);
 
     private AuthorizationContextServiceHelper() {
     }

@@ -15,8 +15,6 @@ package com.vmware.xenon.common;
 
 import javax.net.ssl.SSLContext;
 
-import com.vmware.xenon.common.config.XenonConfiguration;
-
 public interface ServiceClient extends ServiceRequestSender {
 
     /**
@@ -31,32 +29,35 @@ public interface ServiceClient extends ServiceRequestSender {
     String SSL_PROTOCOL_NAME = "SSL";
     String TLS_PROTOCOL_NAME = "TLS";
 
-    int MAX_BINARY_SERIALIZED_BODY_LIMIT = XenonConfiguration.integer(
-            ServiceClient.class,
-            "MAX_BINARY_SERIALIZED_BODY_LIMIT",
-            1024 * 1024
-    );
+    public static final String PROPERTY_NAME_REQUEST_PAYLOAD_SIZE_LIMIT =
+            Utils.PROPERTY_NAME_PREFIX + "ServiceClient.REQUEST_PAYLOAD_SIZE_LIMIT";
 
-    int DEFAULT_CONNECTION_LIMIT_PER_HOST = XenonConfiguration.integer(
-            ServiceClient.class,
-            "DEFAULT_CONNECTIONS_PER_HOST", 128
-    );
+    public static final String PROPERTY_NAME_PENDING_REQUEST_QUEUE_LIMIT = Utils.PROPERTY_NAME_PREFIX
+            + "ServiceClient.PENDING_REQUEST_QUEUE_LIMIT";
 
-    int DEFAULT_CONNECTION_LIMIT_PER_TAG = XenonConfiguration.integer(
-            ServiceClient.class,
-            "DEFAULT_CONNECTION_LIMIT_PER_TAG", 4);
+    public static final String PROPERTY_NAME_MAX_BINARY_SERIALIZED_BODY_LIMIT =
+            Utils.PROPERTY_NAME_PREFIX + "ServiceClient.MAX_BINARY_SERIALIZED_BODY_LIMIT";
 
-    int REQUEST_PAYLOAD_SIZE_LIMIT = XenonConfiguration.integer(
-            ServiceClient.class,
-            "REQUEST_PAYLOAD_SIZE_LIMIT",
-            1024 * 1024 * 64
-    );
+    public static final String PROPERTY_NAME_DEFAULT_CONNECTION_LIMIT_PER_HOST =
+            Utils.PROPERTY_NAME_PREFIX + "ServiceClient.DEFAULT_CONNECTIONS_PER_HOST";
 
-    int DEFAULT_PENDING_REQUEST_QUEUE_LIMIT = XenonConfiguration.integer(
-            ServiceClient.class,
-            "PENDING_REQUEST_QUEUE_LIMIT",
-            100000
-    );
+    public static final String PROPERTY_NAME_DEFAULT_CONNECTION_LIMIT_PER_TAG =
+            Utils.PROPERTY_NAME_PREFIX + "ServiceClient.DEFAULT_CONNECTION_LIMIT_PER_TAG";
+
+    public static final int MAX_BINARY_SERIALIZED_BODY_LIMIT = Integer.getInteger(
+            PROPERTY_NAME_MAX_BINARY_SERIALIZED_BODY_LIMIT, 1024 * 1024);
+
+    public static final int DEFAULT_CONNECTION_LIMIT_PER_HOST = Integer.getInteger(
+            PROPERTY_NAME_DEFAULT_CONNECTION_LIMIT_PER_HOST, 128);
+
+    public static final int DEFAULT_CONNECTION_LIMIT_PER_TAG = Integer.getInteger(
+            PROPERTY_NAME_DEFAULT_CONNECTION_LIMIT_PER_TAG, 4);
+
+    public static final int REQUEST_PAYLOAD_SIZE_LIMIT = Integer.getInteger(
+            PROPERTY_NAME_REQUEST_PAYLOAD_SIZE_LIMIT, 1024 * 1024 * 64);
+
+    public static final int DEFAULT_PENDING_REQUEST_QUEUE_LIMIT = Integer.getInteger(
+            PROPERTY_NAME_PENDING_REQUEST_QUEUE_LIMIT, 100000);
 
     /**
      * Connection tag used by node group service for peer to peer random probing and liveness checks

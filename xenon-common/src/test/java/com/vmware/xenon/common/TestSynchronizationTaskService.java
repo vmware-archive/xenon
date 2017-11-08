@@ -41,7 +41,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.vmware.xenon.common.config.TestXenonConfiguration;
 import com.vmware.xenon.common.test.TestContext;
 import com.vmware.xenon.common.test.TestRequestSender;
 import com.vmware.xenon.common.test.VerificationHost;
@@ -59,7 +58,7 @@ public class TestSynchronizationTaskService extends BasicTestCase {
     public static class SynchRetryExampleService extends StatefulService {
         public static final String FACTORY_LINK = ServiceUriPaths.CORE + "/test-retry-examples";
 
-        public static FactoryService createFactory() {
+        public static final FactoryService createFactory() {
             return FactoryService.create(SynchRetryExampleService.class);
         }
 
@@ -105,19 +104,14 @@ public class TestSynchronizationTaskService extends BasicTestCase {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        TestXenonConfiguration.override(
-                SynchronizationTaskService.class,
-                "PROPERTY_NAME_SYNCHRONIZATION_LOGGING",
-                "true"
-        );
+        System.setProperty(
+                SynchronizationTaskService.PROPERTY_NAME_SYNCHRONIZATION_LOGGING, "true");
     }
 
     @AfterClass
     public static void tearDownClass() throws Exception {
-        TestXenonConfiguration.restore(SynchronizationTaskService.class,
-                "PROPERTY_NAME_SYNCHRONIZATION_LOGGING",
-                "false"
-        );
+        System.setProperty(
+                SynchronizationTaskService.PROPERTY_NAME_SYNCHRONIZATION_LOGGING, "false");
     }
 
     @Override
