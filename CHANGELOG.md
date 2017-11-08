@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 1.6.1-SNAPSHOT
+
+* Revert OpenTracing integration
+
+
 ## 1.6.0
 
 * Deprecated ServiceOption.ON_DEMAND_LOAD. While the option still exists
