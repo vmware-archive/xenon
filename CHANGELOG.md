@@ -50,9 +50,6 @@
  * Provide configurable replication quorum which decides the success and failure threshold.
    Api: PATCH PATH/TO/NODESELECTOR -d '{replicationQuorum:REPLICATIONQUORUM}'
 
- * Integrated OpenTracing with ServiceHost to provide holistic end to end tracing through Xenon
-   built services.
-
 ## 1.5.7
 
 * Fix auth check for non-persisted stateful service on document-index GET.
