@@ -32,6 +32,9 @@ public class TracerFactory {
     @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("MS_SHOULD_BE_FINAL")
     public static TracerFactory factory = new TracerFactory();
 
+    private boolean enabled;
+    private boolean enableChecked;
+
     /**
      * Create a {@link io.opentracing.Tracer} for use by a {@link com.vmware.xenon.common.ServiceHost}.
      *
@@ -39,6 +42,7 @@ public class TracerFactory {
      * not perform any host-specific customisations.
      *
      * @return A {@link io.opentracing.Tracer} instance for tracing the given {@link com.vmware.xenon.common.ServiceHost}
+     * If tracing is not enabled, them a {@link io.opentracing.NoopTracer} is returned.
      */
     @SuppressWarnings("unchecked")
     public synchronized Tracer create(ServiceHost host) {
@@ -76,5 +80,19 @@ public class TracerFactory {
         }
 
         return factory.create(host);
+    }
+
+    /**
+     * Is Tracing enabled? {@link TracerFactory#create(ServiceHost)} will return a {@link io.opentracing.NoopTracer}
+     *
+     * @return
+     */
+    public boolean enabled() {
+        if (!this.enableChecked) {
+            String impl = XenonConfiguration.string(TracerFactory.class, "provider", null);
+            this.enabled = impl != null;
+            this.enableChecked = true;
+        }
+        return this.enabled;
     }
 }
