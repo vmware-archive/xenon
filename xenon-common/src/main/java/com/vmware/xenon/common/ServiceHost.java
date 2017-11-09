@@ -1441,7 +1441,7 @@ public class ServiceHost implements ServiceRequestSender {
 
     @SuppressWarnings("try")
     public ServiceHost start() throws Throwable {
-        if (this.tracingEnabled) {
+        if (!this.tracingEnabled) {
             return startImpl();
         } else {
             try (ActiveSpan span = this.otTracer.buildSpan("ServiceHost.start").startActive()) {
