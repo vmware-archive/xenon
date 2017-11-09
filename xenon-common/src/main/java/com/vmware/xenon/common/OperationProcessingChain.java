@@ -189,7 +189,6 @@ public class OperationProcessingChain {
         this.filters.clear();
     }
 
-
     /**
      * Processes an operation by passing it through the chain of filters.
      * After the filters in the chain have processed the operation, the provided

@@ -408,6 +408,7 @@ public class StatefulService implements Service {
                 OperationProcessingChain opProcessingChain = getOperationProcessingChain();
                 if (opProcessingChain != null) {
                     OperationProcessingContext context = opProcessingChain.createContext(getHost());
+                    context.setService(this);
                     opProcessingChain.processRequest(request, context, o -> {
                         handleRequest(request, OperationProcessingStage.EXECUTING_SERVICE_HANDLER);
                     });
