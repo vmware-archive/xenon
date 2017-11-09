@@ -112,6 +112,7 @@ public class StatelessService implements Service {
                 OperationProcessingChain opProcessingChain = getOperationProcessingChain();
                 if (opProcessingChain != null) {
                     OperationProcessingContext context = opProcessingChain.createContext(getHost());
+                    context.setService(this);
                     opProcessingChain.processRequest(op, context, o -> {
                         handleRequest(op, OperationProcessingStage.EXECUTING_SERVICE_HANDLER);
                     });
