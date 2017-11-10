@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 1.5.7_5
+
+* No functional change from 1.5.7-CR4. 
+  Version name has changed to make gradle consider this version is higher 
+  than 1.5.7.
+  https://github.com/gradle/gradle/blob/master/subprojects/core/src/main/java/org/gradle/util/VersionNumber.java
+
+
 ## 1.5.7-CR4
 
   Synchronization fixes and tunning. More detail in the commit.
