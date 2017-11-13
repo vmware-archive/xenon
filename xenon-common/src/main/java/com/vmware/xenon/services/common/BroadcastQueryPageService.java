@@ -78,7 +78,7 @@ public class BroadcastQueryPageService extends StatelessService {
                     .transferRefererFrom(get)
                     .setExpiration(
                             Utils.fromNowMicrosUtc(
-                                    getHost().getOperationTimeoutMicros() / 3))
+                                    getHost().getOperationTimeoutMicros()))
                     .setCompletion((o, e) -> {
                         if (e != null) {
                             get.fail(e);
