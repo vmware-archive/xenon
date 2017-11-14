@@ -16,6 +16,7 @@
     <lucene.version>6.5.0</lucene.version>
     <netty.version>4.1.15.Final</netty.version>
     <tcnative.version>2.0.6.Final</tcnative.version>
+    <assertj.version>3.8.0</assertj.version>
   </properties>
 
   <profiles>
@@ -81,6 +82,13 @@
       <artifactId>netty-tcnative-boringssl-static</artifactId>
       <version>${tcnative.version}</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>${assertj.version}</version>
+      <scope>test</scope>
+      <optional>true</optional>
     </dependency>
   </dependencies>
   <build>
