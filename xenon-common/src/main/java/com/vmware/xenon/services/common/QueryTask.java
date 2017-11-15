@@ -216,6 +216,13 @@ public class QueryTask extends ServiceDocument {
              * metadata.
              */
             INDEXED_METADATA,
+
+            /**
+             * Query result will NOT create previous pages.
+             * When this option is used with BROADCAST option, it will also NOT create previous page
+             * for broadcast result({@link BroadcastQueryPageService}.
+             */
+            FORWARD_ONLY,
         }
 
         public enum SortOrder {

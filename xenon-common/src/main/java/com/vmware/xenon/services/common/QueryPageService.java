@@ -144,7 +144,11 @@ public class QueryPageService extends StatelessService {
     private void handleQueryCompletion(QueryTask task, Throwable e, Operation get) {
         if (e != null) {
             LuceneQueryPage ctx = (LuceneQueryPage) task.querySpec.context.nativePage;
-            if (ctx.isFirstPage() && (e instanceof AlreadyClosedException)
+            // When forward only is specified, previous page link is always empty, and currently
+            // no way of knowing whether it is on the first page or not.
+            // Thus, when it is forward only, do not attempt to retry query.
+            boolean isForwardOnly = task.querySpec.options.contains(QueryOption.FORWARD_ONLY);
+            if (!isForwardOnly && ctx.isFirstPage() && (e instanceof AlreadyClosedException)
                     && !getHost().isStopping()) {
                 // The lucene index service periodically grooms index writers and index searchers.
                 // When the system is under load, the grooming will occur more often, potentially

@@ -13,6 +13,8 @@
 
 package com.vmware.xenon.services.common;
 
+import static java.util.stream.Collectors.toList;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -44,7 +46,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.gson.annotations.SerializedName;
-
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -521,9 +522,9 @@ public class TestQueryTaskService {
         // Delete some of the services from each batch, wait for notifications, and verify that the
         // COUNT query reflects the updates which match its query specification.
         List<URI> initialServicesToDelete = initialServices.stream().limit(this.serviceCount / 2)
-                .collect(Collectors.toList());
+                .collect(toList());
         List<URI> createdServicesToDelete = createdServices.stream().limit(this.serviceCount / 2)
-                .collect(Collectors.toList());
+                .collect(toList());
 
         queryCtx = this.host.testCreate(initialServicesToDelete.size()
                 + createdServicesToDelete.size());
@@ -556,9 +557,9 @@ public class TestQueryTaskService {
         // are expected for each service: one for the update to set the expiration time, and one
         // for the subsequent delete notification as part of service expiration.
         List<URI> initialServicesToExpire = initialServices.stream()
-                .filter(u -> !initialServicesToDelete.contains(u)).collect(Collectors.toList());
+                .filter(u -> !initialServicesToDelete.contains(u)).collect(toList());
         List<URI> createdServicesToExpire = createdServices.stream()
-                .filter(u -> !createdServicesToDelete.contains(u)).collect(Collectors.toList());
+                .filter(u -> !createdServicesToDelete.contains(u)).collect(toList());
 
         queryCtx = this.host.testCreate(2 * initialServicesToExpire.size()
                 + 2 * createdServicesToExpire.size());
@@ -964,7 +965,7 @@ public class TestQueryTaskService {
         }
 
         List<URI> deletedServices = services.stream().limit(this.deletedServiceCount)
-                .collect(Collectors.toList());
+                .collect(toList());
 
         if (!deletedServices.isEmpty()) {
             deleteServices(deletedServices);
@@ -975,7 +976,7 @@ public class TestQueryTaskService {
 
         List<URI> remainingServices = services.stream()
                 .filter((serviceUri) -> !deletedServices.contains(serviceUri))
-                .collect(Collectors.toList());
+                .collect(toList());
 
         // Do a query where a single document in the index matches the query parameters
         Query query = Query.Builder.create()
@@ -1070,7 +1071,7 @@ public class TestQueryTaskService {
         }
 
         List<URI> deletedServices = services.stream().limit(this.deletedServiceCount)
-                .collect(Collectors.toList());
+                .collect(toList());
 
         if (!deletedServices.isEmpty()) {
             deleteServices(deletedServices);
@@ -1081,7 +1082,7 @@ public class TestQueryTaskService {
 
         List<URI> remainingServices = services.stream()
                 .filter((serviceUri) -> !deletedServices.contains(serviceUri))
-                .collect(Collectors.toList());
+                .collect(toList());
 
         Query q = Query.Builder.create()
                 .addKindFieldClause(QueryValidationServiceState.class)
@@ -1549,7 +1550,7 @@ public class TestQueryTaskService {
             queryTargetServices.add(service);
         }
         this.host.testWait(ctx);
-        return queryTargetServices.stream().map(Service::getUri).collect(Collectors.toList());
+        return queryTargetServices.stream().map(Service::getUri).collect(toList());
     }
 
     @Test
@@ -2649,9 +2650,7 @@ public class TestQueryTaskService {
                                     return;
                                 }
 
-                                String expectedPageLinkSegment = UriUtils.buildUriPath(
-                                        ServiceUriPaths.CORE,
-                                        BroadcastQueryPageService.SELF_LINK_PREFIX);
+                                String expectedPageLinkSegment = ServiceUriPaths.CORE_QUERY_BROADCAST_PAGE;
                                 if (!rsp.results.nextPageLink.contains(expectedPageLinkSegment)) {
                                     targetHost.failIteration(new IllegalStateException(
                                             "Incorrect next page link returned: "
@@ -4013,7 +4012,7 @@ public class TestQueryTaskService {
         createExampleServices(UriUtils.buildUri(this.host, ExampleService.FACTORY_LINK),
                 exampleServices);
         List<String> serviceLinks = exampleServices.stream().map(URI::getPath)
-                .collect(Collectors.toList());
+                .collect(toList());
         TestContext ctx = this.host.testCreate(this.serviceCount);
         for (int i = 0; i < targetServiceURIs.size(); i++) {
             URI queryTargetService = targetServiceURIs.get(i);
@@ -5163,4 +5162,82 @@ public class TestQueryTaskService {
         }
         this.host.testWait(ctx);
     }
+
+
+    @Test
+    public void forwardOnly() throws Throwable {
+        final int nodeCount = 3;
+
+        setUpHost();
+        this.host.setPeerSynchronizationEnabled(true);
+
+        this.host.setUpPeerHosts(nodeCount);
+        this.host.joinNodesAndVerifyConvergence(nodeCount, true);
+
+        URI exampleFactoryUri = UriUtils.buildUri(this.host.getPeerServiceUri(ExampleService.FACTORY_LINK));
+        this.host.waitForReplicatedFactoryServiceAvailable(exampleFactoryUri);
+
+        TestRequestSender sender = this.host.getTestRequestSender();
+        VerificationHost peer = this.host.getPeerHost();
+
+        // create example services
+        List<URI> exampleServices = new ArrayList<>();
+        createExampleServices(UriUtils.buildUri(peer, ExampleService.FACTORY_LINK), exampleServices);
+
+        // FORWARD_ONLY query
+        QueryTask task = QueryTask.Builder.createDirectTask()
+                .setQuery(Query.Builder.create().addKindFieldClause(ExampleServiceState.class).build())
+                .addOption(QueryOption.FORWARD_ONLY)
+                .setResultLimit(2)
+                .build();
+
+        Operation post = Operation.createPost(peer, ServiceUriPaths.CORE_LOCAL_QUERY_TASKS).setBody(task);
+        QueryTask queryTaskResult = sender.sendAndWait(post, QueryTask.class);
+
+        // verify there is no prev page link
+        performOnEachPage(sender, peer, queryTaskResult, page -> {
+            assertNull("prev page link should be always null.", page.results.prevPageLink);
+        });
+
+        // FORWARD_ONLY + BROADCAST query
+        task = QueryTask.Builder.createDirectTask()
+                .setQuery(Query.Builder.create().addKindFieldClause(ExampleServiceState.class).build())
+                .addOptions(EnumSet.of(QueryOption.BROADCAST, QueryOption.FORWARD_ONLY))
+                .setResultLimit(2)
+                .build();
+
+        post = Operation.createPost(peer, ServiceUriPaths.CORE_LOCAL_QUERY_TASKS).setBody(task);
+        queryTaskResult = sender.sendAndWait(post, QueryTask.class);
+
+        // Performing GET on broadcast result page triggers creating new next/prev page result; therefore,
+        // verify no prev page link and retrieve next page link at one iteration
+        List<String> nextPageLinks = new ArrayList<>();
+        performOnEachPage(sender, peer, queryTaskResult, page -> {
+            assertNull("prev page link should be always null.", page.results.prevPageLink);
+            nextPageLinks.add(page.results.nextPageLink);
+        });
+
+        // deletes all broadcast result pages
+        List<Operation> deletes = nextPageLinks.stream().map(link -> Operation.createDelete(peer, link)).collect(toList());
+        sender.sendAndWait(deletes);
+
+        // verify no broadcast result page exists (no previous pages created)
+        int broadcastPageCount = getNumOfServices(peer, ServiceUriPaths.CORE_QUERY_BROADCAST_PAGE);
+        assertEquals("Expect no broad cast pages", 0, broadcastPageCount);
+    }
+
+    private void performOnEachPage(TestRequestSender sender, VerificationHost host, QueryTask task, Consumer<QueryTask> onPage) {
+        do {
+            onPage.accept(task);
+            task = sender.sendAndWait(Operation.createGet(host, task.results.nextPageLink), QueryTask.class);
+        } while (task.results.nextPageLink != null);
+    }
+
+    private int getNumOfServices(VerificationHost node, String servicePrefix) {
+        Operation dummy = Operation.createGet(null);
+        node.queryServiceUris(UriUtils.buildUriPath(servicePrefix, UriUtils.URI_WILDCARD_CHAR), dummy);
+        List<String> links = dummy.getBody(ServiceDocumentQueryResult.class).documentLinks;
+        return links.size();
+    }
+
 }

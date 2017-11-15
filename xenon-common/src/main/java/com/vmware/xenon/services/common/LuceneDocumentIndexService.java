@@ -2182,10 +2182,15 @@ public class LuceneDocumentIndexService extends StatelessService {
         String nextLink = forwarderUri.getPath() + UriUtils.URI_QUERY_CHAR
                 + forwarderUri.getQuery();
 
-        URI forwarderUriOfPrevLinkForNewPage = UriUtils.buildForwardToQueryPageUri(op.getReferer(),
-                getHost().getId());
-        String prevLinkForNewPage = forwarderUriOfPrevLinkForNewPage.getPath()
-                + UriUtils.URI_QUERY_CHAR + forwarderUriOfPrevLinkForNewPage.getQuery();
+        // Compute previous page link. When FORWARD_ONLY option is specified, do not create previous page link.
+        String prevLinkForNewPage = null;
+        boolean isForwardOnly = qs.options.contains(QueryOption.FORWARD_ONLY);
+        if (!isForwardOnly) {
+            URI forwarderUriOfPrevLinkForNewPage = UriUtils.buildForwardToQueryPageUri(op.getReferer(),
+                    getHost().getId());
+            prevLinkForNewPage = forwarderUriOfPrevLinkForNewPage.getPath()
+                    + UriUtils.URI_QUERY_CHAR + forwarderUriOfPrevLinkForNewPage.getQuery();
+        }
 
         // Requests to core/query-page are forwarded to document-index (this service) and
         // referrer of that forwarded request is set to original query-page request.
