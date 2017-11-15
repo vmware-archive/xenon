@@ -166,9 +166,8 @@ public class BroadcastQueryPageService extends StatelessService {
     }
 
     private String startNewService(List<String> pageLinks, String prevPageLink, String nextPageLink) {
-        URI broadcastPageServiceUri = UriUtils.buildUri(this.getHost(), UriUtils.buildUriPath(ServiceUriPaths.CORE,
-                BroadcastQueryPageService.SELF_LINK_PREFIX,
-                String.valueOf(Utils.getNowMicrosUtc())));
+        URI broadcastPageServiceUri = UriUtils.buildUri(this.getHost(), UriUtils.buildUriPath(
+                ServiceUriPaths.CORE_QUERY_BROADCAST_PAGE, String.valueOf(Utils.getNowMicrosUtc())));
 
         URI forwarderUri = UriUtils.buildForwardToPeerUri(broadcastPageServiceUri, getHost().getId(),
                 ServiceUriPaths.DEFAULT_NODE_SELECTOR, EnumSet.noneOf(ServiceOption.class));
