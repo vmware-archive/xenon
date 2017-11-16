@@ -171,6 +171,18 @@ public class LuceneDocumentIndexService extends StatelessService {
 
     public static final long DEFAULT_PAGINATED_SEARCHER_EXPIRATION_DELAY = TimeUnit.SECONDS.toMicros(1);
 
+    private static final int QUERY_EXECUTOR_WORK_QUEUE_CAPACITY = XenonConfiguration.integer(
+            LuceneDocumentIndexService.class,
+            "queryExecutorWorkQueueCapacity",
+            QUERY_QUEUE_DEPTH
+    );
+
+    private static final int UPDATE_EXECUTOR_WORK_QUEUE_CAPACITY = XenonConfiguration.integer(
+            LuceneDocumentIndexService.class,
+            "updateExecutorWorkQueueCapacity",
+            UPDATE_QUEUE_DEPTH
+    );
+
     private static final String DOCUMENTS_WITHOUT_RESULTS = "DocumentsWithoutResults";
 
     /**
@@ -561,13 +573,13 @@ public class LuceneDocumentIndexService extends StatelessService {
 
         ExecutorService es = new ThreadPoolExecutor(QUERY_THREAD_COUNT, QUERY_THREAD_COUNT,
                 1, TimeUnit.MINUTES,
-                new ArrayBlockingQueue<>(Service.OPERATION_QUEUE_DEFAULT_LIMIT),
+                new ArrayBlockingQueue<>(QUERY_EXECUTOR_WORK_QUEUE_CAPACITY),
                 new NamedThreadFactory(getUri() + "/queries"));
         this.privateQueryExecutor = TracingExecutor.create(es, this.getHost().getTracer());
 
         es = new ThreadPoolExecutor(QUERY_THREAD_COUNT, QUERY_THREAD_COUNT,
                 1, TimeUnit.MINUTES,
-                new ArrayBlockingQueue<>(10 * Service.OPERATION_QUEUE_DEFAULT_LIMIT),
+                new ArrayBlockingQueue<>(UPDATE_EXECUTOR_WORK_QUEUE_CAPACITY),
                 new NamedThreadFactory(getUri() + "/updates"));
         this.privateIndexingExecutor = TracingExecutor.create(es, this.getHost().getTracer());
 
