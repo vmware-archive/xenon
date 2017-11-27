@@ -13,6 +13,13 @@
   - 92febda36981f4210e88de0c08f989badab9753e
   - 9a1cd4c8c3daef32828753b4116f27bdb84322a4
 
+* A document new owner and epoch is set only on-demand, when an update is
+  made to to the document. This saves synchronization overhead, as new document
+  versions need not be created due to ownership change. Users who rely on
+  up-to-date owner info are encouraged to use ServiceHost::selectOwner. An
+  example of such usage, in testing context, can be found at
+  VerificationHost::isOwner.
+
 * Time spent in an executor queue is now reported in OpenTracing traces.
 
 * Integrated OpenTracing with ServiceHost to provide holistic end to end tracing through Xenon
