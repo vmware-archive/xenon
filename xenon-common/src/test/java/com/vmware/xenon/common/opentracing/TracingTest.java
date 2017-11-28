@@ -25,6 +25,7 @@ import io.opentracing.mock.MockTracer;
 import io.opentracing.tag.Tags;
 import org.junit.After;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.vmware.xenon.common.BasicReusableHostTestCase;
@@ -42,6 +43,7 @@ public class TracingTest extends BasicReusableHostTestCase {
     }
 
     @Test
+    @Ignore("https://www.pivotaltracker.com/story/show/153227731")
     public void testIncomingTraces() throws Throwable {
         MockTracer tracer = TracingTest.injectMockTracer.tracer;
         List<String> uris = new ArrayList<String>();
