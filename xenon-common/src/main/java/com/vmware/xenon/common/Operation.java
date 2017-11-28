@@ -396,12 +396,15 @@ public class Operation implements Cloneable {
         ServiceErrorResponse rsp = ServiceErrorResponse.create(e, op.getStatusCode(),
                 EnumSet.of(ErrorDetail.SHOULD_RETRY));
         rsp.setInternalErrorCode(ServiceErrorResponse.ERROR_CODE_OWNER_MISMATCH);
+        op.setContentType(Operation.MEDIA_TYPE_APPLICATION_JSON);
         op.fail(e, rsp);
     }
 
     public static void failActionNotSupported(Operation request) {
-        request.setStatusCode(Operation.STATUS_CODE_BAD_METHOD).fail(
-                new IllegalArgumentException("Action not supported: " + request.getAction()));
+
+        request.setStatusCode(Operation.STATUS_CODE_BAD_METHOD)
+                .setContentType(MEDIA_TYPE_APPLICATION_JSON)
+                .fail(new IllegalStateException("Action not supported: " + request.getAction()));
     }
 
     public static void failLimitExceeded(Operation request, int errorCode) {
@@ -415,7 +418,7 @@ public class Operation implements Cloneable {
 
     static void failForwardedRequest(Operation op, Operation fo, Throwable fe) {
         op.setStatusCode(fo.getStatusCode());
-        op.setBodyNoCloning(fo.getBodyRaw()).fail(fe);
+        op.setBodyNoCloning(fo.getBodyRaw()).setContentType(MEDIA_TYPE_APPLICATION_JSON).fail(fe);
     }
 
     public static void failServiceNotFound(Operation inboundOp) {
@@ -1245,6 +1248,9 @@ public class Operation implements Cloneable {
     }
 
     public void fail(Throwable e, Object failureBody) {
+        // force "application/json" for error response
+        this.contentType = Operation.MEDIA_TYPE_APPLICATION_JSON;
+
         if (this.statusCode < STATUS_CODE_FAILURE_THRESHOLD) {
             this.statusCode = STATUS_CODE_SERVER_FAILURE_THRESHOLD;
         }
