@@ -2073,7 +2073,7 @@ public class LuceneDocumentIndexService extends StatelessService {
             if (shouldProcessResults) {
                 start = end;
                 bottom = processQueryResults(qs, options, count, s, rsp, hits,
-                        queryStartTimeMicros, nodeSelectorPath,true);
+                        queryStartTimeMicros, nodeSelectorPath, true);
                 end = Utils.getNowMicrosUtc();
 
                 // remove docs for offset
@@ -2311,14 +2311,14 @@ public class LuceneDocumentIndexService extends StatelessService {
 
         ScoreDoc lastDocVisited = null;
         Set<String> fieldsToLoad = this.fieldsToLoadNoExpand;
-        if (options.contains(QueryOption.EXPAND_CONTENT)
+        if (populateResponse && (options.contains(QueryOption.EXPAND_CONTENT)
                 || options.contains(QueryOption.OWNER_SELECTION)
                 || options.contains(QueryOption.EXPAND_BINARY_CONTENT)
-                || options.contains(QueryOption.EXPAND_SELECTED_FIELDS)) {
+                || options.contains(QueryOption.EXPAND_SELECTED_FIELDS))) {
             fieldsToLoad = this.fieldsToLoadWithExpand;
         }
 
-        if (options.contains(QueryOption.SELECT_LINKS)) {
+        if (populateResponse && options.contains(QueryOption.SELECT_LINKS)) {
             fieldsToLoad = new HashSet<>(fieldsToLoad);
             for (QueryTask.QueryTerm link : qs.linkTerms) {
                 fieldsToLoad.add(link.propertyName);
@@ -2413,7 +2413,7 @@ public class LuceneDocumentIndexService extends StatelessService {
                 }
             }
 
-            if (hasCountOption) {
+            if (hasCountOption || !populateResponse) {
                 // count unique instances of this link
                 uniques.add(link);
                 continue;
@@ -2441,6 +2441,7 @@ public class LuceneDocumentIndexService extends StatelessService {
                     continue;
                 }
             }
+
 
             if (options.contains(QueryOption.EXPAND_BINARY_CONTENT) && !rsp.documents.containsKey(link)) {
                 byte[] binaryData = visitor.binarySerializedState;
@@ -2484,14 +2485,8 @@ public class LuceneDocumentIndexService extends StatelessService {
                 }
 
                 JsonObject jo = toJsonElement(copy);
-                Iterator<Entry<String, JsonElement>> it = jo.entrySet().iterator();
-                while (it.hasNext()) {
-                    Entry<String, JsonElement> entry = it.next();
-                    if (!selectFields.contains(entry.getKey())) {
-                        // this is called only for primitive-typed fields, the rest are nullified already
-                        it.remove();
-                    }
-                }
+                // this is called only for primitive-typed fields, the rest are nullified already
+                jo.entrySet().removeIf(entry -> !selectFields.contains(entry.getKey()));
 
                 rsp.documents.put(link, jo);
             }
