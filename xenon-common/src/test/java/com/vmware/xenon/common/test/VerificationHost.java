@@ -889,14 +889,16 @@ public class VerificationHost extends ExampleServiceHost {
                     .setTermMatchType(MatchType.WILDCARD)
                     .setTermMatchValue(linkPrefix + UriUtils.URI_WILDCARD_CHAR);
 
-            URI u = createQueryTaskService(QueryTask.create(q), false);
+            QueryTask qt = QueryTask.create(q);
+            qt.querySpec.options = EnumSet.of(QueryOption.COUNT);
+            URI u = createQueryTaskService(qt, false);
             QueryTask finishedTaskState = waitForQueryTaskCompletion(q,
                     (int) count, (int) count, u, false, true);
-            if (finishedTaskState.results.documentLinks.size() == count) {
+            if (finishedTaskState.results.documentCount == count) {
                 return;
             }
             log("got %d links back, expected %d: %s",
-                    finishedTaskState.results.documentLinks.size(), count,
+                    finishedTaskState.results.documentCount, count,
                     Utils.toJsonHtml(finishedTaskState));
 
             if (!failOnMismatch) {
