@@ -89,7 +89,7 @@ public class QueryTask extends ServiceDocument {
              * Any update to the index will cause a self PATCH to be sent on the service if the query filter
              * does not satisfy the new state but was a match for the previous state.
              */
-            CONTINIOUS_STOP_MATCH,
+            CONTINUOUS_STOP_MATCH,
 
             /**
              * Query results will return the number of documents that satisfy the query and populate the

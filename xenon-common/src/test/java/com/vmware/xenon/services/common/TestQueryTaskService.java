@@ -329,7 +329,7 @@ public class TestQueryTaskService {
                 .build();
         QueryTask queryTask = QueryTask.Builder.create()
                 .setQuery(query)
-                .addOptions(EnumSet.of(QueryOption.CONTINIOUS_STOP_MATCH, QueryOption.EXPAND_CONTENT))
+                .addOptions(EnumSet.of(QueryOption.CONTINUOUS_STOP_MATCH, QueryOption.EXPAND_CONTENT))
                 .build();
         queryTask.documentExpirationTimeMicros = Long.MAX_VALUE;
         URI queryTaskUri = this.host.createQueryTaskService(queryTask);
@@ -374,7 +374,7 @@ public class TestQueryTaskService {
         //add query options CONTINIOUS and CONTINIOUS_STOP_MATCH
         queryTask = QueryTask.Builder.create()
                 .setQuery(query)
-                .addOptions(EnumSet.of(QueryOption.CONTINIOUS_STOP_MATCH,
+                .addOptions(EnumSet.of(QueryOption.CONTINUOUS_STOP_MATCH,
                         QueryOption.CONTINUOUS, QueryOption.EXPAND_CONTENT))
                 .build();
         queryTask.documentExpirationTimeMicros = Long.MAX_VALUE;
