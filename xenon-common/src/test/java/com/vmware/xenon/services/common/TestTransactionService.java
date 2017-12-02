@@ -441,7 +441,7 @@ public class TestTransactionService extends BasicReusableHostTestCase {
             }
             int amount = 1 + rand.nextInt(3);
             withdrawFromAccount(txids[k], buildAccountId(i), amount, null);
-            depositToAccount(txids[k], buildAccountId(i), amount, null);
+            depositToAccount(txids[k], buildAccountId(j), amount, null);
         }
 
         for (int k = 0; k < numOfTransfers; k++) {
