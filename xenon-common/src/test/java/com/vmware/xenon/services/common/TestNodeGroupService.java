@@ -3440,6 +3440,7 @@ public class TestNodeGroupService {
 
         VerificationHost groupHost = this.host.getPeerHost();
 
+        groupHost.setSystemAuthorizationContext();
         // wait for auth related services to be stabilized
         groupHost.waitForReplicatedFactoryServiceAvailable(
                 UriUtils.buildUri(groupHost, UserService.FACTORY_LINK));
@@ -3457,7 +3458,7 @@ public class TestNodeGroupService {
         String bazUserLink = UriUtils.buildUriPath(ServiceUriPaths.CORE_AUTHZ_USERS,
                 "baz@vmware.com");
 
-        groupHost.setSystemAuthorizationContext();
+
 
         // create user, user-group, resource-group, role for foo@vmware.com
         //   user: /core/authz/users/foo@vmware.com
@@ -3667,7 +3668,7 @@ public class TestNodeGroupService {
 
             // based on the role created in test, all users have access to ExampleService
             this.host.sendAndWaitExpectSuccess(
-                    Operation.createGet(UriUtils.buildStatsUri(peer, ExampleService.FACTORY_LINK)));
+                    Operation.createGet(UriUtils.buildUri(peer, ExampleService.FACTORY_LINK)));
         }
 
         this.host.waitFor("Timeout waiting for correct auth cache state",
