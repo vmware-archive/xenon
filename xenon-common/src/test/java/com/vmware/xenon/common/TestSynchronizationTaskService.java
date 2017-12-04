@@ -387,6 +387,7 @@ public class TestSynchronizationTaskService extends BasicTestCase {
     }
 
     @Test
+    @Ignore
     public void  synchAfterClusterRestart() throws Throwable {
         setUpMultiNode();
         String factoryLink = ExampleService.FACTORY_LINK;
