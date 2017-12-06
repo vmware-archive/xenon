@@ -4081,6 +4081,15 @@ public class ServiceHost implements ServiceRequestSender {
                         parentService, servicePath, op, rsp.availableNodeCount);
                 return;
             }
+
+            if (isAuthorizationEnabled()) {
+                forwardOp.nestCompletion((o) -> {
+                    queueOrScheduleRequest(s, forwardOp);
+                });
+                s.authorizeRequest(forwardOp);
+                return;
+            }
+
             queueOrScheduleRequest(s, forwardOp);
             return;
         }
