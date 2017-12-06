@@ -38,6 +38,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.vmware.xenon.common.test.TestContext;
@@ -468,6 +469,7 @@ public class TestSynchronizationTaskService extends BasicTestCase {
     }
 
     @Test
+    @Ignore
     public void consistentStateAfterOwnerStopsODLService() throws Throwable {
         setUpMultiNode();
         consistentStateAfterOwnerStop(ExampleODLService.FACTORY_LINK);
