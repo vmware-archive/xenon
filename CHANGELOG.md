@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 1.5.4-CR7
+
+From changelog:
+
+- Correctly compute maint interval in BroadcastQueryPageService
+- Smarter collection sizing
+- Reduce memory use for read/write interleaved workloads
+- Fix the check if a FieldInfos is sparse
+- Exclude fields with docValue from cache
+- Use FieldInfoCache when reading segments from disk
+- Deserialize services only when populating query-pages
+- Specify json content-type for error response
+
+
 ## 1.5.4-CR6
 
 * Support for l10n message files located in jars
