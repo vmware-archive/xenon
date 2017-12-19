@@ -2,6 +2,11 @@
 
 ## 1.6.2-SNAPSHOT
 
+* Fixed an inconsistency around DELETE of a non-existing service: some code
+  paths returned an error (404) in that case while other code paths returned
+  success. Now all code paths return success for a DELETE of a non-existing
+  service.
+
 * A document new owner and epoch is set only on-demand, when an update is
   made to to the document. This saves synchronization overhead, as new document
   versions need not be created due to ownership change. Users who rely on
