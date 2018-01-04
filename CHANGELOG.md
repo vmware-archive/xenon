@@ -2,6 +2,20 @@
 
 ## 1.6.3-SNAPSHOT
 
+* Removal of custom document owner check in migration.
+  Previously, migration had own document owner check logic based on the stored
+  documentOwner information.
+  As part of removing `documentOwner` field in document, now migration query
+  uses `BROADCAST` and `OWNER_SELECTION` option; thus, ownership check happens
+  in query level.
+  Accordingly, `latestSourceUpdateTimeMicros` now indicates the latest(max)
+  document update time (`documentUpdateTimeMicros`) in migrated documents.
+
+  Removal:
+    - `migrateMismatchedOwnerDocuments` option in migration request
+    - `ownerMismatchDocumentCount` migration stat entry
+
+
 ## 1.6.2
 
 * Add CORS support.
