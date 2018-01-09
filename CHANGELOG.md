@@ -1,9 +1,18 @@
 # CHANGELOG
 
-## 1.6.1-SNAPSHOT
+## 1.6.1
+
+* Fix RootNamespaceService isn't found with local URI GET
+
+* Add missing service to OperationProcessingContext
+
+* Fix synch failure due to query page GET timeout
+
+* Consistent creation of BroadcastQueryPageService
+
+* Lazy de-serialization of inbound requests using kryo-octet-stream
 
 * Revert OpenTracing integration
-
 
 ## 1.6.0
 
