@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -205,6 +206,19 @@ public class TestNodeGroupService {
                         }
                     })
                     .sendWith(this);
+        }
+    }
+
+    public static class NonReplicatedService extends ExampleService {
+        public static final String FACTORY_LINK = ServiceUriPaths.CORE + "/tests/nonreplicated";
+
+        public static FactoryService createFactory() {
+            return FactoryService.create(NonReplicatedService.class);
+        }
+
+        public NonReplicatedService() {
+            super();
+            toggleOption(ServiceOption.REPLICATION, false);
         }
     }
 
@@ -457,6 +471,105 @@ public class TestNodeGroupService {
         this.host.toggleNegativeTestMode(false);
         this.host.tearDown();
         this.host = null;
+    }
+
+    @Test
+    public void nonReplicatedOwnerSelected() throws Throwable {
+        doVerifyOwnerSelection(NonReplicatedService.class,
+                NonReplicatedService.FACTORY_LINK);
+    }
+
+    private void doVerifyOwnerSelection(Class<? extends Service> factoryType, String factoryLink) throws Throwable {
+        Map<String, ExampleServiceState> exampleServices;
+        this.replicationTargetFactoryLink = factoryLink;
+        setUp(this.nodeCount);
+        this.host.joinNodesAndVerifyConvergence(this.host.getPeerCount());
+        NodeGroupConfig cfg = new NodeGroupConfig();
+        cfg.nodeRemovalDelayMicros = TimeUnit.SECONDS.toMicros(1);
+        this.host.setNodeGroupConfig(cfg);
+        this.host.waitForNodeGroupConvergence();
+
+        for (VerificationHost h1 : this.host.getInProcessHostMap().values()) {
+            h1.startServiceAndWait(FactoryService.create(factoryType), factoryLink, null);
+        }
+        this.host.waitForReplicatedFactoryServiceAvailable(
+                UriUtils.buildUri(this.host.getPeerHost(), factoryLink),
+                ServiceUriPaths.DEFAULT_NODE_SELECTOR);
+
+        exampleServices = createExampleServices(this.host.getPeerHostUri());
+        // Verify that all services are replicated with with replication factor of 1.
+        this.host.waitForReplicatedFactoryChildServiceConvergence(
+                getFactoriesPerNodeGroup(factoryLink),
+                exampleServices,
+                this.exampleStateConvergenceChecker,
+                exampleServices.size(),
+                0,
+                1);
+    }
+
+    @Test
+    @Ignore("https://jira.eng.vmware.com/browse/VRXEN-45")
+    public void synch1XReplicationService() throws Throwable {
+        setUp(this.nodeCount);
+        this.replicationTargetFactoryLink = Replication1xExampleFactoryService.SELF_LINK;
+        this.host.joinNodesAndVerifyConvergence(this.host.getPeerCount() - 1);
+        NodeGroupService.NodeGroupConfig cfg = new NodeGroupService.NodeGroupConfig();
+        cfg.nodeRemovalDelayMicros = TimeUnit.SECONDS.toMicros(1);
+        this.host.setNodeGroupConfig(cfg);
+
+        TestRequestSender sender = new TestRequestSender(this.host);
+        for (VerificationHost h1 : this.host.getInProcessHostMap().values()) {
+            h1.startService(new Replication1xExampleFactoryService());
+        }
+
+        Map<String, ExampleServiceState> exampleServices = createExampleServices(this.host.getPeerHostUri());
+        ExampleServiceState state = exampleServices.values().iterator().next();
+
+        // Verify that test service not replicated on other nodes.
+        int replicationCount = 0;
+        for (VerificationHost peer : this.host.getInProcessHostMap().values()) {
+            URI indexUri = UriUtils.buildUri(peer, ServiceUriPaths.CORE_DOCUMENT_INDEX);
+            indexUri = UriUtils.extendUriWithQuery(indexUri,
+                    ServiceDocument.FIELD_NAME_SELF_LINK, state.documentSelfLink);
+            Operation op = sender.sendAndWait(Operation.createGet(indexUri));
+
+            if (op.getBodyRaw() != null) {
+                replicationCount++;
+            }
+        }
+        assertEquals(replicationCount, 1);
+
+        this.replicationFactor = 1;
+        this.host.waitForReplicatedFactoryChildServiceConvergence(
+                getFactoriesPerNodeGroup(Replication1xExampleFactoryService.SELF_LINK),
+                exampleServices,
+                this.exampleStateConvergenceChecker,
+                exampleServices.size(),
+                0,
+                this.replicationFactor);
+
+        // Create new nodes until we find a new owner for our test service.
+        VerificationHost owner = this.host.getOwnerPeer(state.documentSelfLink);
+        String newOwnerId = owner.getId();
+        while (owner.getId().equals(newOwnerId)) {
+            VerificationHost newHost = this.host.setUpLocalPeerHost(0, VerificationHost.FAST_MAINT_INTERVAL_MILLIS, null, null);
+            newHost.startServiceAndWait(Replication1xExampleFactoryService.class,
+                    Replication1xExampleFactoryService.SELF_LINK);
+            this.host.joinNodesAndVerifyConvergence(this.host.getPeerCount());
+            newOwnerId = this.host.getOwnerPeer(state.documentSelfLink).getId();
+        }
+
+        this.replicationFactor = 1;
+        // TODO: Synchronization should only synchronize the state to new owner (Test's this.replicationFactor is 1).
+        // Due to bug (https://jira.eng.vmware.com/browse/VRXEN-45) in synchronization,
+        // the state is getting replicated to all the nodes.
+        this.host.waitForReplicatedFactoryChildServiceConvergence(
+                getFactoriesPerNodeGroup(Replication1xExampleFactoryService.SELF_LINK),
+                exampleServices,
+                this.exampleStateConvergenceChecker,
+                exampleServices.size(),
+                0,
+                this.replicationFactor);
     }
 
     @Test
