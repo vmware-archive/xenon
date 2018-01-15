@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 VMware, Inc. All Rights Reserved.
+ * Copyright (c) 2014-2018 VMware, Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License.  You may obtain a copy of
@@ -13,6 +13,7 @@
 
 package com.vmware.xenon.common;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
@@ -25,9 +26,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.vmware.xenon.common.ServiceHost.ServiceNotFoundException;
+import com.vmware.xenon.common.test.MinimalTestServiceState;
 import com.vmware.xenon.common.test.TestContext;
 import com.vmware.xenon.services.common.ExampleService;
 import com.vmware.xenon.services.common.ExampleService.ExampleServiceState;
+import com.vmware.xenon.services.common.MinimalTestService;
 
 public class TestSendWithDeferredResult extends BasicReusableHostTestCase {
     private static final int DOCUMENT_COUNT = 10;
@@ -102,6 +105,33 @@ public class TestSendWithDeferredResult extends BasicReusableHostTestCase {
             .whenComplete(this.host.getCompletionDeferred());
         this.host.testWait();
         Assert.assertEquals(1, invocationCounter.get());
+    }
+
+    @Test
+    public void testSendWithDeferredResultWithNoResponseBody() throws Throwable {
+        MinimalTestServiceState initialState = this.host.buildMinimalTestState(10);
+
+        Service service = this.host.doThroughputServiceStart(
+                1, MinimalTestService.class, initialState,
+                EnumSet.noneOf(Service.ServiceOption.class), null).get(0);
+
+        // patch with same state to receive status NOT MODIFIED(304) and empty body
+        MinimalTestServiceState patchState = new MinimalTestServiceState();
+        patchState.documentSelfLink = service.getSelfLink();
+        patchState.id = initialState.id;
+
+        this.host.testStart(1);
+
+        DeferredResult<MinimalTestServiceState> deferredResult = this.host
+                .sendWithDeferredResult(
+                        Operation
+                                .createPatch(this.host, patchState.documentSelfLink)
+                                .setBodyNoCloning(patchState),
+                        MinimalTestServiceState.class)
+                .whenComplete(this.host.getCompletionDeferred());
+
+        this.host.testWait();
+        Assert.assertNull(deferredResult.getNow(new MinimalTestServiceState()));
     }
 
     @Test
