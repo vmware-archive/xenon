@@ -3718,4 +3718,29 @@ public class VerificationHost extends ExampleServiceHost {
                 .filter(h -> h.isOwner(path, nodeSelectorPath))
                 .findFirst().orElseThrow(() -> new RuntimeException("couldn't find owner node"));
     }
+
+    /**
+     * Returns an owner peer for the given service path from in-memory nodes.
+     * Uses default node selector.
+     */
+    public VerificationHost getOwnerPeer(String path) {
+        return getOwnerPeer(path, ServiceUriPaths.DEFAULT_NODE_SELECTOR);
+    }
+
+    /**
+     * Returns an non-owner peer for the given service path from in-memory nodes.
+     */
+    public VerificationHost getNonOwnerPeer(String path, String nodeSelectorPath) {
+        return getInProcessHostMap().values().stream()
+                .filter(h -> !h.isOwner(path, nodeSelectorPath))
+                .findFirst().orElseThrow(() -> new RuntimeException("couldn't find non-owner node"));
+    }
+
+    /**
+     * Returns an non-owner peer for the given service path from in-memory nodes.
+     * Uses default node selector.
+     */
+    public VerificationHost getNonOwnerPeer(String path) {
+        return getNonOwnerPeer(path, ServiceUriPaths.DEFAULT_NODE_SELECTOR);
+    }
 }

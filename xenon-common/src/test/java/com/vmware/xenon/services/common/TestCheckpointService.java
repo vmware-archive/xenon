@@ -421,7 +421,7 @@ public class TestCheckpointService extends BasicTestCase {
 
     private void verifySynchTask(long expectedMinMissTime, long expectedMaxHitTime, long expectedSynchCompletionCount) {
         this.host.waitFor("synch task finish timeout", () -> {
-            VerificationHost factoryOwner = this.host.getOwnerPeer(ExampleService.FACTORY_LINK, ServiceUriPaths.DEFAULT_NODE_SELECTOR);
+            VerificationHost factoryOwner = this.host.getOwnerPeer(ExampleService.FACTORY_LINK);
             String synchTaskSelflink =
                     UriUtils.buildUriPath(SynchronizationTaskService.FACTORY_LINK, UriUtils.convertPathCharsFromLink(ExampleService.FACTORY_LINK));
             SynchronizationTaskService.State newState =

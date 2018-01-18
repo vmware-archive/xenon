@@ -604,7 +604,7 @@ public class TestNodeGroupService {
         this.host.waitForNodeGroupConvergence();
 
         // find example factory owner
-        VerificationHost owner = this.host.getOwnerPeer(ExampleService.FACTORY_LINK, ServiceUriPaths.DEFAULT_NODE_SELECTOR);
+        VerificationHost owner = this.host.getOwnerPeer(ExampleService.FACTORY_LINK);
 
         // wait for node selector availability before manually trigger a synchronization task
         this.host.waitFor("wait node selector available timeout", () -> {
@@ -741,7 +741,7 @@ public class TestNodeGroupService {
                 SynchronizationTaskService.FACTORY_LINK,
                 UriUtils.convertPathCharsFromLink(ExampleService.FACTORY_LINK));
 
-        VerificationHost owner = this.host.getOwnerPeer(ExampleService.FACTORY_LINK, ServiceUriPaths.DEFAULT_NODE_SELECTOR);
+        VerificationHost owner = this.host.getOwnerPeer(ExampleService.FACTORY_LINK);
         this.host.log(Level.INFO, "Owner of synch-task is %s", owner.getId());
 
         // Get the membershipUpdateTimeMicros so that we can
@@ -1456,9 +1456,7 @@ public class TestNodeGroupService {
         this.host.waitForNodeGroupConvergence();
 
         // find example factory owner
-        VerificationHost owner = this.host.getInProcessHostMap().values().stream()
-                .filter(h -> h.isOwner(ExampleService.FACTORY_LINK, ServiceUriPaths.DEFAULT_NODE_SELECTOR))
-                .findFirst().get();
+        VerificationHost owner = this.host.getOwnerPeer(ExampleService.FACTORY_LINK);
 
         // wait for node selector availability before manually trigger a synchronization task
         this.host.waitFor("wait node selector available timeout", () -> {

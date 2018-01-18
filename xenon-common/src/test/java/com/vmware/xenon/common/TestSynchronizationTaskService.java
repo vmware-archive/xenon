@@ -845,7 +845,7 @@ public class TestSynchronizationTaskService extends BasicTestCase {
         node.createExampleServices(node, this.serviceCount, null);
 
         // find factory owner
-        VerificationHost factoryOwner = this.host.getOwnerPeer(ExampleService.FACTORY_LINK, ServiceUriPaths.DEFAULT_NODE_SELECTOR);
+        VerificationHost factoryOwner = this.host.getOwnerPeer(ExampleService.FACTORY_LINK);
 
         // make sure currently there is no query service
         int queryPageCountBefore = factoryOwner.getServicePathsByPrefix(ServiceUriPaths.CORE_QUERY_PAGE).size();
