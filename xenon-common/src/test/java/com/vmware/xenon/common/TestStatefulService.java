@@ -293,6 +293,17 @@ class NoUpdateOnPutService extends StatefulService {
 
 public class TestStatefulService extends BasicReusableHostTestCase {
 
+    public static class NoBodyExampleService extends ExampleService {
+        public static final String FACTORY_LINK = ServiceUriPaths.CORE + "/no-body-examples";
+
+        @Override
+        public void handlePatch(Operation patch) {
+            updateState(patch);
+            patch.setBody(null).complete();
+        }
+    }
+
+
     @Rule
     public TestResults testResults = new TestResults();
 
@@ -1063,5 +1074,52 @@ public class TestStatefulService extends BasicReusableHostTestCase {
 
         assertEquals("example1", serviceState.name);
     }
+
+    @Test
+    public void replicationWithNullBody() throws Throwable {
+        int nodeCount = 3;
+
+        this.host.setPeerSynchronizationEnabled(true);
+        this.host.setUpPeerHosts(nodeCount);
+        this.host.joinNodesAndVerifyConvergence(nodeCount, true);
+        this.host.setNodeGroupQuorum(nodeCount);
+
+        VerificationHost targetHost = this.host.getPeerHost();
+        TestRequestSender sender = this.host.getTestRequestSender();
+
+        for (VerificationHost host : this.host.getInProcessHostMap().values()) {
+            host.startFactory(new NoBodyExampleService());
+        }
+        URI serviceUri = UriUtils.buildUri(targetHost.getUri(), NoBodyExampleService.FACTORY_LINK);
+        host.waitForReplicatedFactoryServiceAvailable(serviceUri);
+
+
+        String documentSelfLink = UriUtils.buildUriPath(NoBodyExampleService.FACTORY_LINK, "foo");
+
+        // create a doc
+        ExampleServiceState initState = new ExampleServiceState();
+        initState.name = "foo";
+        initState.counter = 0L;
+        initState.documentSelfLink = documentSelfLink;
+
+        Operation post = Operation.createPost(targetHost, NoBodyExampleService.FACTORY_LINK).setBody(initState);
+        sender.sendAndWait(post);
+
+        // update
+        ExampleServiceState updateState = new ExampleServiceState();
+        updateState.counter = 1L;
+        Operation patch = Operation.createPatch(targetHost, documentSelfLink).setBody(updateState);
+        sender.sendAndWait(patch);
+
+        // access index-service directly to check persisted state is updated on each node
+        for (URI peerUri : this.host.getInProcessHostMap().keySet()) {
+            URI indexUri = UriUtils.buildUri(peerUri, ServiceUriPaths.CORE_DOCUMENT_INDEX);
+            URI queryUri = UriUtils.buildIndexQueryUri(indexUri, documentSelfLink, true, false, null);
+
+            ExampleServiceState state = sender.sendAndWait(Operation.createGet(queryUri), ExampleServiceState.class);
+            assertEquals("Counter in persisted state should be updated", Long.valueOf(1), state.counter);
+        }
+    }
+
 }
 

@@ -266,7 +266,7 @@ public class ExampleService extends StatefulService {
         patch.complete();
     }
 
-    private ExampleServiceState updateState(Operation update) {
+    protected ExampleServiceState updateState(Operation update) {
         // A DCP service handler is state-less: Everything it needs is provided as part of the
         // of the operation. The body and latest state associated with the service are retrieved
         // below.
