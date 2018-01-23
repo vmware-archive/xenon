@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.6.2-SNAPSHOT
+## 1.7.0-SNAPSHOT
 
 * Fixed an inconsistency around DELETE of a non-existing service: some code
   paths returned an error (404) in that case while other code paths returned
@@ -34,7 +34,17 @@
 
 ## 1.6.1
 
-  Preparing in different branch
+* Fix RootNamespaceService isn't found with local URI GET
+
+* Add missing service to OperationProcessingContext
+
+* Fix synch failure due to query page GET timeout
+
+* Consistent creation of BroadcastQueryPageService
+
+* Lazy de-serialization of inbound requests using kryo-octet-stream
+
+* Revert OpenTracing integration
 
 ## 1.6.0
 
