@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 1.5.7_8
+
+* Add CORS support.
+  Using netty's `CorsHandler`, CORS support is added to `ServiceHost`.
+  To configure CORS, override newly added `ServiceHost#getCorsConfig()` method.
+  It is disabled by default.
+
+
 ## 1.5.7_5
 
 * No functional change from 1.5.7-CR4. 
