@@ -42,6 +42,14 @@
   Also we benefit from LUCENE-7868 when using INDEXED_METADATA.
 
 
+## 1.6.2-SNAPSHOT  (In 1.6.x branch)
+
+* Add CORS support.
+  Using netty's `CorsHandler`, CORS support is added to `ServiceHost`.
+  To configure CORS, override newly added `ServiceHost#getCorsConfig()` method.
+  It is disabled by default.
+
+
 ## 1.6.1
 
 * Fix RootNamespaceService isn't found with local URI GET
