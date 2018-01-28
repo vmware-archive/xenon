@@ -2416,7 +2416,7 @@ public class ServiceHost implements ServiceRequestSender {
      * If this start is an on-demand start due to an incoming request, the incoming
      * request that triggered this start is provided.
      */
-    ServiceHost startService(Operation post, Service service, Operation onDemandTriggeringOp) {
+    protected ServiceHost startService(Operation post, Service service, Operation onDemandTriggeringOp) {
         if (service == null) {
             throw new IllegalArgumentException("service is required");
         }
