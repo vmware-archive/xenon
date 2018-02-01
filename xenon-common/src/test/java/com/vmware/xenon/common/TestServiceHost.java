@@ -2280,7 +2280,7 @@ public class TestServiceHost {
     public void queryServiceUris() throws Throwable {
         setUp(false);
         int serviceCount = 5;
-        this.host.createExampleServices(this.host, serviceCount, Utils.getNowMicrosUtc());
+        this.host.createExampleServices(this.host, serviceCount, null);
 
         EnumSet<ServiceOption> options = EnumSet.of(ServiceOption.INSTRUMENTATION,
                 ServiceOption.OWNER_SELECTION, ServiceOption.FACTORY_ITEM);
