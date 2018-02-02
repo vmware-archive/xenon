@@ -59,7 +59,6 @@ import com.vmware.xenon.common.Operation.OperationOption;
 import com.vmware.xenon.common.Service;
 import com.vmware.xenon.common.Service.Action;
 import com.vmware.xenon.common.Service.ServiceOption;
-import com.vmware.xenon.common.ServiceConfiguration;
 import com.vmware.xenon.common.ServiceDocument;
 import com.vmware.xenon.common.ServiceDocumentDescription;
 import com.vmware.xenon.common.ServiceDocumentDescription.PropertyDescription;
@@ -2378,12 +2377,6 @@ public class TestQueryTaskService {
             // results are placed in the queryTask.result from the createQueryTask method
             finishedTaskState = queryTask;
         } else {
-            URI configUri = UriUtils.buildConfigUri(u);
-            ServiceConfiguration queryTaskConfig = targetHost.getServiceState(
-                    null, ServiceConfiguration.class, configUri);
-            assertEquals(ServiceUriPaths.DEFAULT_1X_NODE_SELECTOR,
-                    queryTaskConfig.peerNodeSelectorPath);
-
             finishedTaskState = targetHost.waitForQueryTaskCompletion(queryTask.querySpec,
                     this.serviceCount, 1, u, false, false);
         }
