@@ -52,6 +52,18 @@
       <organization>VMware</organization>
       <organizationUrl>https://www.vmware.com/</organizationUrl>
     </developer>
+     <developer>
+      <name>Touseef Liaqat</name>
+      <email>tliaqat@vmware.com</email>
+      <organization>VMware</organization>
+      <organizationUrl>https://www.vmware.com/</organizationUrl>
+    </developer>
+    <developer>
+      <name>Li Yu</name>
+      <email>lyu1@vmware.com</email>
+      <organization>VMware</organization>
+      <organizationUrl>https://www.vmware.com/</organizationUrl>
+    </developer>
     <developer>
       <name>Gurudutt Belur</name>
       <email>gbelur@vmware.com</email>
