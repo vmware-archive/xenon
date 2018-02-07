@@ -23,6 +23,7 @@ import java.util.stream.IntStream;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.vmware.xenon.common.ServiceHost.ServiceNotFoundException;
@@ -107,6 +108,7 @@ public class TestSendWithDeferredResult extends BasicReusableHostTestCase {
         Assert.assertEquals(1, invocationCounter.get());
     }
 
+    @Ignore("https://jira.eng.vmware.com/browse/VRXEN-65")
     @Test
     public void testSendWithDeferredResultWithNoResponseBody() throws Throwable {
         MinimalTestServiceState initialState = this.host.buildMinimalTestState(10);
