@@ -24,6 +24,13 @@ import java.util.logging.LogRecord;
 
 public class LogFormatter extends Formatter {
 
+    private static final String LOG_DATE_FIRST_PROPERTY = Utils.PROPERTY_NAME_PREFIX +
+            "LogFormatter.LOG_DATE_FIRST";
+    private static final String LOG_DATE_FIRST_DEFAULT = Boolean.FALSE.toString();
+
+    private static boolean LOG_DATE_FIRST = Boolean.valueOf(
+            System.getProperty(LOG_DATE_FIRST_PROPERTY, LOG_DATE_FIRST_DEFAULT));
+
     private static final DateTimeFormatter DEFAULT_FORMAT = DateTimeFormatter
             .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
@@ -39,12 +46,17 @@ public class LogFormatter extends Formatter {
     public String format(LogRecord record) {
         int mLen = record.getMessage() == null ? 0 : record.getMessage().length();
         StringBuilder sb = new StringBuilder(128 + mLen);
+        if (LOG_DATE_FIRST) {
+            formatTimestampMillisTo(record.getMillis(), sb);
+        }
         sb.append('[').append(record.getSequenceNumber()).append(']');
         sb.append('[').append(record.getLevel().getName().charAt(0)).append(']');
 
-        sb.append('[');
-        formatTimestampMillisTo(record.getMillis(), sb);
-        sb.append(']');
+        if (!LOG_DATE_FIRST) {
+            sb.append('[');
+            formatTimestampMillisTo(record.getMillis(), sb);
+            sb.append(']');
+        }
 
         sb.append('[').append(record.getThreadID()).append(']');
         sb.append('[').append(getClassOrUri(record)).append(']');
