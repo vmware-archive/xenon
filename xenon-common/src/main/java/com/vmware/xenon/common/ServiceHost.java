@@ -6039,6 +6039,29 @@ public class ServiceHost implements ServiceRequestSender {
         return this.authorizationContextCache.get(token);
     }
 
+    /**
+     * Based on the auth token, populate AuthorisationContext and set it to OperationContext as well.
+     *
+     * The callback consumer will receive the populated auth context.
+     * When given token is not valid, it will populate guest context.
+     *
+     * Infrastructure use only.
+     *
+     * @param authToken    auth token
+     * @param referrerPath used as a referrer when verifying the given token
+     * @param callback     a callback operation.
+     */
+    public void populateAuthorizationContext(String authToken, String referrerPath, Consumer<AuthorizationContext> callback) {
+        Operation dummyOp = new Operation();
+        dummyOp.addRequestHeader(Operation.REQUEST_AUTH_TOKEN_HEADER, authToken);
+        dummyOp.setUri(UriUtils.buildUri(this, referrerPath));
+
+        populateAuthorizationContext(dummyOp, (authCtx) -> {
+            OperationContext.setAuthorizationContext(authCtx);
+            callback.accept(authCtx);
+        });
+    }
+
     private void populateAuthorizationContext(Operation op, Consumer<AuthorizationContext> authorizationContextHandler) {
         getAuthorizationContext(op, authorizationContext -> {
             if (authorizationContext == null) {

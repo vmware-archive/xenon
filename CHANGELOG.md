@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.5.7_9
+
+* Fix authorization for websocket requests
+
 ## 1.5.7_8
 
 * Add CORS support.
