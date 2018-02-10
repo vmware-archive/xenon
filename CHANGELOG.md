@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.6.2.1
+
+* Add system property `JsonMapper.disableObjectCollectionAndMapJsonAdapters`
+  which disables adapters for types map, list, set. This is to ensure backward compatibility.
+
+
 ## 1.6.2
 
 * Add CORS support.
