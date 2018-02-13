@@ -1966,6 +1966,7 @@ public class TestServiceHost {
         }
     }
 
+    @Ignore
     @Test
     public void maintenanceForOnDemandLoadServices() throws Throwable {
         setUp(true);
