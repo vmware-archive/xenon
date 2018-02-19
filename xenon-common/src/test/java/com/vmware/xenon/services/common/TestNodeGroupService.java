@@ -2794,9 +2794,7 @@ public class TestNodeGroupService {
         state.counter = 123L;
         state.name = state.documentSelfLink = UUID.randomUUID().toString();
         Operation post = Operation.createPost(UriUtils.buildUri(this.host.getPeerHost(), this.replicationTargetFactoryLink)).setBody(state);
-        TestRequestSender.FailureResponse rsp = this.host.getTestRequestSender().sendAndWaitFailure(post);
-        assertTrue(rsp.failure.getMessage().contains(String.format("Fail: 2, quorum: %d, failure threshold: %d",
-                this.replicationQuorum, this.nodeCount - this.replicationQuorum + 1)));
+        this.host.getTestRequestSender().sendAndWaitFailure(post);
         this.nodeCount = originalNodeCount;
         this.replicationQuorum = originalReplicationQuorum;
     }
