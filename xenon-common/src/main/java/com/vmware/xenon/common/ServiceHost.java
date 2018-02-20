@@ -742,7 +742,7 @@ public class ServiceHost implements ServiceRequestSender {
         // apply command line arguments, potentially overriding file configuration
         initializeStateFromArguments(s, args);
 
-        LuceneDocumentIndexService documentIndexService = new LuceneDocumentIndexService();
+        Service documentIndexService = createDefaultDocumentIndexService();
         setDocumentIndexingService(documentIndexService);
 
         ServiceHostManagementService managementService = new ServiceHostManagementService();
@@ -1679,29 +1679,7 @@ public class ServiceHost implements ServiceRequestSender {
         // since factories with persisted services use queries to enumerate their children.
         if (this.documentIndexService != null) {
             addPrivilegedService(this.documentIndexService.getClass());
-            if (this.documentIndexService instanceof LuceneDocumentIndexService) {
-                LuceneDocumentIndexService luceneDocumentIndexService = (LuceneDocumentIndexService) this.documentIndexService;
-                Service[] queryServiceArray = new Service[] {
-                        luceneDocumentIndexService,
-                        new LuceneDocumentIndexBackupService(),
-                        new QueryTaskFactoryService(),
-                        new LocalQueryTaskFactoryService(),
-                        TaskFactoryService.create(GraphQueryTaskService.class),
-                        TaskFactoryService.create(SynchronizationTaskService.class),
-                        new QueryPageForwardingService(defaultNodeSelectorService) };
-                startCoreServicesSynchronously(queryServiceArray);
-
-                // register auto-backup consumer to the document index service
-                // turning on/off the feature is checked in consumer to allow toggling at runtime
-                this.registerForServiceAvailability((o, e) -> {
-                    URI subscriptionUri = UriUtils.buildSubscriptionUri(this, this.documentIndexService.getSelfLink());
-                    Operation createSubscriptionOp = Operation.createPost(subscriptionUri).setReferer(getUri());
-
-                    Consumer<Operation> autoBackupConsumer = LuceneDocumentIndexBackupService.createAutoBackupConsumer(this, this.managementService);
-                    startSubscriptionService(createSubscriptionOp, autoBackupConsumer);
-                }, this.documentIndexService.getSelfLink());
-
-            }
+            startDocumentIndexService(this.documentIndexService, defaultNodeSelectorService);
         }
 
         // check point depends on index service
@@ -1778,6 +1756,41 @@ public class ServiceHost implements ServiceRequestSender {
             scheduleCore(() -> {
                 joinPeers(peers, ServiceUriPaths.DEFAULT_NODE_GROUP);
             }, this.state.maintenanceIntervalMicros, TimeUnit.MICROSECONDS);
+        }
+    }
+
+    /**
+     * Create default document index service.
+     */
+    protected Service createDefaultDocumentIndexService() {
+        return new LuceneDocumentIndexService();
+    }
+
+    /**
+     * Start document index service. Allow to override the loading of the core query services.
+     */
+    protected void startDocumentIndexService(Service documentIndexService,
+                                             NodeSelectorService defaultNodeSelectorService) throws Throwable {
+        if (documentIndexService instanceof LuceneDocumentIndexService) {
+            Service[] queryServiceArray = new Service[] {
+                    documentIndexService,
+                    new LuceneDocumentIndexBackupService(),
+                    new QueryTaskFactoryService(),
+                    new LocalQueryTaskFactoryService(),
+                    TaskFactoryService.create(GraphQueryTaskService.class),
+                    TaskFactoryService.create(SynchronizationTaskService.class),
+                    new QueryPageForwardingService(defaultNodeSelectorService) };
+            startCoreServicesSynchronously(queryServiceArray);
+
+            // register auto-backup consumer to the document index service
+            // turning on/off the feature is checked in consumer to allow toggling at runtime
+            this.registerForServiceAvailability((o, e) -> {
+                URI subscriptionUri = UriUtils.buildSubscriptionUri(this, this.documentIndexService.getSelfLink());
+                Operation createSubscriptionOp = Operation.createPost(subscriptionUri).setReferer(getUri());
+
+                Consumer<Operation> autoBackupConsumer = LuceneDocumentIndexBackupService.createAutoBackupConsumer(this, this.managementService);
+                startSubscriptionService(createSubscriptionOp, autoBackupConsumer);
+            }, this.documentIndexService.getSelfLink());
         }
     }
 
