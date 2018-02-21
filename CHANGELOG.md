@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 1.6.4-SNAPSHOT
+
+
 ## 1.6.3
 
 * Checkpoint-based synchronization: an optimization introduced into synchronization
