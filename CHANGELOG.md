@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.6.3-SNAPSHOT
+## 1.6.3
 
 * Checkpoint-based synchronization: an optimization introduced into synchronization
   which creates checkpoints at the end of a successful synchronization cycle
