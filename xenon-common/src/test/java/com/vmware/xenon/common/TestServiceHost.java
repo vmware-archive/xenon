@@ -53,6 +53,7 @@ import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -2036,6 +2037,7 @@ public class TestServiceHost {
         this.host.testWait(ctx);
     }
 
+    @Ignore
     @Test
     public void onDemandServiceStopCheckWithReadAndWriteAccess() throws Throwable {
         for (int i = 0; i < this.iterationCount; i++) {
