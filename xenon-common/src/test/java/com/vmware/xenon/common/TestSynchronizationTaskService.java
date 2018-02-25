@@ -17,7 +17,6 @@ import static java.util.stream.Collectors.toList;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -523,7 +522,6 @@ public class TestSynchronizationTaskService extends BasicTestCase {
 
         assertNotNull(newState);
         assertEquals((Long) (state.counter + patchCount), newState.counter);
-        assertNotEquals(newState.documentOwner, state.documentOwner);
     }
 
     private VerificationHost restartHost(VerificationHost hostToRestart) throws Throwable {
