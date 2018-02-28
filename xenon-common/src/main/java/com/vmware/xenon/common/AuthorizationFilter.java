@@ -253,7 +253,8 @@ public class AuthorizationFilter implements Filter {
             return;
         }
 
-        if (host.getBasicAuthenticationServiceUri().equals(host.getAuthenticationServiceUri())) {
+        URI basicAuthenticationServiceUri = host.getBasicAuthenticationServiceUri();
+        if (basicAuthenticationServiceUri == null || basicAuthenticationServiceUri.equals(host.getAuthenticationServiceUri())) {
             // if authenticationService is BasicAuthenticationService, then no need to retry
             shouldRetry = false;
         }
