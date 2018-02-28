@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.6.3.1
+
+* Fix auth related errors observed on 1.6.3.
+
 ## 1.6.3
 
 * Checkpoint-based synchronization: an optimization introduced into synchronization
