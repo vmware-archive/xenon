@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
@@ -122,18 +121,9 @@ public class AuthorizationFilter implements Filter {
             if (op.getAuthorizationContext() != null) {
                 checkAndPopulateAuthzContext(op, context);
             } else {
-
-                BiConsumer<Operation, Throwable> externalAuthFailureCallback = (resultOp, ex) -> {
-                    ServiceErrorResponse err = resultOp.getBody(ServiceErrorResponse.class);
-                    context.resumeProcessingRequest(op, FilterReturnCode.FAILED_STOP_PROCESSING, ex);
-                    op.transferResponseHeadersFrom(resultOp);
-                    op.fail(resultOp.getStatusCode(), new RuntimeException(err.message), resultOp.getBodyRaw());
-                };
-
-                ServiceHost host = context.getHost();
-                populateAuthorizationContext(op, host, (authorizationContext) -> {
+                populateAuthorizationContext(op, context, (authorizationContext) -> {
                     checkAndPopulateAuthzContext(op, context);
-                }, externalAuthFailureCallback);
+                });
             }
         });
 
@@ -173,11 +163,11 @@ public class AuthorizationFilter implements Filter {
         context.getHost().queueOrScheduleRequest(authzService, op);
     }
 
-    public void populateAuthorizationContext(Operation op, ServiceHost host,
-            Consumer<AuthorizationContext> authorizationContextHandler,
-            BiConsumer<Operation, Throwable> externalAuthFailureCallback) {
+    private void populateAuthorizationContext(Operation op, OperationProcessingContext context,
+            Consumer<AuthorizationContext> authorizationContextHandler) {
+        ServiceHost host = context.getHost();
 
-        getAuthorizationContext(op, host, authorizationContext -> {
+        getAuthorizationContext(op, context, authorizationContext -> {
             if (authorizationContext == null) {
                 authorizationContext = host.getGuestAuthorizationContext();
 
@@ -191,12 +181,10 @@ public class AuthorizationFilter implements Filter {
 
             op.setAuthorizationContext(authorizationContext);
             authorizationContextHandler.accept(authorizationContext);
-        }, externalAuthFailureCallback);
+        });
     }
 
-    private void getAuthorizationContext(Operation op, ServiceHost host,
-            Consumer<AuthorizationContext> authorizationContextHandler,
-            BiConsumer<Operation, Throwable> externalAuthFailureCallback) {
+    private void getAuthorizationContext(Operation op, OperationProcessingContext context, Consumer<AuthorizationContext> authorizationContextHandler) {
         String token = BasicAuthenticationUtils.getAuthToken(op);
 
         if (token == null) {
@@ -204,24 +192,25 @@ public class AuthorizationFilter implements Filter {
             return;
         }
 
-        AuthorizationContext ctx = host.getAuthorizationContext(null, token);
+        AuthorizationContext ctx = context.getHost().getAuthorizationContext(null, token);
         if (ctx != null) {
-            ctx = checkAndGetAuthorizationContext(ctx, ctx.getClaims(), token, op, host);
+            ctx = checkAndGetAuthorizationContext(ctx, ctx.getClaims(), token, op, context);
             if (ctx == null) {
                 // Delegate token verification to the authentication service for handling
                 // cases like token refresh, etc.
-                verifyToken(op, host, authorizationContextHandler, externalAuthFailureCallback);
+                verifyToken(op, context, authorizationContextHandler);
                 return;
             }
             authorizationContextHandler.accept(ctx);
             return;
         }
 
-        verifyToken(op, host, authorizationContextHandler, externalAuthFailureCallback);
+        verifyToken(op, context, authorizationContextHandler);
     }
 
     private AuthorizationContext checkAndGetAuthorizationContext(AuthorizationContext ctx,
-            Claims claims, String token, Operation op, ServiceHost host) {
+            Claims claims, String token, Operation op, OperationProcessingContext context) {
+        ServiceHost host = context.getHost();
 
         if (claims == null) {
             host.log(Level.INFO, "Request to %s has no claims found with token: %s",
@@ -249,9 +238,10 @@ public class AuthorizationFilter implements Filter {
         return ctx;
     }
 
-    private void verifyToken(Operation parentOp, ServiceHost host,
-            Consumer<AuthorizationContext> authorizationContextHandler,
-            BiConsumer<Operation, Throwable> externalAuthFailureCallback) {
+    private void verifyToken(Operation op, OperationProcessingContext context,
+            Consumer<AuthorizationContext> authorizationContextHandler) {
+        ServiceHost host = context.getHost();
+        boolean shouldRetry = true;
 
         URI tokenVerificationUri = host.getAuthenticationServiceUri();
         if (tokenVerificationUri == null) {
@@ -263,91 +253,86 @@ public class AuthorizationFilter implements Filter {
             return;
         }
 
-        boolean shouldRetry = true;
         if (host.getBasicAuthenticationServiceUri().equals(host.getAuthenticationServiceUri())) {
             // if authenticationService is BasicAuthenticationService, then no need to retry
             shouldRetry = false;
         }
 
-        Consumer<Operation> verificationSuccessCallback = resultOp -> {
-            AuthorizationContext ctx = resultOp.getBody(AuthorizationContext.class);
-            // check to see if the subject is valid
-            Operation getUserOp = Operation.createGet(
-                    AuthUtils.buildUserUriFromClaims(host, ctx.getClaims()))
-                    .setReferer(parentOp.getUri())
-                    .setCompletion((getOp, getEx) -> {
-                        if (getEx != null) {
-                            host.log(Level.WARNING, "Error obtaining subject: %s", getEx);
-                            // return a null context. This will result in the auth context
-                            // for this operation defaulting to the guest context
-                            authorizationContextHandler.accept(null);
-                            return;
-                        }
-                        AuthorizationContext authCtx = checkAndGetAuthorizationContext(
-                                null, ctx.getClaims(), ctx.getToken(), parentOp, host);
-                        parentOp.transferResponseHeadersFrom(resultOp);
-                        Map<String, String> cookies = resultOp.getCookies();
-                        if (cookies != null) {
-                            Map<String, String> parentOpCookies = parentOp.getCookies();
-                            if (parentOpCookies == null) {
-                                parentOp.setCookies(cookies);
-                            } else {
-                                parentOpCookies.putAll(cookies);
-                            }
-                        }
-                        authorizationContextHandler.accept(authCtx);
-                    });
-            getUserOp.setAuthorizationContext(host.getSystemAuthorizationContext());
-            host.sendRequest(getUserOp);
-        };
-
-
-        boolean performRetry = shouldRetry;
-        BiConsumer<Operation, Throwable> verificationFailureCallback = (resultOp, ex) -> {
-
-            host.log(Level.WARNING, "Error verifying token: %s", ex);
-
-            if (!performRetry) {
-                authorizationContextHandler.accept(null);
-                return;
-            }
-
-            // If external authentication fails with this specific error
-            // code, we can skip basic auth.
-            ServiceErrorResponse err = resultOp.getBody(ServiceErrorResponse.class);
-            if (err.getErrorCode() == ServiceErrorResponse.ERROR_CODE_EXTERNAL_AUTH_FAILED) {
-                host.log(Level.FINE, () -> "Skipping basic auth.");
-                externalAuthFailureCallback.accept(resultOp, ex);
-                return;
-            }
-
-            host.log(Level.INFO, "Retrying token verification with basic auth.");
-            verifyTokenInternal(parentOp, host, tokenVerificationUri, verificationSuccessCallback, (opp, eex) -> {
-                // when failed again
-                host.log(Level.WARNING, "Error verifying token: %s", ex);
-                authorizationContextHandler.accept(null);
-            });
-        };
-
-        verifyTokenInternal(parentOp, host, tokenVerificationUri, verificationSuccessCallback, verificationFailureCallback);
+        verifyTokenInternal(op, context, tokenVerificationUri, authorizationContextHandler, shouldRetry);
     }
 
-    private void verifyTokenInternal(Operation parentOp, ServiceHost host, URI tokenVerificationUri,
-            Consumer<Operation> verificationSuccessCallback,
-            BiConsumer<Operation, Throwable> verificationFailureCallback) {
+    private void verifyTokenInternal(Operation parentOp, OperationProcessingContext context,
+            URI tokenVerificationUri, Consumer<AuthorizationContext> authorizationContextHandler,
+            boolean shouldRetry) {
+        ServiceHost host = context.getHost();
         Operation verifyOp = Operation
                 .createPost(tokenVerificationUri)
                 .setReferer(parentOp.getUri())
                 .transferRequestHeadersFrom(parentOp)
                 .setCookies(parentOp.getCookies())
                 .addPragmaDirective(Operation.PRAGMA_DIRECTIVE_VERIFY_TOKEN)
-                .setCompletion((resultOp, ex) -> {
-                    if (ex != null) {
-                        verificationFailureCallback.accept(resultOp, ex);
-                    } else {
-                        verificationSuccessCallback.accept(resultOp);
-                    }
-                });
+                .setCompletion(
+                        (resultOp, ex) -> {
+                            if (ex != null) {
+                                host.log(Level.WARNING, "Error verifying token: %s", ex);
+                                if (shouldRetry) {
+                                    ServiceErrorResponse err = resultOp
+                                            .getBody(ServiceErrorResponse.class);
+                                    // If external authentication fails with this specific error
+                                    // code, we can skip basic auth.
+                                    if (err.getErrorCode()
+                                            == ServiceErrorResponse.ERROR_CODE_EXTERNAL_AUTH_FAILED) {
+                                        host.log(Level.FINE, () -> "Skipping basic auth.");
+                                        context.resumeProcessingRequest(parentOp,
+                                                FilterReturnCode.FAILED_STOP_PROCESSING, ex);
+                                        parentOp.transferResponseHeadersFrom(resultOp);
+                                        parentOp.fail(resultOp.getStatusCode(),
+                                                new RuntimeException(err.message),
+                                                resultOp.getBodyRaw());
+                                        return;
+                                    }
+                                    host.log(Level.INFO,
+                                            "Retrying token verification with basic auth.");
+                                    verifyTokenInternal(parentOp,
+                                            context,
+                                            host.getBasicAuthenticationServiceUri(),
+                                            authorizationContextHandler, false);
+                                } else {
+                                    authorizationContextHandler.accept(null);
+                                }
+                            } else {
+                                AuthorizationContext ctx = resultOp.getBody(AuthorizationContext.class);
+                                // check to see if the subject is valid
+                                Operation getUserOp = Operation.createGet(
+                                        AuthUtils.buildUserUriFromClaims(host, ctx.getClaims()))
+                                        .setReferer(parentOp.getUri())
+                                        .setCompletion((getOp, getEx) -> {
+                                            if (getEx != null) {
+                                                host.log(Level.WARNING, "Error obtaining subject: %s", getEx);
+                                                // return a null context. This will result in the auth context
+                                                // for this operation defaulting to the guest context
+                                                authorizationContextHandler.accept(null);
+                                                return;
+                                            }
+                                            AuthorizationContext authCtx = checkAndGetAuthorizationContext(
+                                                    null, ctx.getClaims(), ctx.getToken(), parentOp, context);
+                                            parentOp.transferResponseHeadersFrom(resultOp);
+                                            Map<String, String> cookies = resultOp.getCookies();
+                                            if (cookies != null) {
+                                                Map<String, String> parentOpCookies = parentOp
+                                                        .getCookies();
+                                                if (parentOpCookies == null) {
+                                                    parentOp.setCookies(cookies);
+                                                } else {
+                                                    parentOpCookies.putAll(cookies);
+                                                }
+                                            }
+                                            authorizationContextHandler.accept(authCtx);
+                                        });
+                                getUserOp.setAuthorizationContext(host.getSystemAuthorizationContext());
+                                host.sendRequest(getUserOp);
+                            }
+                        });
         verifyOp.setAuthorizationContext(host.getSystemAuthorizationContext());
         host.sendRequest(verifyOp);
     }
@@ -356,7 +341,7 @@ public class AuthorizationFilter implements Filter {
             String token) {
         Set<String> tokenSet = userLinktoTokenMap.get(userServiceLink);
         if (tokenSet == null) {
-            tokenSet = new HashSet<>();
+            tokenSet = new HashSet<String>();
         }
         tokenSet.add(token);
         userLinktoTokenMap.put(userServiceLink, tokenSet);
