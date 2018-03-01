@@ -601,7 +601,7 @@ public final class Utils {
             break;
         case STATELESS:
             antiReqs = EnumSet.of(ServiceOption.PERSISTENCE, ServiceOption.REPLICATION,
-                    ServiceOption.OWNER_SELECTION, ServiceOption.STRICT_UPDATE_CHECKING);
+                    ServiceOption.STRICT_UPDATE_CHECKING);
             break;
         default:
             break;
