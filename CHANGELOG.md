@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 1.6.5-SNAPSHOT
+
+
 ## 1.6.4
 
 * Lucene related performance optimizations are backported.
