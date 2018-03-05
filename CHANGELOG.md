@@ -1,11 +1,22 @@
 # CHANGELOG
 
-## 1.6.4-SNAPSHOT
+## 1.6.4
+
+* Lucene related performance optimizations are backported.
+  - 28f58b8573cba5870e59f3cd34957ef8632d1a0d
+  - 92febda36981f4210e88de0c08f989badab9753e
+  - 9a1cd4c8c3daef32828753b4116f27bdb84322a4
 
 * Time spent in an executor queue is now reported in OpenTracing traces.
 
 * Integrated OpenTracing with ServiceHost to provide holistic end to end tracing through Xenon
   built services.
+
+
+## 1.6.3.1
+
+* Fix auth related errors observed on 1.6.3.
+
 
 ## 1.6.3
 
