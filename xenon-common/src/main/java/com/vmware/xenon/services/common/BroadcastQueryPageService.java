@@ -139,7 +139,7 @@ public class BroadcastQueryPageService extends StatelessService {
         mergeResults.queryTimeMicros = queryResults.stream()
                 .map(r -> r.queryTimeMicros)
                 .max(Long::compareTo)
-                .orElse(null);
+                .orElse(0L);
 
         // start new BroadcastQueryPageService only when link exists and previously not created
 
