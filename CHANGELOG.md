@@ -49,7 +49,48 @@
   to another by orchestrating migration tasks.
 
 
-## 1.6.2-SNAPSHOT  (In 1.6.x branch)
+## 1.6.3.2
+
+* In migration task, usage of `FORWARD_ONLY` query option is configurable by
+  setting `xenon.MigrationTaskService.useForwardOnlyQuery` system property, and it
+  is `false`(disabled) by default.
+
+
+## 1.6.3.1
+
+* Fix auth related errors observed on 1.6.3.
+
+
+## 1.6.3
+
+* Checkpoint-based synchronization: an optimization introduced into synchronization
+  which creates checkpoints at the end of a successful synchronization cycle
+  and uses those checkpoints as a time-range clause in the next synch cycle's
+  child query. Checkpoints are enabled by default; the user can disable them
+  by setting xenon.SynchronizationTaskService.isCheckpointEnabled to false.
+  If checkpoints are enabled, synchronization runs periodically - the default
+  interval is 30 minutes, but the user can override it using
+  xenon.SynchronizationTaskService.schedulePeriodSeconds.
+
+* Removal of custom document owner check in migration.
+  Previously, migration had own document owner check logic based on the stored
+  documentOwner information.
+  As part of removing `documentOwner` field in document, now migration query
+  uses `BROADCAST` and `OWNER_SELECTION` option; thus, ownership check happens
+  in query level.
+  Accordingly, `latestSourceUpdateTimeMicros` now indicates the latest(max)
+  document update time (`documentUpdateTimeMicros`) in migrated documents.
+
+  Removal:
+    - `migrateMismatchedOwnerDocuments` option in migration request
+    - `ownerMismatchDocumentCount` migration stat entry
+
+* Add system property `JsonMapper.disableObjectCollectionAndMapJsonAdapters`
+  which disables adapters for types map, list, set. This is to ensure backward compatibility.
+
+
+
+## 1.6.2
 
 * Add CORS support.
   CORS support is added to `NettyHttpListener` using netty's `CorsHandler`. It is disabled by default.
