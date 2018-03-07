@@ -49,6 +49,12 @@
   to another by orchestrating migration tasks.
 
 
+## 1.6.3.3
+
+* Make `MigrationTaskService` work even when `queryTask.results.queryTimeMicros`
+  returns null.
+
+
 ## 1.6.3.2
 
 * In migration task, usage of `FORWARD_ONLY` query option is configurable by
