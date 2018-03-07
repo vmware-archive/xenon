@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 1.6.4.1
+
+* Make `MigrationTaskService` work even when `queryTask.results.queryTimeMicros`
+  returns null.
+
+* In migration task, usage of `FORWARD_ONLY` query option is configurable by
+  setting `xenon.MigrationTaskService.useForwardOnlyQuery` system property, and it
+  is `false`(disabled) by default.
+
+
 ## 1.6.4
 
 * Lucene related performance optimizations are backported.
@@ -12,12 +22,6 @@
 * Integrated OpenTracing with ServiceHost to provide holistic end to end tracing through Xenon
   built services.
 
-
-## 1.6.3.2
-
-* In migration task, usage of `FORWARD_ONLY` query option is configurable by
-  setting `xenon.MigrationTaskService.useForwardOnlyQuery` system property, and it
-  is `false`(disabled) by default.
 
 ## 1.6.3.1
 
