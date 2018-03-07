@@ -932,10 +932,12 @@ public class MigrationTaskService extends StatefulService {
                 logInfo("migration query task: uri=%s, nextPage=%s, queryTime=%s",
                         queryTask.documentSelfLink, nextPage, queryTask.results.queryTimeMicros);
 
+                double queryTimeMicros = queryTask.results.queryTimeMicros == null ? 0 : queryTask.results.queryTimeMicros;
+
                 // actual query time per source host
                 String authority = op.getUri().getAuthority();
                 String queryTimeStatKey = String.format(STAT_NAME_RETRIEVAL_QUERY_TIME_DURATION_MICRO_FORMAT, authority);
-                setStat(getSingleBinTimeSeriesStat(queryTimeStatKey), queryTask.results.queryTimeMicros);
+                setStat(getSingleBinTimeSeriesStat(queryTimeStatKey), queryTimeMicros);
 
                 Collection<Object> docs = queryTask.results.documents.values();
                 adjustStat(STAT_NAME_FETCHED_DOCUMENT_COUNT, docs.size());
