@@ -47,7 +47,7 @@ public class TracerFactory {
     public synchronized Tracer create(ServiceHost host) {
         Logger logger = Logger.getLogger(getClass().getName());
         Map<String, String> env = System.getenv();
-        String implementation = env.get("XENON_TRACER");
+        String implementation = env.get("XENON_TRACER_FACTORY_PROVIDER");
         if (implementation == null) {
             implementation = "";
         }
@@ -92,7 +92,7 @@ public class TracerFactory {
     public boolean enabled() {
         if (!this.enableChecked) {
             Map<String, String> env = System.getenv();
-            String implementation = env.get("XENON_TRACER");
+            String implementation = env.get("XENON_TRACER_FACTORY_PROVIDER");
             this.enabled = (implementation != null) && (implementation.length() > 0);
             this.enableChecked = true;
         }

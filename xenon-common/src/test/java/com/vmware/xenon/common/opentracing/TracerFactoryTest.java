@@ -100,7 +100,7 @@ public class TracerFactoryTest {
 
     @Test
     public void defaultIsNoop() throws Exception {
-        this.environment.setEnv((env) -> env.remove("XENON_TRACER"));
+        this.environment.setEnv((env) -> env.remove("XENON_TRACER_FACTORY_PROVIDER"));
         ServiceHost h = VerificationHost.create(0);
         Tracer tracer = TracerFactory.factory.create(h);
         assertTrue(tracer instanceof NoopTracer);
@@ -110,7 +110,7 @@ public class TracerFactoryTest {
     @Test
     public void jaegerGetsJaeger() throws Exception {
         this.environment.setEnv((env) -> {
-            env.put("XENON_TRACER", "jaeger");
+            env.put("XENON_TRACER_FACTORY_PROVIDER", "jaeger");
             env.put("JAEGER_SERVICE_NAME", "test");
         });
         ServiceHost h = VerificationHost.create(0);
@@ -122,7 +122,7 @@ public class TracerFactoryTest {
     @Test
     public void zipkinGetsZipkin() throws Exception {
         this.environment.setEnv((env) -> {
-            env.put("XENON_TRACER", "zipkin");
+            env.put("XENON_TRACER_FACTORY_PROVIDER", "zipkin");
             env.put("ZIPKIN_URL", "http://host/api/v1/spans/");
             env.put("ZIPKIN_SERVICE_NAME", "test");
         });
@@ -134,7 +134,7 @@ public class TracerFactoryTest {
 
     @Test(expected = RuntimeException.class)
     public void invalidTracer() throws Exception {
-        this.environment.setEnv((env) -> env.put("XENON_TRACER", "invalid"));
+        this.environment.setEnv((env) -> env.put("XENON_TRACER_FACTORY_PROVIDER", "invalid"));
         ServiceHost h = VerificationHost.create(0);
         TracerFactory.factory.create(h);
     }
