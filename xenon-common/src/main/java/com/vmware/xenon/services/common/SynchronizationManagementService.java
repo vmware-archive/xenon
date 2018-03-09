@@ -263,7 +263,7 @@ public class SynchronizationManagementService extends StatelessService {
         DeferredResult<Object> synchronizationTask = new DeferredResult<>();
         synchTaskGet.setCompletion((o, e) -> {
             if (e != null) {
-                this.log(Level.WARNING, "Failed to GET synchronization task status: %s", e);
+                this.log(Level.FINE, "Failed to GET synchronization task status: %s", e);
                 synchronizationTask.complete(null);
 
                 // Complete factoryStatus because we will not further proceed with this factory's status retrieval
