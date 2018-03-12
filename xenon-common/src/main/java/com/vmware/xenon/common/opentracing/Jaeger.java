@@ -16,6 +16,7 @@ package com.vmware.xenon.common.opentracing;
 import java.util.logging.Logger;
 
 import com.uber.jaeger.Configuration;
+import io.opentracing.NoopTracerFactory;
 import io.opentracing.Tracer;
 
 import com.vmware.xenon.common.ServiceHost;
@@ -26,6 +27,16 @@ public class Jaeger implements TracerFactoryInterface {
         Logger logger = Logger.getLogger(getClass().getName());
         logger.info("Opentracing support using Jaeger");
         Configuration config = Configuration.fromEnv();
-        return config.getTracer();
+        try {
+            return config.getTracer();
+        } catch (RuntimeException e) {
+            if (e.toString().contains("TUDPTransport cannot connect")) {
+                logger.severe(String.format(
+                            "Failed to establish Jaeger socket. %s",
+                            e.toString()));
+                return NoopTracerFactory.create();
+            }
+            throw e;
+        }
     }
 }

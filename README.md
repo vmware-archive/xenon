@@ -262,7 +262,7 @@ for the complete list of variables Jaeger's Java client supports.
 | Environment variable  | effect
 |-----------------------|-------
 | JAEGER_SERVICE_NAME   | (Required). Set the opentracing service name for Jaeger reporting
-| JAEGER_AGENT_HOST     | Set the host to send spans to
+| JAEGER_AGENT_HOST     | Set the host to send spans to.
 | JAEGER_SAMPLER_TYPE   | What type of sampler e.g. const
 | JAEGER_SAMPLER_PARAM  | Sampler parameter    e.g. 1
 
