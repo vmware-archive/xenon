@@ -58,6 +58,17 @@ public class TracerFactoryTest {
         assertTrue(TracerFactory.factory.enabled());
     }
 
+    public void jaegerInvalidHost() throws Exception {
+        // VRXEN-80 - a bad hostname throws RuntimeException
+        TestXenonConfiguration.override(TracerFactory.class, "provider", TracerFactory.IMPL_JAEGER);
+        System.setProperty("JAEGER_SERVICE_NAME", "test");
+        System.setProperty("JAEGER_AGENT_HOST", "badhostname.local.");
+        ServiceHost h = VerificationHost.create(0);
+        Tracer tracer = TracerFactory.factory.create(h);
+        assertTrue(tracer instanceof NoopTracer);
+        assertTrue(TracerFactory.factory.enabled());
+    }
+
     @Test
     public void testZipkinConfigOverride() {
         String envPath = System.getenv("PATH");

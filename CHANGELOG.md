@@ -48,6 +48,10 @@
 * Add `NodeGroupMigrationTaskService` which migrates services in one node-group
   to another by orchestrating migration tasks.
 
+* Jaeger will now log and ignore bad hostnames for the UDP span transport.
+  This permits detection of invalid configurations without breaking deployment
+  pipelines or developer test scenarios.
+
 
 ## 1.6.3.3
 
