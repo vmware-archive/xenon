@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.6.4.2
+
+* Add a flag to control auth on utility services
+  Added a system property `xenon.UtilityService.disableUtilityAuth` to control
+  auth on utility services.
+
 ## 1.6.4.1
 
 * Make `MigrationTaskService` work even when `queryTask.results.queryTimeMicros`
@@ -9,6 +15,9 @@
   setting `xenon.MigrationTaskService.useForwardOnlyQuery` system property, and it
   is `false`(disabled) by default.
 
+* Jaeger will now log and ignore bad hostnames for the UDP span transport.
+  This permits detection of invalid configurations without breaking deployment
+  pipelines or developer test scenarios.
 
 ## 1.6.4
 
