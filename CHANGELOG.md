@@ -16,6 +16,13 @@
   This permits detection of invalid configurations without breaking deployment
   pipelines or developer test scenarios.
 
+* Update behavior for disabled peer synchronization
+  When synchronization is disabled by `ServiceHost#isPeerSynchronizationEnabled`
+  is `false`:
+  - Disable synchronization at service start
+  - Trigger nodegroup change maintenance regardless of synchronization on/off
+
+
 ## 1.6.4
 
 * Lucene related performance optimizations are backported.

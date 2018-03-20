@@ -526,7 +526,7 @@ public class StatefulService implements Service {
             }
 
             if (hasOption(ServiceOption.OWNER_SELECTION)) {
-                if (!hasOption(ServiceOption.DOCUMENT_OWNER)) {
+                if (!hasOption(ServiceOption.DOCUMENT_OWNER) && getHost().isPeerSynchronizationEnabled()) {
                     // most likely we have just become the owner - synch and re-process request
                     synchWithPeersAndReProcess(request);
                     return true;

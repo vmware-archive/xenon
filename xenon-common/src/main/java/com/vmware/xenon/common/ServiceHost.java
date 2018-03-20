@@ -3269,6 +3269,20 @@ public class ServiceHost implements ServiceRequestSender {
      */
     public void scheduleNodeGroupChangeMaintenance(String nodeSelectorPath) {
         this.serviceSynchTracker.scheduleNodeGroupChangeMaintenance(nodeSelectorPath);
+
+        run(() -> {
+            OperationContext.setAuthorizationContext(getSystemAuthorizationContext());
+            handleNodeGroupChangeMaintenance(nodeSelectorPath);
+        });
+    }
+
+    /**
+     * Called when NodeGroupChange is detected.
+     * Subclass can override this method to apply any logic.
+     *
+     * @param nodeSelectorPath
+     */
+    protected void handleNodeGroupChangeMaintenance(String nodeSelectorPath) {
     }
 
     /**

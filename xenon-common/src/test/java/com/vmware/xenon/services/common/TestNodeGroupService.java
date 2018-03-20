@@ -623,6 +623,9 @@ public class TestNodeGroupService {
             return;
         }
 
+        // enable synchronization to enable on-demand-synch
+        this.host.getInProcessHostMap().values().forEach(node -> node.setPeerSynchronizationEnabled(true));
+
         // Patch the documents that are owned by the new host. Since none of these
         // documents exist on the new-host on-demand synch should kick-in and PATCHes
         // should succeed.
@@ -697,6 +700,8 @@ public class TestNodeGroupService {
                 servicesToUpdate.put(e.getKey(), e.getValue());
             }
         }
+
+        // while updating, enable synchronization to properly verify existing state
         doExampleServicePatch(servicesToUpdate, existingHost.getUri());
 
         // increase quorum on existing nodes, so they wait for restarted host to join
@@ -728,6 +733,9 @@ public class TestNodeGroupService {
             }
             return false;
         });
+
+        // enable synchronization
+        this.host.getInProcessHostMap().values().forEach(peer -> peer.setPeerSynchronizationEnabled(true));
 
         // kick-off synchronization and wait for it to finish
         startSynchronizationTaskAndWait(owner,
@@ -1582,6 +1590,9 @@ public class TestNodeGroupService {
             }
             return false;
         });
+
+        // enable synchronization
+        this.host.getInProcessHostMap().values().forEach(peer -> peer.setPeerSynchronizationEnabled(true));
 
         // kick-off factory synchronization and wait for it to finish
         startSynchronizationTaskAndWait(owner,
