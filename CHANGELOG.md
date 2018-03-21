@@ -2,6 +2,12 @@
 
 ## 1.6.5-SNAPSHOT
 
+* Added a ServiceHost configuration property to control whether replication
+  is enabled. This is similar to the isPeerSynchronizationEnabled flag,
+  but the implementation is based on XenonConfiguration. Replication is
+  enabled by default; to disable it set xenon.ServiceHost.isPeerReplicationEnabled
+  to false.
+
 * Add a flag to control auth on utility services
   Added a system property `xenon.UtilityService.disableUtilityAuth` to control
   auth on utility services.
