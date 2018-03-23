@@ -1059,6 +1059,12 @@ public class ServiceHost implements ServiceRequestSender {
         return this;
     }
 
+    public void clearServiceStateCache() {
+        synchronized (this.state) {
+            this.serviceResourceTracker.clearAllCachedServiceState();
+        }
+    }
+
     public int getPort() {
         return this.state.httpPort;
     }

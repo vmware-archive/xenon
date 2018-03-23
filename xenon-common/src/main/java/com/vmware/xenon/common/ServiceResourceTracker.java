@@ -430,6 +430,18 @@ public class ServiceResourceTracker {
         }
     }
 
+    public void clearAllCachedServiceState() {
+        boolean updateStat = !this.cachedServiceStates.isEmpty() || !this.cachedTransactionalServiceStates.isEmpty();
+
+        this.cachedServiceStates.clear();
+        this.persistedServiceLastAccessTimes.clear();
+        this.cachedTransactionalServiceStates.clear();
+
+        if (updateStat) {
+            updateCacheClearStats();
+        }
+    }
+
     public void updateCacheMissStats() {
         this.host.getManagementService().adjustStat(
                 ServiceHostManagementService.STAT_NAME_SERVICE_CACHE_MISS_COUNT, 1);
