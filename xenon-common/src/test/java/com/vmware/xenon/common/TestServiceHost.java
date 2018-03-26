@@ -2764,4 +2764,47 @@ public class TestServiceHost {
         this.host = null;
     }
 
+
+    @Test
+    public void opsBeforePostWithSynchronizationDisabled() throws Throwable {
+        setUp(true);
+
+        // disable synchronization
+        this.host.setPeerSynchronizationEnabled(false);
+
+        this.host.start();
+
+        TestRequestSender sender = this.host.getTestRequestSender();
+
+        String servicePath = UriUtils.buildUriPath(ExampleService.FACTORY_LINK, "foo");
+        TestRequestSender.FailureResponse failureResponse;
+
+        // DELETE before creating service
+        Operation del = Operation.createDelete(UriUtils.buildUri(this.host, servicePath));
+        Operation delResponseBeforePost = sender.sendAndWait(del);
+        assertEquals(Operation.STATUS_CODE_OK, delResponseBeforePost.getStatusCode());
+        assertFalse(delResponseBeforePost.hasBody());
+
+        // GET before creating service
+        Operation get = Operation.createGet(UriUtils.buildUri(this.host, servicePath));
+        failureResponse = sender.sendAndWaitFailure(get);
+        assertEquals(Operation.STATUS_CODE_NOT_FOUND, failureResponse.op.getStatusCode());
+
+        // PATCH before creating service
+        ExampleServiceState patchBody = new ExampleServiceState();
+        patchBody.name = "foo-patch";
+        Operation patch = Operation.createPatch(UriUtils.buildUri(this.host, servicePath)).setBody(patchBody);
+        failureResponse = sender.sendAndWaitFailure(patch);
+        assertEquals(Operation.STATUS_CODE_NOT_FOUND, failureResponse.op.getStatusCode());
+
+
+        ExampleServiceState initialState = new ExampleServiceState();
+        initialState.name = "foo";
+        initialState.documentSelfLink = servicePath;
+        Operation post = Operation.createPost(this.host, ExampleService.FACTORY_LINK).setBody(initialState);
+
+        // POST should succeed
+        ExampleServiceState returnedState = sender.sendAndWait(post, ExampleServiceState.class);
+        assertEquals("foo", returnedState.name);
+    }
 }

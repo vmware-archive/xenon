@@ -279,7 +279,35 @@ class ServiceSynchronizationTracker {
             if (this.host.isPeerSynchronizationEnabled()) {
                 synchronizeWithPeers(s, op);
             } else {
-                op.complete();
+
+                // when synchronization is disabled, perform local get on index-service to check
+                // existence of the target service. (see "ServiceAvailabilityFilter#startServiceOnDemand()")
+                Operation getOp = Operation
+                        .createGet(op.getUri())
+                        .addPragmaDirective(Operation.PRAGMA_DIRECTIVE_INDEX_CHECK)
+                        .transferRefererFrom(op)
+                        .setCompletion((oo, ee) -> {
+                            if (ee != null) {
+                                op.fail(ee);
+                                return;
+                            }
+
+                            if (!oo.hasBody()) {
+                                // the index will return success, but no body if service is not found
+                                op.addPragmaDirective(Operation.PRAGMA_DIRECTIVE_NO_INDEX_UPDATE);
+                                Operation.failServiceNotFound(op);
+                                return;
+                            }
+                            op.complete();
+
+                        });
+
+                Service indexService = this.host.getDocumentIndexService();
+                if (indexService == null) {
+                    op.fail(new CancellationException("Index service is null"));
+                    return;
+                }
+                indexService.handleRequest(getOp);
             }
         };
 
