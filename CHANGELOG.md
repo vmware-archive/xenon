@@ -1,16 +1,12 @@
 # CHANGELOG
 
-## 1.6.5-SNAPSHOT
+## 1.6.5
 
 * Added a ServiceHost configuration property to control whether replication
   is enabled. This is similar to the isPeerSynchronizationEnabled flag,
   but the implementation is based on XenonConfiguration. Replication is
   enabled by default; to disable it set xenon.ServiceHost.isPeerReplicationEnabled
   to false.
-
-* Add a flag to control auth on utility services
-  Added a system property `xenon.UtilityService.disableUtilityAuth` to control
-  auth on utility services.
 
 * Update auth logic for utility endpoints
   For stateful services, utility endpoint first checks the auth against its
@@ -24,10 +20,6 @@
   `/core/stateless/foo/stats` uses `/core/stateless/foo` for its auth check.
   Failure of such parent check falls back to original authentication logic.
 
-* Jaeger will now log and ignore bad hostnames for the UDP span transport.
-  This permits detection of invalid configurations without breaking deployment
-  pipelines or developer test scenarios.
-
 * Update behavior for disabled peer synchronization
   When synchronization is disabled by `ServiceHost#isPeerSynchronizationEnabled`
   is `false`:
@@ -39,6 +31,25 @@
   When this flag is enabled, document indexing and rest of operations will be
   performed sequentially. (default is asynchronous)
 
+
+## 1.6.4.2
+
+* Add a flag to control auth on utility services
+  Added a system property `xenon.UtilityService.disableUtilityAuth` to control
+  auth on utility services.
+
+## 1.6.4.1
+
+* Make `MigrationTaskService` work even when `queryTask.results.queryTimeMicros`
+  returns null.
+
+* In migration task, usage of `FORWARD_ONLY` query option is configurable by
+  setting `xenon.MigrationTaskService.useForwardOnlyQuery` system property, and it
+  is `false`(disabled) by default.
+
+* Jaeger will now log and ignore bad hostnames for the UDP span transport.
+  This permits detection of invalid configurations without breaking deployment
+  pipelines or developer test scenarios.
 
 ## 1.6.4
 
