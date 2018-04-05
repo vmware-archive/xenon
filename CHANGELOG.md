@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 1.6.6-SNAPSHOT
+
+* Fix unexpected lucene searcher closure when `Long.MAX_VALUE` is specified in expiration.
+  For paginated query and group by query, when task expiration is set to `Long.MAX_VALUE`,
+  it had caused unexpected early closure of lucene index searcher.
+  Now, it is fixed and setting `Long.MAX_VALUE` in query task expiration works as expected.
+
+
 ## 1.6.5
 
 * Added a ServiceHost configuration property to control whether replication

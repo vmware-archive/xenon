@@ -1207,7 +1207,11 @@ public class LuceneDocumentIndexService extends StatelessService {
             // that index-searcher still exists when QueryPageService expired, add some delay for searcher
             // expiration time.
             Set<String> documentKind = qs.context.kindScope;
-            long expiration = task.documentExpirationTimeMicros + DEFAULT_PAGINATED_SEARCHER_EXPIRATION_DELAY;
+            // avoid overflow
+            boolean addDelay = task.documentExpirationTimeMicros < Long.MAX_VALUE - DEFAULT_PAGINATED_SEARCHER_EXPIRATION_DELAY;
+            long expiration = addDelay ?
+                    (task.documentExpirationTimeMicros + DEFAULT_PAGINATED_SEARCHER_EXPIRATION_DELAY) :
+                    task.documentExpirationTimeMicros;
             s = createOrUpdatePaginatedQuerySearcher(expiration, this.writer, documentKind, qs.options);
         }
 
@@ -1813,7 +1817,10 @@ public class LuceneDocumentIndexService extends StatelessService {
             // Since expiration of QueryPageService and index-searcher uses different mechanism, to guarantee
             // that index-searcher still exists when QueryPageService expired, add some delay for searcher
             // expiration time.
-            long expiration = task.documentExpirationTimeMicros + DEFAULT_PAGINATED_SEARCHER_EXPIRATION_DELAY;
+            boolean addDelay = task.documentExpirationTimeMicros < Long.MAX_VALUE - DEFAULT_PAGINATED_SEARCHER_EXPIRATION_DELAY;
+            long expiration = addDelay ?
+                    (task.documentExpirationTimeMicros + DEFAULT_PAGINATED_SEARCHER_EXPIRATION_DELAY) :
+                    task.documentExpirationTimeMicros;
             s = createOrUpdatePaginatedQuerySearcher(expiration, this.writer, kindScope, qs.options);
         }
 

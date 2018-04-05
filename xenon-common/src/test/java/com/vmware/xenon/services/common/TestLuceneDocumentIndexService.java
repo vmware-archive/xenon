@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.toMap;
 
 import static javax.xml.bind.DatatypeConverter.printBase64Binary;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -117,6 +118,7 @@ import com.vmware.xenon.services.common.QueryTask.Query;
 import com.vmware.xenon.services.common.QueryTask.Query.Occurance;
 import com.vmware.xenon.services.common.QueryTask.QuerySpecification;
 import com.vmware.xenon.services.common.QueryTask.QuerySpecification.QueryOption;
+import com.vmware.xenon.services.common.QueryTask.QuerySpecification.SortOrder;
 import com.vmware.xenon.services.common.TestLuceneDocumentIndexService.AnotherPersistentService.AnotherPersistentState;
 import com.vmware.xenon.services.common.TestLuceneDocumentIndexService.StateWithPodoNestedInCollection.InnerPodo;
 
@@ -161,10 +163,13 @@ class FaultInjectionLuceneDocumentIndexService extends LuceneDocumentIndexServic
         return searchersByExpirationTime;
     }
 
-    public TreeMap<Long, PaginatedSearcherInfo> getPaginatedSearchersByExpirationTime() {
+    public TreeMap<Long, PaginatedSearcherInfo> getPaginatedSearchersByCreationTime() {
         return this.paginatedSearchersByCreationTime;
     }
 
+    public TreeMap<Long, List<PaginatedSearcherInfo>> getPaginatedSearchersByExpirationTime() {
+        return this.paginatedSearchersByExpirationTime;
+    }
     /*
      * Called by test code to abruptly close the index writer simulating spurious
      * self close of the index writer, in production environments, due to out of memory
@@ -1086,7 +1091,7 @@ public class TestLuceneDocumentIndexService {
         this.host.createQueryTaskService(queryTask, false, true, queryTask, null);
 
         // verify paginated searcher is NOT reused for the first paginated query.
-        paginatedSearcherSize = this.indexService.getPaginatedSearchersByExpirationTime().size();
+        paginatedSearcherSize = this.indexService.getPaginatedSearchersByCreationTime().size();
         assertEquals("new searcher should be created", 1, paginatedSearcherSize);
 
 
@@ -1102,7 +1107,7 @@ public class TestLuceneDocumentIndexService {
         this.host.createQueryTaskService(queryTask, false, true, queryTask, null);
 
         // verify no searcher is reused so far
-        paginatedSearcherSize = this.indexService.getPaginatedSearchersByExpirationTime().size();
+        paginatedSearcherSize = this.indexService.getPaginatedSearchersByCreationTime().size();
         assertEquals("existing searcher should be reused", 1, paginatedSearcherSize);
 
 
@@ -1111,13 +1116,13 @@ public class TestLuceneDocumentIndexService {
         this.host.createQueryTaskService(queryTask, false, true, queryTask, null);
 
         // a searcher should be reused
-        paginatedSearcherSize = this.indexService.getPaginatedSearchersByExpirationTime().size();
+        paginatedSearcherSize = this.indexService.getPaginatedSearchersByCreationTime().size();
         assertEquals("searcher should be re-used", 1, paginatedSearcherSize);
 
         // Another query task, searcher should be reused
         queryTask = QueryTask.Builder.create().setQuery(query).setResultLimit(2).build();
         this.host.createQueryTaskService(queryTask, false, true, queryTask, null);
-        paginatedSearcherSize = this.indexService.getPaginatedSearchersByExpirationTime().size();
+        paginatedSearcherSize = this.indexService.getPaginatedSearchersByCreationTime().size();
         assertEquals("searcher should be re-used", 1, paginatedSearcherSize);
 
 
@@ -1129,7 +1134,7 @@ public class TestLuceneDocumentIndexService {
         // Even AnotherPersistentState is updated, still searcher should be reused for ExampleServiceState
         queryTask = QueryTask.Builder.create().setQuery(query).setResultLimit(2).build();
         this.host.createQueryTaskService(queryTask, false, true, queryTask, null);
-        paginatedSearcherSize = this.indexService.getPaginatedSearchersByExpirationTime().size();
+        paginatedSearcherSize = this.indexService.getPaginatedSearchersByCreationTime().size();
         assertEquals("searcher should be re-used", 1, paginatedSearcherSize);
 
         // update a ExampleService
@@ -1141,7 +1146,7 @@ public class TestLuceneDocumentIndexService {
         // if ExampleService is updated, new searcher should be used
         queryTask = QueryTask.Builder.create().setQuery(query).setResultLimit(2).build();
         this.host.createQueryTaskService(queryTask, false, true, queryTask, null);
-        paginatedSearcherSize = this.indexService.getPaginatedSearchersByExpirationTime().size();
+        paginatedSearcherSize = this.indexService.getPaginatedSearchersByCreationTime().size();
         assertEquals("searcher should be re-used", 2, paginatedSearcherSize);
     }
 
@@ -4766,4 +4771,46 @@ public class TestLuceneDocumentIndexService {
         assertEquals(new HashSet<>(Arrays.asList(podo1.podoField, podo2.podoField)),
                 indexedInnerValues);
     }
+
+    @Test
+    public void maxExpirationTimeForPaginatedQuery() throws Throwable {
+        setUpHost(false);
+
+        Query query = Query.Builder.create()
+                .addFieldClause(ServiceDocument.FIELD_NAME_KIND, Utils.buildKind(ExampleServiceState.class))
+                .build();
+
+        // create a paginated query with MAX expiration time
+        QueryTask queryTask = QueryTask.Builder.createDirectTask().setQuery(query).setResultLimit(2).build();
+        queryTask.documentExpirationTimeMicros = Long.MAX_VALUE;
+        this.host.createQueryTaskService(queryTask, false, true, queryTask, null);
+
+        assertThat(this.indexService.getPaginatedSearchersByExpirationTime())
+                .hasSize(1)
+                .containsOnlyKeys(Long.MAX_VALUE);
+    }
+
+    @Test
+    public void maxExpirationTimeForGroupByQuery() throws Throwable {
+        setUpHost(false);
+
+        Query query = Query.Builder.create()
+                .addFieldClause(ServiceDocument.FIELD_NAME_KIND, Utils.buildKind(ExampleServiceState.class))
+                .build();
+
+        // create a group by paginated query with MAX expiration time
+        QueryTask queryTask = QueryTask.Builder.createDirectTask()
+                .addOption(QueryOption.GROUP_BY)
+                .setGroupResultLimit(10)
+                .orderAscending(ExampleServiceState.FIELD_NAME_ID, TypeName.STRING)
+                .groupOrder(ExampleServiceState.FIELD_NAME_NAME, TypeName.STRING, SortOrder.ASC)
+                .setQuery(query).build();
+        queryTask.documentExpirationTimeMicros = Long.MAX_VALUE;
+        this.host.createQueryTaskService(queryTask, false, true, queryTask, null);
+
+        assertThat(this.indexService.getPaginatedSearchersByExpirationTime())
+                .hasSize(1)
+                .containsOnlyKeys(Long.MAX_VALUE);
+    }
+
 }
