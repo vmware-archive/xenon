@@ -13,6 +13,8 @@
 
 package com.vmware.xenon.services.common;
 
+import static java.lang.String.format;
+
 import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.ArrayList;
@@ -223,7 +225,34 @@ public class AuthorizationContextServiceHelper {
                         op.fail(e);
                         return;
                     }
-                    ServiceDocument userState = extractServiceState(o, context.authContextService.getHost());
+
+                    ServiceHost host = context.authContextService.getHost();
+                    ServiceDocument userState = QueryFilterUtils.getServiceState(o, host);
+
+                    if (userState == null) {
+
+                        Object rawBody = o.getBodyRaw();
+                        Class<?> serviceTypeClass;
+
+                        if (rawBody instanceof String) {
+                            String kind = Utils.getJsonMapValue(rawBody, ServiceDocument.FIELD_NAME_KIND, String.class);
+                            // when target user service is not locally available, the remote response might not contain kind.
+                            if (kind == null) {
+                                String msg = format("Could not retrieved document for auth check. path=%s", o.getUri().getPath());
+                                op.fail(new RuntimeException(msg));
+                                return;
+                            }
+                            serviceTypeClass = Utils.getTypeFromKind(kind);
+                        } else {
+                            serviceTypeClass = rawBody.getClass();
+                        }
+
+                        if (serviceTypeClass != null) {
+                            userState = (ServiceDocument)Utils.fromJson(rawBody, serviceTypeClass);
+                        }
+
+                    }
+
                     // If the native user state could not be extracted, we are sure no roles
                     // will apply and we can populate the authorization context.
                     if (userState == null) {
@@ -236,25 +265,6 @@ public class AuthorizationContextServiceHelper {
 
         context.authContextService.setAuthorizationContext(get, context.authContextService.getSystemAuthorizationContext());
         context.authContextService.sendRequest(get);
-    }
-
-    private static ServiceDocument extractServiceState(Operation getOp, ServiceHost serviceHost) {
-        ServiceDocument userState = QueryFilterUtils.getServiceState(getOp, serviceHost);
-        if (userState == null) {
-            Object rawBody = getOp.getBodyRaw();
-            Class<?> serviceTypeClass = null;
-            if (rawBody instanceof String) {
-                String kind = Utils.getJsonMapValue(rawBody, ServiceDocument.FIELD_NAME_KIND,
-                        String.class);
-                serviceTypeClass = Utils.getTypeFromKind(kind);
-            } else {
-                serviceTypeClass = rawBody.getClass();
-            }
-            if (serviceTypeClass != null) {
-                userState = (ServiceDocument)Utils.fromJson(rawBody, serviceTypeClass);
-            }
-        }
-        return userState;
     }
 
     private static boolean loadUserGroupsFromUserState(Operation op, AuthorizationContext ctx, Claims claims,

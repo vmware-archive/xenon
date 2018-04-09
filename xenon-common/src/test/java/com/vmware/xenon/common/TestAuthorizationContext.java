@@ -34,6 +34,8 @@ import com.vmware.xenon.common.Operation.AuthorizationContext;
 import com.vmware.xenon.common.Operation.CompletionHandler;
 import com.vmware.xenon.common.OperationJoin.JoinedCompletionHandler;
 import com.vmware.xenon.common.Service.Action;
+import com.vmware.xenon.common.test.TestRequestSender;
+import com.vmware.xenon.common.test.TestRequestSender.FailureResponse;
 import com.vmware.xenon.common.test.VerificationHost;
 import com.vmware.xenon.services.common.GuestUserService;
 import com.vmware.xenon.services.common.QueryTask.Query;
@@ -593,5 +595,37 @@ public class TestAuthorizationContext extends BasicTestCase {
         assertTrue(authContext.getClaims().getExpirationTime() == Instant.MAX.getEpochSecond());
         authContext = this.host.getAuthorizationContextForSubject(SystemUserService.SELF_LINK);
         assertTrue(authContext.getClaims().getExpirationTime() == Instant.MAX.getEpochSecond());
+    }
+
+    @Test
+    public void userServiceIsNotAvailableLocally() throws Throwable {
+
+        String user = "foo@vmware.com";
+        String userPath = UriUtils.buildUriPath(ServiceUriPaths.CORE_AUTHZ_USERS, user);
+
+        Service myUserService = new GuestUserService() {
+            @Override
+            public void handleGet(Operation get) {
+                ServiceDocument emptyDoc = new ServiceDocument();
+                // stop this service to simulate the case that op has returned but target service is not in attachedService.
+                getHost().stopService(this);
+                // return a doc that doesn't have documentKind
+                get.setBody(Utils.toJson(emptyDoc)).complete();
+            }
+        };
+
+        TestRequestSender sender = this.host.getTestRequestSender();
+
+        // start myUserService
+        this.host.setSystemAuthorizationContext();
+        this.host.startServiceAndWait(myUserService, userPath, null);
+        this.host.resetAuthorizationContext();
+
+        // access as the new user
+        AuthorizationContext context = createAuthorizationContext(user, this.host);
+        OperationContext.setAuthorizationContext(context);
+
+        FailureResponse failureResponse = sender.sendAndWaitFailure(Operation.createGet(this.host, "/"));
+        assertEquals(Operation.STATUS_CODE_INTERNAL_ERROR, failureResponse.op.getStatusCode());
     }
 }

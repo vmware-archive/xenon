@@ -11,6 +11,12 @@
   This allows applications to modify the thread executors such as changing cancellation
   policy, adding tracking info, etc.
 
+* Fix swallowed operation when auth target user service is not available locally.
+  When auth target user is not available locally and received a request, based on the
+  user retrieval response, it was failing with NPE and the request was unhandled until it
+  gets timed out. It is fixed to fail the request when document kind cannot be found on user
+  retrieval query.
+
 
 ## 1.6.5
 
