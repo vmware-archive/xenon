@@ -17,6 +17,13 @@
   gets timed out. It is fixed to fail the request when document kind cannot be found on user
   retrieval query.
 
+* Update overriding of `OperationProcessingChain` filters
+  Previously there was no access to `AuthorizationFilter` instance in `ServiceHost` and list of
+  filters in `OperationProcessingChain`.
+  `ServiceHost` and `OperationProcessingChain` are updated to have getter/setter for those
+  instances; so that, subclass of `ServiceHost` can easily modify `OperationProcessingChain`
+  filters.
+
 
 ## 1.6.5
 

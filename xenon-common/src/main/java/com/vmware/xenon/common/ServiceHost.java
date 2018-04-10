@@ -5882,4 +5882,12 @@ public class ServiceHost implements ServiceRequestSender {
     public Tracer getTracer() {
         return this.otTracer;
     }
+
+    protected AuthorizationFilter getAuthorizationFilter() {
+        return this.authorizationFilter;
+    }
+
+    protected void setAuthorizationFilter(AuthorizationFilter authorizationFilter) {
+        this.authorizationFilter = authorizationFilter;
+    }
 }

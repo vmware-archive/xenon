@@ -352,4 +352,9 @@ public class OperationProcessingChain {
         Level level = logLevel != null ? logLevel : Level.INFO;
         Utils.log(getClass(), op.getUri().getPath(), level, logMsg);
     }
+
+    public List<Filter> getFilters() {
+        return this.filters;
+    }
+
 }
