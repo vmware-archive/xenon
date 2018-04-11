@@ -337,7 +337,7 @@ public class SynchronizationTaskService
         if (startStateMachine) {
             task.taskInfo.stage = TaskState.TaskStage.STARTED;
             if (this.parent != null && this.parent.hasChildOption(ServiceOption.PERSISTENCE) &&
-                    checkpointEnabled(task)) {
+                    !this.parent.hasChildOption(ServiceOption.PERIODIC_MAINTENANCE) && checkpointEnabled(task)) {
                 task.subStage = SubStage.GET_CHECKPOINTS;
             } else {
                 task.subStage = SubStage.QUERY;
@@ -967,8 +967,8 @@ public class SynchronizationTaskService
                         return;
                     }
 
-                    if (this.parent != null && this.parent.hasChildOption(ServiceOption.PERSISTENCE)
-                            && checkpointEnabled(task)) {
+                    if (this.parent != null && this.parent.hasChildOption(ServiceOption.PERSISTENCE) &&
+                            !this.parent.hasChildOption(ServiceOption.PERIODIC_MAINTENANCE) && checkpointEnabled(task)) {
                         Consumer<SelectOwnerResponse> ownerHandler = (selectOwnerResponse) -> {
                             if (selectOwnerResponse.availableNodeCount > 1) {
                                 createCheckpointsAndReschedule(task);
