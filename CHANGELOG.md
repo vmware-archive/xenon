@@ -1,11 +1,13 @@
 # CHANGELOG
 
 ## 1.6.6-SNAPSHOT
-* Disable checkpoint based synchronization for periodically
-maintained service
-  Periodically maintained services are expected to be populated
-  into memory so that it could be maintained in period.
-  Thus, Synchronization is a must regardless of checkpoint
+
+* Disable checkpoint based synchronization for periodically maintained services
+  Periodically maintained services are required to be in memory.
+  When `ServiceOption.PERIODIC_MAINTENANCE` is specified, disable the checkpoint based synchronization
+  for the service.
+
+* Add version retention to CheckpointService
 
 * Fix unexpected lucene searcher closure when `Long.MAX_VALUE` is specified in expiration.
   For paginated query and group by query, when task expiration is set to `Long.MAX_VALUE`,
