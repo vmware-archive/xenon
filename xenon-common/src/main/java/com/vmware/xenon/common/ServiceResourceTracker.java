@@ -442,6 +442,16 @@ public class ServiceResourceTracker {
         }
     }
 
+    public void clearPersistedServiceCachedServiceState() {
+        // only non transactional states have kept the last access time
+        boolean updateStat = this.cachedServiceStates.keySet().removeAll(this.persistedServiceLastAccessTimes.keySet());
+        this.persistedServiceLastAccessTimes.clear();
+
+        if (updateStat) {
+            updateCacheClearStats();
+        }
+    }
+
     public void updateCacheMissStats() {
         this.host.getManagementService().adjustStat(
                 ServiceHostManagementService.STAT_NAME_SERVICE_CACHE_MISS_COUNT, 1);
