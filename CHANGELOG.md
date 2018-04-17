@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 1.6.7-SNAPSHOT
+
+
 ## 1.6.6
 
 * Disable checkpoint based synchronization for periodically maintained services
