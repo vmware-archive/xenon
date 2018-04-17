@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.6.6-SNAPSHOT
+## 1.6.6
 
 * Disable checkpoint based synchronization for periodically maintained services
   Periodically maintained services are required to be in memory.
@@ -30,6 +30,9 @@
   `ServiceHost` and `OperationProcessingChain` are updated to have getter/setter for those
   instances; so that, subclass of `ServiceHost` can easily modify `OperationProcessingChain`
   filters.
+
+* Fix `QueryFilter` that incorrectly builds NormalForm for negate queries.
+  Also, added support for ENUM types while evaluating the `QueryFilter`.
 
 
 ## 1.6.5
