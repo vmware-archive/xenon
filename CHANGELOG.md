@@ -1,8 +1,42 @@
 # CHANGELOG
 
+## 1.5.7_6_1
+
+* Netty `ServiceClient`(request sender) has a callback at channel initialization that allows user to
+  configure netty pipeline.
+
+  For example, netty provides `HttpProxyHandler` to work with proxy:
+  ```
+  @Override
+  protected ServiceClient configureServiceClient(ServiceClient serviceClient) {
+      ((NettyHttpServiceClient) serviceClient).setOnChannelInitialization((pool, channel) -> {
+          InetSocketAddress proxyAddress = new InetSocketAddress(InetAddress.getByName("10.0.0.1"), 80);
+          String proxyUser = "username";
+          String proxyPass = "password";
+
+          if (NettyHttpServiceClient.CHANNELPOOL_NAME_DEFAULT.equals(pool.getName())) {
+              // for http requests
+              channel.pipeline().addFirst("proxy", new HttpProxyHandler(proxyAddress, proxyUser, proxyPass));
+              ...
+          } else if (NettyHttpServiceClient.CHANNELPOOL_NAME_SSL_DEFAULT.equals(pool.getName())) {
+              // for https requests
+              ...
+          } else if (NettyHttpServiceClient.CHANNELPOOL_NAME_HTTP2.equals(pool.getName())) {
+              // for http2 http requests
+              ...
+          } else if (NettyHttpServiceClient.CHANNELPOOL_NAME_SSL_HTTP2.equals(pool.getName())) {
+              // for http2 https requests
+              ...
+          }
+      });
+      return serviceClient;
+  }
+  ```
+
+
 ## 1.5.7_5
 
-* No functional change from 1.5.7-CR4. 
+* No functional change from 1.5.7-CR4.
   Version name has changed to make gradle consider this version is higher 
   than 1.5.7.
   https://github.com/gradle/gradle/blob/master/subprojects/core/src/main/java/org/gradle/util/VersionNumber.java
