@@ -310,6 +310,9 @@ public class NodeGroupService extends StatefulService {
                 body,
                 changes);
 
+        if (!changes.isEmpty()) {
+            logInfo("Publishing node-group changes: %s", changes);
+        }
         patch.setNotificationDisabled(changes.isEmpty());
 
         localState.documentOwner = getHost().getId();
