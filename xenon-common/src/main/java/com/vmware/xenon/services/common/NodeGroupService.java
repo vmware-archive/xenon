@@ -919,7 +919,7 @@ public class NodeGroupService extends StatefulService {
             if (needsUpdate) {
                 if (currentEntry.status == NodeStatus.AVAILABLE && remoteEntry.status == NodeStatus.UNAVAILABLE) {
                     changes.add(NodeGroupChange.PEER_UNAVAILABLE);
-                } else if (remoteEntry.documentVersion >= currentEntry.documentVersion) {
+                } else {
                     changes.add(NodeGroupChange.PEER_STATUS_CHANGE);
                 }
             }
