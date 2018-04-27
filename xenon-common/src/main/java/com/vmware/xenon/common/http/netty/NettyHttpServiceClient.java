@@ -31,6 +31,7 @@ import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 
+import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -134,6 +135,8 @@ public class NettyHttpServiceClient implements ServiceClient {
 
     private BiConsumer<NettyChannelPool, Channel> onChannelInitialization;
 
+    private BiConsumer<NettyChannelPool, Bootstrap> onBootstrapInitialization;
+
     private final Object startSync = new Object();
 
     public static ServiceClient create(String userAgent,
@@ -205,6 +208,7 @@ public class NettyHttpServiceClient implements ServiceClient {
         this.channelPool.setThreadCount(Utils.DEFAULT_IO_THREAD_COUNT);
         this.channelPool.setExecutor(this.executor);
         this.channelPool.setOnChannelInitialization(this.onChannelInitialization);
+        this.channelPool.setOnBootstrapInitialization(this.onBootstrapInitialization);
         this.channelPool.start();
 
         // We make a separate pool for HTTP/2. We want to have only one connection per host
@@ -214,6 +218,7 @@ public class NettyHttpServiceClient implements ServiceClient {
         this.http2ChannelPool.setExecutor(this.executor);
         this.http2ChannelPool.setHttp2Only();
         this.http2ChannelPool.setOnChannelInitialization(this.onChannelInitialization);
+        this.http2ChannelPool.setOnBootstrapInitialization(this.onBootstrapInitialization);
         this.http2ChannelPool.start();
 
         if (this.sslContext != null) {
@@ -222,6 +227,7 @@ public class NettyHttpServiceClient implements ServiceClient {
             this.sslChannelPool.setExecutor(this.executor);
             this.sslChannelPool.setSSLContext(this.sslContext);
             this.sslChannelPool.setOnChannelInitialization(this.onChannelInitialization);
+            this.sslChannelPool.setOnBootstrapInitialization(this.onBootstrapInitialization);
             this.sslChannelPool.start();
         }
 
@@ -232,6 +238,7 @@ public class NettyHttpServiceClient implements ServiceClient {
             this.http2SslChannelPool.setHttp2Only();
             this.http2SslChannelPool.setHttp2SslContext(this.http2SslContext);
             this.http2SslChannelPool.setOnChannelInitialization(this.onChannelInitialization);
+            this.http2SslChannelPool.setOnBootstrapInitialization(this.onBootstrapInitialization);
             this.http2SslChannelPool.start();
         }
 
@@ -1096,5 +1103,13 @@ public class NettyHttpServiceClient implements ServiceClient {
      */
     public void setOnChannelInitialization(BiConsumer<NettyChannelPool, Channel> onChannelInitialization) {
         this.onChannelInitialization = onChannelInitialization;
+    }
+
+    /**
+     * Set a callback that can configure netty bootstrap at {@link NettyChannelPool} start.
+     * @param onBootstrapInitialization callback
+     */
+    public void setOnBootstrapInitialization(BiConsumer<NettyChannelPool, Bootstrap> onBootstrapInitialization) {
+        this.onBootstrapInitialization = onBootstrapInitialization;
     }
 }

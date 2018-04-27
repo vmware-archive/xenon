@@ -180,6 +180,9 @@ public class NettyChannelPool {
     // callback at netty channel initialization
     private BiConsumer<NettyChannelPool, Channel> onChannelInitialization;
 
+    // callback at netty bootstrap initialization
+    private BiConsumer<NettyChannelPool, Bootstrap> onBootstrapInitialization;
+
     private String name;
 
     public NettyChannelPool(String name) {
@@ -234,6 +237,11 @@ public class NettyChannelPool {
                 .channel(NioSocketChannel.class)
                 .handler(new NettyHttpClientRequestInitializer(this, this.isHttp2Only,
                         this.requestPayloadSizeLimit, this.onChannelInitialization));
+
+        // allow user callback to modify netty bootstrap
+        if (this.onBootstrapInitialization != null) {
+            this.onBootstrapInitialization.accept(this, this.bootStrap);
+        }
     }
 
     public boolean isStarted() {
@@ -863,6 +871,10 @@ public class NettyChannelPool {
 
     public void setOnChannelInitialization(BiConsumer<NettyChannelPool, Channel> onChannelInitialization) {
         this.onChannelInitialization = onChannelInitialization;
+    }
+
+    public void setOnBootstrapInitialization(BiConsumer<NettyChannelPool, Bootstrap> onBootstrapInitialization) {
+        this.onBootstrapInitialization = onBootstrapInitialization;
     }
 
     public String getName() {

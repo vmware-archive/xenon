@@ -2,14 +2,16 @@
 
 ## 1.5.7_6_1
 
-* Netty `ServiceClient`(request sender) has a callback at channel initialization that allows user to
-  configure netty pipeline.
+* Add two callback api on `NettyHttpServiceClient`(request sender) to modify netty bootstrap and pipeline.
 
   For example, netty provides `HttpProxyHandler` to work with proxy:
   ```
   @Override
   protected ServiceClient configureServiceClient(ServiceClient serviceClient) {
-      ((NettyHttpServiceClient) serviceClient).setOnChannelInitialization((pool, channel) -> {
+      NettyHttpServiceClient nettyServiceClient = (NettyHttpServiceClient)serviceClient;
+
+      // callback for channel initialization
+      nettyServiceClient.setOnChannelInitialization((pool, channel) -> {
           InetSocketAddress proxyAddress = new InetSocketAddress(InetAddress.getByName("10.0.0.1"), 80);
           String proxyUser = "username";
           String proxyPass = "password";
@@ -29,6 +31,13 @@
               ...
           }
       });
+
+      // callback for bootstrap
+      nettyServiceClient.setOnBootstrapInitialization((pool, bootstrap) -> {
+          // set noop address resolver
+          bootstrap.resolver(NoopAddressResolverGroup.INSTANCE);
+      });
+
       return serviceClient;
   }
   ```
