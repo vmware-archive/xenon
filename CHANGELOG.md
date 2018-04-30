@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.6.7-SNAPSHOT
+## 1.6.7
 
 * Add two callback api on `NettyHttpServiceClient`(request sender) to modify netty bootstrap and pipeline.
 
@@ -41,6 +41,8 @@
       return serviceClient;
   }
   ```
+
+* Fix node-selector shows unavailable even though node-group is available. (VRXEN-97)
 
 
 ## 1.6.6
