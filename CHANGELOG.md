@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 1.5.7_6_2
+
+* Fix repeatedly performing nodegroup change when peer synchronization is disabled.
+
+* Add a callback to choose `NettyChannelPool` on `NettyHttpServiceClient`.
+
+
 ## 1.5.7_6_1
 
 * Add two callback api on `NettyHttpServiceClient`(request sender) to modify netty bootstrap and pipeline.

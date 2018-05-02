@@ -26,6 +26,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
@@ -136,6 +137,8 @@ public class NettyHttpServiceClient implements ServiceClient {
     private BiConsumer<NettyChannelPool, Channel> onChannelInitialization;
 
     private BiConsumer<NettyChannelPool, Bootstrap> onBootstrapInitialization;
+
+    private BiFunction<Operation, NettyChannelPool, NettyChannelPool> onPoolSelection = (op, pool) -> pool;
 
     private final Object startSync = new Object();
 
@@ -412,6 +415,8 @@ public class NettyHttpServiceClient implements ServiceClient {
         } else if (isHttpsScheme) {
             pool = this.sslChannelPool;
         }
+
+        pool = this.onPoolSelection.apply(op, pool);
 
         connectChannel(pool, op, remoteHost, port);
     }
@@ -1112,4 +1117,13 @@ public class NettyHttpServiceClient implements ServiceClient {
     public void setOnBootstrapInitialization(BiConsumer<NettyChannelPool, Bootstrap> onBootstrapInitialization) {
         this.onBootstrapInitialization = onBootstrapInitialization;
     }
+
+    /**
+     * Set a callback that chooses channel pool to use for the operation.
+     * @param onPoolSelection callback
+     */
+    public void setOnPoolSelection(BiFunction<Operation, NettyChannelPool, NettyChannelPool> onPoolSelection) {
+        this.onPoolSelection = onPoolSelection;
+    }
+
 }
