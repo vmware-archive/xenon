@@ -4,6 +4,8 @@
 
 * Fix repeatedly performing nodegroup change when peer synchronization is disabled.
 
+* Add a callback to choose `NettyChannelPool` on `NettyHttpServiceClient`.
+
 
 ## 1.6.7
 
