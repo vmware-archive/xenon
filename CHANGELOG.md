@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 1.6.8-SNAPSHOT
+
+* Fix repeatedly performing nodegroup change when peer synchronization is disabled.
+
+
 ## 1.6.7
 
 * Add two callback api on `NettyHttpServiceClient`(request sender) to modify netty bootstrap and pipeline.

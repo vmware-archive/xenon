@@ -656,18 +656,14 @@ public class ConsistentHashingNodeSelectorService extends StatelessService imple
             return true;
         }
 
-        if (!getHost().isPeerSynchronizationEnabled()) {
-            // when synchronization is disabled, just schedule nodeGroupChangeMaintenance.
-            logInfo("Scheduling nodeGroupChangeMaintenance");
-            this.isSynchronizationRequired = false;
-            getHost().scheduleNodeGroupChangeMaintenance(getSelfLink());
-            return false;
-        }
-
         if (this.isSynchronizationRequired) {
             this.isSynchronizationRequired = false;
-            logInfo("Scheduling synchronization (%d nodes)", this.cachedGroupState.nodes.size());
-            adjustStat(STAT_NAME_SYNCHRONIZATION_COUNT, 1);
+
+            // to keep existing behavior, only update stats when peer synch is enabled
+            if (getHost().isPeerSynchronizationEnabled()) {
+                logInfo("Scheduling synchronization (%d nodes)", this.cachedGroupState.nodes.size());
+                adjustStat(STAT_NAME_SYNCHRONIZATION_COUNT, 1);
+            }
             getHost().scheduleNodeGroupChangeMaintenance(getSelfLink());
         }
 
