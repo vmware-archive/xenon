@@ -416,6 +416,7 @@ public class NettyHttpServiceClient implements ServiceClient {
             pool = this.sslChannelPool;
         }
 
+        // allow subclass to choose a pool for sending op
         pool = this.onPoolSelection.apply(op, pool);
 
         connectChannel(pool, op, remoteHost, port);
@@ -708,8 +709,10 @@ public class NettyHttpServiceClient implements ServiceClient {
                 } else {
                     pool = this.http2ChannelPool;
                 }
+                // allow user to choose a pool for op failure
+                NettyChannelPool finalPool = this.onPoolSelection.apply(op, pool);
                 // For HTTP/2, we maintain multiple streams, so we don't close the connection.
-                r = () -> pool.returnOrClose(nettyCtx, false);
+                r = () -> finalPool.returnOrClose(nettyCtx, false);
             } else {
                 op.setSocketContext(null);
                 if (this.sslChannelPool != null
@@ -718,7 +721,9 @@ public class NettyHttpServiceClient implements ServiceClient {
                 } else {
                     pool = this.channelPool;
                 }
-                r = () -> pool.returnOrClose(nettyCtx, !op.isKeepAlive());
+                // allow user to choose a pool for op failure
+                NettyChannelPool finalPool = this.onPoolSelection.apply(op, pool);
+                r = () -> finalPool.returnOrClose(nettyCtx, !op.isKeepAlive());
             }
 
             ExecutorService exec = this.host != null ? this.host.getExecutor() : this.executor;
