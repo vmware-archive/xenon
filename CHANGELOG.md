@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.6.8-SNAPSHOT
+## 1.6.8
 
 * Fix repeatedly performing nodegroup change when peer synchronization is disabled.
 
