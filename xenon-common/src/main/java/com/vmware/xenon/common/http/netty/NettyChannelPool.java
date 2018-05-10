@@ -603,7 +603,7 @@ public class NettyChannelPool {
         returnOrCloseDirect(context, isClose);
     }
 
-    boolean isContextInUse(NettyChannelContext context) {
+    public boolean isContextInUse(NettyChannelContext context) {
         if (context == null) {
             return false;
         }

@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 1.6.9-SNAPSHOT
+
+* Update `NettyHttpServiceClient` for more callback
+
+
 ## 1.6.8
 
 * Fix repeatedly performing nodegroup change when peer synchronization is disabled.
