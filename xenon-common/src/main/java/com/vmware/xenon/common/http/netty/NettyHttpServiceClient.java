@@ -140,6 +140,8 @@ public class NettyHttpServiceClient implements ServiceClient {
 
     private BiFunction<Operation, NettyChannelPool, NettyChannelPool> onPoolSelection = (op, pool) -> pool;
 
+    private BiFunction<NettyChannelContext, NettyChannelPool, NettyChannelPool> onPoolSelectionForFailure = (ctx, pool) -> pool;
+
     private final Object startSync = new Object();
 
     public static ServiceClient create(String userAgent,
@@ -704,7 +706,7 @@ public class NettyHttpServiceClient implements ServiceClient {
                     pool = this.http2ChannelPool;
                 }
                 // allow user to choose a pool for op failure
-                NettyChannelPool finalPool = this.onPoolSelection.apply(op, pool);
+                NettyChannelPool finalPool = this.onPoolSelectionForFailure.apply(nettyCtx, pool);
                 // For HTTP/2, we maintain multiple streams, so we don't close the connection.
                 r = () -> finalPool.returnOrClose(nettyCtx, false);
             } else {
@@ -716,7 +718,7 @@ public class NettyHttpServiceClient implements ServiceClient {
                     pool = this.channelPool;
                 }
                 // allow user to choose a pool for op failure
-                NettyChannelPool finalPool = this.onPoolSelection.apply(op, pool);
+                NettyChannelPool finalPool = this.onPoolSelectionForFailure.apply(nettyCtx, pool);
                 r = () -> finalPool.returnOrClose(nettyCtx, !op.isKeepAlive());
             }
 
@@ -1129,6 +1131,14 @@ public class NettyHttpServiceClient implements ServiceClient {
      */
     public void setOnPoolSelection(BiFunction<Operation, NettyChannelPool, NettyChannelPool> onPoolSelection) {
         this.onPoolSelection = onPoolSelection;
+    }
+
+    /**
+     * Set a callback that chooses channel pool to use for the operation failure.
+     * @param onPoolSelectionForFailure callback
+     */
+    public void setOnPoolSelectionForFailure(BiFunction<NettyChannelContext, NettyChannelPool, NettyChannelPool> onPoolSelectionForFailure) {
+        this.onPoolSelectionForFailure = onPoolSelectionForFailure;
     }
 
 }
