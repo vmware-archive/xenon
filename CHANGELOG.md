@@ -8,6 +8,9 @@
   store service state in `INDEXING_INITIAL_STATE` of `ServiceHost` by always adding `NO_INDEX_UPDATE` pragma
   in case target service is not in memory but exists in persistence.
 
+* Add `xenon.LogFormatter.useJulFormatMessage` boolean parameter.
+  When this flag is enabled, xenon log formatter applies `Formatter#formatMessage()` on its message.
+
 
 ## 1.6.8
 

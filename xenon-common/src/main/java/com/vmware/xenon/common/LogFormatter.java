@@ -21,6 +21,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
 
+import com.vmware.xenon.common.config.XenonConfiguration;
+
 public class LogFormatter extends Formatter {
 
     private static final String LOG_DATE_FIRST_PROPERTY = Utils.PROPERTY_NAME_PREFIX +
@@ -33,6 +35,15 @@ public class LogFormatter extends Formatter {
     private static final DateTimeFormatter DEFAULT_FORMAT = DateTimeFormatter
             .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
+    /**
+     * When enabled, use {@link Formatter#formatMessage(LogRecord)}" on message of received {@link LogRecord}.
+     */
+    private static final boolean USE_JUL_FORMAT_MESSAGE = XenonConfiguration.bool(
+            LogFormatter.class,
+            "useJulFormatMessage",
+            false
+    );
+
     public static class LogItem {
         public String l;
         public long id;
@@ -43,13 +54,27 @@ public class LogFormatter extends Formatter {
         public String classOrUri;
         public Throwable thrown;
 
+        /**
+         * Keeping this method for compatibility.
+         */
         public static LogItem create(LogRecord source) {
+            return create(null, source);
+        }
+
+        public static LogItem create(Formatter formatter, LogRecord source) {
             LogItem sr = new LogItem();
             sr.l = source.getLevel().toString();
             sr.t = source.getMillis();
             sr.id = source.getSequenceNumber();
             sr.threadId = source.getThreadID();
-            sr.m = source.getMessage();
+
+            if (USE_JUL_FORMAT_MESSAGE && formatter != null) {
+                sr.m = formatter.formatMessage(source);
+            } else {
+                // existing behavior
+                sr.m = source.getMessage();
+            }
+
             sr.method = source.getSourceMethodName();
             sr.classOrUri = source.getSourceClassName();
             sr.thrown = source.getThrown();
@@ -130,7 +155,7 @@ public class LogFormatter extends Formatter {
 
     @Override
     public String format(LogRecord record) {
-        StringBuilder sb = new StringBuilder(LogItem.create(record).toString());
+        StringBuilder sb = new StringBuilder(LogItem.create(this, record).toString());
         sb.append('\n');
         return sb.toString();
     }
