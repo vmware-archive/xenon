@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.6.9-SNAPSHOT
+## 1.6.9
 
 * Update `NettyHttpServiceClient` for more callback
 
