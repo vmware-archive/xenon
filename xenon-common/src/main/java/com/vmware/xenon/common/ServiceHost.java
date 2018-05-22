@@ -500,6 +500,7 @@ public class ServiceHost implements ServiceRequestSender {
         public String location;
         public URI authProviderHostURI;
         public boolean isAutoBackupEnabled;
+        public boolean isRemotePersistence;
 
         /**
          * Relative memory limit per service path. The limit is expressed as
@@ -1206,6 +1207,18 @@ public class ServiceHost implements ServiceRequestSender {
 
     public void setAutoBackupEnabled(boolean enabled) {
         this.state.isAutoBackupEnabled = enabled;
+    }
+
+    public boolean isRemotePersistence() {
+        return this.state.isRemotePersistence;
+    }
+
+    /**
+     * Denote non {@link LuceneDocumentIndexService} is specified to the documentIndexService.
+     * Application needs to explicitly set this value.
+     */
+    public void setRemotePersistence(boolean enabled) {
+        this.state.isRemotePersistence = enabled;
     }
 
     public int getSecurePort() {
@@ -5121,11 +5134,18 @@ public class ServiceHost implements ServiceRequestSender {
                         unmarkAsPendingDelete(s);
                     }
                     if (e != null) {
-                        if (previousState != null) {
-                            this.serviceResourceTracker.resetCachedServiceState(s, previousState, op);
-                        } else {
+
+                        if (isRemotePersistence()) {
+                            // always clear cache for remote document-index-service
                             this.serviceResourceTracker.clearCachedServiceState(s, op);
+                        } else {
+                            if (previousState != null) {
+                                this.serviceResourceTracker.resetCachedServiceState(s, previousState, op);
+                            } else {
+                                this.serviceResourceTracker.clearCachedServiceState(s, op);
+                            }
                         }
+
                         op.fail(e);
                         return;
                     }

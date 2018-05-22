@@ -2,6 +2,10 @@
 
 ## 1.6.10-SNAPSHOT
 
+* Add `ServiceHost#isRemotePersistence()` method.
+  This option differentiate behavior for
+  - always clear cached service state when index-service operation failed
+  - trust document version from linked state for persisted service
 
 
 ## 1.6.9
