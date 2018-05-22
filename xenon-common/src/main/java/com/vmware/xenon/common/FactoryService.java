@@ -64,6 +64,16 @@ public abstract class FactoryService extends StatelessService {
     private static final int MIN_SYNCH_QUERY_RESULT_LIMIT = 200;
 
     /**
+     * By default, when synchronization failed, it reduces query result limit in retry.
+     * Setting true to this option disables the reduction of query limit at retry.
+     */
+    private static final boolean DISABLE_SYNCH_FAILURE_QUERY_LIMIT_BACKOFF = XenonConfiguration.bool(
+            FactoryService.class,
+            "disableSynchFailureQueryLimitBackoff",
+            false
+    );
+
+    /**
      * Creates a factory service instance that starts the specified child service
      * on POST
      */
@@ -1087,7 +1097,11 @@ public abstract class FactoryService extends StatelessService {
             }
         }
 
-        this.selfQueryResultLimit = Math.max(this.selfQueryResultLimit / 2, MIN_SYNCH_QUERY_RESULT_LIMIT);
+
+        // reduce query result limit at retry
+        if (!DISABLE_SYNCH_FAILURE_QUERY_LIMIT_BACKOFF) {
+            this.selfQueryResultLimit = Math.max(this.selfQueryResultLimit / 2, MIN_SYNCH_QUERY_RESULT_LIMIT);
+        }
 
         // Clone the parent operation for reuse outside the schedule call for
         // the original operation to be freed in current thread.

@@ -7,6 +7,10 @@
   - always clear cached service state when index-service operation failed
   - trust document version from linked state for persisted service
 
+* Add `xenon.FactoryService.disableSynchFailureQueryLimitBackoff` boolean parameter.
+  When this flag is set `true` (default is `false`), it will use the same size in synchronization query result limit
+  for retry. (default behavior reduces the size by half at every retry attempt)
+
 
 ## 1.6.9
 
