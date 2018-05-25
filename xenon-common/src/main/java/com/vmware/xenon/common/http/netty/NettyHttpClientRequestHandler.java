@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+
 import javax.net.ssl.SSLSession;
 
 import io.netty.buffer.ByteBuf;
@@ -60,6 +61,7 @@ import com.vmware.xenon.common.ServiceErrorResponse;
 import com.vmware.xenon.common.ServiceHost;
 import com.vmware.xenon.common.UriUtils;
 import com.vmware.xenon.common.Utils;
+import com.vmware.xenon.common.config.XenonConfiguration;
 import com.vmware.xenon.common.serialization.ServerSentEventConverter;
 import com.vmware.xenon.services.common.ServiceUriPaths;
 import com.vmware.xenon.services.common.authn.AuthenticationConstants;
@@ -80,6 +82,16 @@ public class NettyHttpClientRequestHandler extends SimpleChannelInboundHandler<O
             PROPERTY_NAME_DISABLE_HTTP_ONLY_AUTH_COOKIE);
 
     private static final String ERROR_MSG_DECODING_FAILURE = "Failure decoding HTTP request";
+
+    /**
+     * Do not include "x-request-id" in logging.
+     * This is for backward compatibility and default is set to false.
+     */
+    private static final boolean DISABLE_REQUEST_ID_LOGGING = XenonConfiguration.bool(
+            NettyHttpClientRequestHandler.class,
+            "disableRequestIdLogging",
+            false
+    );
 
     private final ServiceHost host;
     private final URI hostLocalUri;
@@ -615,10 +627,23 @@ public class NettyHttpClientRequestHandler extends SimpleChannelInboundHandler<O
 
             if (!avoidLogging) {
                 double totalTimeMillis = (System.nanoTime() - startTime) / 1000000;
-                this.host.log(Level.INFO, "%s %s %s %s %d %d %.2fms",
-                        ctx.channel().remoteAddress(), request.getAction(), originalPath,
-                        streamId != null ? "HTTP/2" : "HTTP/1.1", request.getStatusCode(),
-                        request.getContentLength(), totalTimeMillis);
+
+                if (DISABLE_REQUEST_ID_LOGGING) {
+                    // old behavior
+                    this.host.log(Level.INFO, "%s %s %s %s %d %d %.2fms",
+                            ctx.channel().remoteAddress(), request.getAction(), originalPath,
+                            streamId != null ? "HTTP/2" : "HTTP/1.1", request.getStatusCode(),
+                            request.getContentLength(), totalTimeMillis
+                    );
+                } else {
+                    String requestId = request.getRequestHeaderAsIs(Operation.REQUEST_ID_HEADER);
+                    this.host.log(Level.INFO, "%s %s %s %s %d %d %.2fms %s",
+                            ctx.channel().remoteAddress(), request.getAction(), originalPath,
+                            streamId != null ? "HTTP/2" : "HTTP/1.1", request.getStatusCode(),
+                            request.getContentLength(), totalTimeMillis,
+                            requestId == null ? "" : requestId
+                    );
+                }
             }
         }
 

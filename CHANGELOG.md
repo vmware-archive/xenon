@@ -11,6 +11,10 @@
   When this flag is set `true` (default is `false`), it will use the same size in synchronization query result limit
   for retry. (default behavior reduces the size by half at every retry attempt)
 
+* Add `x-request-id` header value in request log.
+  For backward compatibility, `xenon.NettyHttpClientRequestHandler.disableRequestIdLogging` flag is added.
+  To exclude the `x-request-id` from request log, set `true` to this flag.
+
 
 ## 1.6.9
 
