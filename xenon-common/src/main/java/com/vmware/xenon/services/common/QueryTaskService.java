@@ -309,9 +309,10 @@ public class QueryTaskService extends StatefulService {
 
                     NodeGroupBroadcastResponse rsp = o.getBody((NodeGroupBroadcastResponse.class));
                     if (!rsp.failures.isEmpty()) {
-                        if (rsp.jsonResponses.size() < rsp.membershipQuorum) {
+                        if (rsp.jsonResponses.size() < rsp.membershipQuorum ||
+                                queryTask.querySpec.options.contains(QueryOption.OWNER_SELECTION)) {
                             failTask(new IllegalStateException(
-                                    "Failures received: " + Utils.toJsonHtml(rsp)),
+                                            "Broadcast response received failures: " + Utils.toJsonHtml(rsp)),
                                     startPost, null);
                             return;
                         } else {
@@ -319,7 +320,7 @@ public class QueryTaskService extends StatefulService {
                                     "task will proceed, received %d responses (for quorum size %d)"
                                             + "even though %d errors were received: %s",
                                     rsp.jsonResponses.size(), rsp.membershipQuorum,
-                                    rsp.failures.size(), rsp.failures.keySet());
+                                    rsp.failures.size(), Utils.toJson(rsp.failures));
                         }
                     }
 
