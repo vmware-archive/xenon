@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.6.11-SNAPSHOT
+## 1.6.11
 
 * Fix ever growing scheduled executor queue size
   When checkpoint is enabled or `TaskFactoryService` is used, the queue size of `scheduledExecutor`
