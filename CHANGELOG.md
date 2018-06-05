@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 1.6.12-SNAPSHOT
+
+
 ## 1.6.11
 
 * Fix ever growing scheduled executor queue size
