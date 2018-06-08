@@ -2,6 +2,10 @@
 
 ## 1.6.12-SNAPSHOT
 
+* Add request query string in request log.
+  For backward compatibility, `xenon.NettyHttpClientRequestHandler.disableQueryStringLogging` flag is added.
+  To exclude query string in request log, set `true` to this flag.
+
 
 ## 1.6.11
 

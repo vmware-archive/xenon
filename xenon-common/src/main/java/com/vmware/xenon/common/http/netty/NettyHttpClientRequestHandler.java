@@ -21,6 +21,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 
 import javax.net.ssl.SSLSession;
@@ -90,6 +91,16 @@ public class NettyHttpClientRequestHandler extends SimpleChannelInboundHandler<O
     private static final boolean DISABLE_REQUEST_ID_LOGGING = XenonConfiguration.bool(
             NettyHttpClientRequestHandler.class,
             "disableRequestIdLogging",
+            false
+    );
+
+    /**
+     * Do not include query string in request logging.
+     * This is for backward compatibility and default is set to false.
+     */
+    private static final boolean DISABLE_QUERY_STRING_LOGGING = XenonConfiguration.bool(
+            NettyHttpClientRequestHandler.class,
+            "disableQueryStringLogging",
             false
     );
 
@@ -628,22 +639,32 @@ public class NettyHttpClientRequestHandler extends SimpleChannelInboundHandler<O
             if (!avoidLogging) {
                 double totalTimeMillis = (System.nanoTime() - startTime) / 1000000;
 
-                if (DISABLE_REQUEST_ID_LOGGING) {
-                    // old behavior
-                    this.host.log(Level.INFO, "%s %s %s %s %d %d %.2fms",
+                Supplier<String> accessLogSupplier = () -> {
+                    StringBuilder sb = new StringBuilder();
+
+                    // existing log items
+                    sb.append(String.format("%s %s %s %s %d %d %.2fms",
                             ctx.channel().remoteAddress(), request.getAction(), originalPath,
                             streamId != null ? "HTTP/2" : "HTTP/1.1", request.getStatusCode(),
-                            request.getContentLength(), totalTimeMillis
-                    );
-                } else {
-                    String requestId = request.getRequestHeaderAsIs(Operation.REQUEST_ID_HEADER);
-                    this.host.log(Level.INFO, "%s %s %s %s %d %d %.2fms %s",
-                            ctx.channel().remoteAddress(), request.getAction(), originalPath,
-                            streamId != null ? "HTTP/2" : "HTTP/1.1", request.getStatusCode(),
-                            request.getContentLength(), totalTimeMillis,
-                            requestId == null ? "" : requestId
-                    );
-                }
+                            request.getContentLength(), totalTimeMillis));
+
+
+                    if (!DISABLE_REQUEST_ID_LOGGING) {
+                        String requestId = request.getRequestHeaderAsIs(Operation.REQUEST_ID_HEADER);
+                        sb.append(" ");
+                        sb.append(requestId == null ? "" : requestId);
+                    }
+
+                    if (!DISABLE_QUERY_STRING_LOGGING) {
+                        String queryString = request.getUri().getRawQuery();
+                        sb.append(" ");
+                        sb.append(queryString == null ? "" : queryString);
+                    }
+
+                    return sb.toString();
+                };
+                this.host.log(Level.INFO, accessLogSupplier);
+
             }
         }
 
