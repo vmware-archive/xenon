@@ -308,6 +308,12 @@ public class ServiceHost implements ServiceRequestSender {
          */
         public boolean isAutoBackupEnabled = false;
 
+        /**
+         * Interval seconds for cleaning up expired auth token cache.
+         * When 0 is set, cleanup is disabled.
+         */
+        public long expiredTokenCleanupIntervalSeconds = DEFAULT_EXPIRED_TOKEN_CLEANUP_INTERVAL_SECONDS;
+
     }
 
     protected static final LogFormatter LOG_FORMATTER = new LogFormatter();
@@ -400,6 +406,9 @@ public class ServiceHost implements ServiceRequestSender {
     public static final boolean APPEND_PORT_TO_SANDBOX = System
             .getProperty(PROPERTY_NAME_APPEND_PORT_TO_SANDBOX) == null
             || Boolean.getBoolean(PROPERTY_NAME_APPEND_PORT_TO_SANDBOX);
+
+
+    public static final long DEFAULT_EXPIRED_TOKEN_CLEANUP_INTERVAL_SECONDS = TimeUnit.MINUTES.toSeconds(30);
 
     /**
      * Request rate limiting configuration and real time statistics
@@ -501,6 +510,7 @@ public class ServiceHost implements ServiceRequestSender {
         public URI authProviderHostURI;
         public boolean isAutoBackupEnabled;
         public boolean isRemotePersistence;
+        public long expiredTokenCleanupIntervalSeconds;
 
         /**
          * Relative memory limit per service path. The limit is expressed as
@@ -925,6 +935,7 @@ public class ServiceHost implements ServiceRequestSender {
             this.state.autoBackupDirectoryReference = s.toPath().resolve(DEFAULT_AUTO_BACKUP_DIR).toUri();
         }
         this.state.isAutoBackupEnabled = args.isAutoBackupEnabled;
+        this.state.expiredTokenCleanupIntervalSeconds = args.expiredTokenCleanupIntervalSeconds;
     }
 
     private void initializeStateFromConfiguration() {
@@ -1698,6 +1709,11 @@ public class ServiceHost implements ServiceRequestSender {
         OperationContext.setAuthorizationContext(ctx);
 
         scheduleMaintenance();
+
+        // schedule expired auth related cache cleanup
+        if (isAuthorizationEnabled() && this.state.expiredTokenCleanupIntervalSeconds > 0) {
+            scheduleExpiredContextCacheCleanup();
+        }
 
         clearUriAndLogPrefix();
         log(Level.INFO, "%s listening on %s", userAgent, getUri());
@@ -5945,6 +5961,15 @@ public class ServiceHost implements ServiceRequestSender {
         return this.otTracer;
     }
 
+    /**
+     * Delete expired auth entries in cache.
+     *
+     * @return cleared tokens
+     */
+    public Set<String> clearExpiredContextCache() {
+        return this.authorizationFilter.clearExpiredContextCache();
+    }
+
     protected AuthorizationFilter getAuthorizationFilter() {
         return this.authorizationFilter;
     }
@@ -5952,4 +5977,19 @@ public class ServiceHost implements ServiceRequestSender {
     protected void setAuthorizationFilter(AuthorizationFilter authorizationFilter) {
         this.authorizationFilter = authorizationFilter;
     }
+
+    public void performExpiredContextCacheCleanup() {
+        long nowMicro = Utils.getSystemNowMicrosUtc();
+        Set<String> expiredTokens = this.authorizationFilter.clearExpiredContextCache();
+        long tookMicro = Utils.getSystemNowMicrosUtc() - nowMicro;
+        log(Level.INFO, "Cleared %d expired tokens. took=%d", expiredTokens.size(), tookMicro);
+
+        // schedule next run
+        scheduleExpiredContextCacheCleanup();
+    }
+
+    protected void scheduleExpiredContextCacheCleanup() {
+        scheduleCore(this::performExpiredContextCacheCleanup, this.state.expiredTokenCleanupIntervalSeconds, TimeUnit.SECONDS);
+    }
+
 }

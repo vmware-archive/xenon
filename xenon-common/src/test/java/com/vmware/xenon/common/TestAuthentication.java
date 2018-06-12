@@ -13,6 +13,9 @@
 
 package com.vmware.xenon.common;
 
+import static java.util.stream.Collectors.toSet;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -27,8 +30,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import io.netty.handler.codec.http.cookie.ClientCookieDecoder;
 import io.netty.handler.codec.http.cookie.Cookie;
@@ -655,6 +660,78 @@ public class TestAuthentication {
 
         TestRequestSender.clearAuthToken();
         host.log("Verification of expired token for external auth succeeded as expected");
+    }
+
+
+    @Test
+    public void clearExpiredToken() throws Throwable {
+        VerificationHost host = createAndStartHost(true, false, new TestAuthenticationService());
+
+        List<AuthorizationContext> expiredContexts = new ArrayList<>();
+        List<AuthorizationContext> validContexts = new ArrayList<>();
+
+        // create expired context expiration=0
+        for (int i = 0; i < 5; i++) {
+            String subject = "foo-" + i;
+            expiredContexts.add(createAuthContext(host, subject, 0));
+        }
+
+        // create expired context expiration=(non-0)
+        for (int i = 0; i < 5; i++) {
+            String subject = "bar-" + i;
+            expiredContexts.add(createAuthContext(host, subject, 100 * i));
+        }
+
+        // create NON expired context
+        for (int i = 0; i < 5; i++) {
+            String subject = "baz-" + i;
+            validContexts.add(createAuthContext(host, subject, Utils.fromNowMicrosUtc(TimeUnit.DAYS.toMicros(100))));
+        }
+
+
+        // cache all contexts
+        Stream.concat(validContexts.stream(), expiredContexts.stream()).forEach(ctx -> host.cacheAuthorizationContext(null, ctx));
+
+        // check existence in cache
+        Stream.concat(validContexts.stream(), expiredContexts.stream()).forEach(
+                ctx -> {
+                    AuthorizationContext cachedContext = host.getAuthorizationContext(null, ctx.getToken());
+                    assertThat(cachedContext).isSameAs(ctx);
+                }
+        );
+
+        Set<String> expiredCtxTokens = expiredContexts.stream().map(AuthorizationContext::getToken).collect(toSet());
+
+        // clear expired token
+        Set<String> clearedTokens = host.clearExpiredContextCache();
+        assertThat(clearedTokens).hasSameElementsAs(expiredCtxTokens);
+
+        // all non expired entries should still exist
+        for (AuthorizationContext validContext : validContexts) {
+            AuthorizationContext cachedContext = host.getAuthorizationContext(null, validContext.getToken());
+            assertThat(cachedContext).isSameAs(validContext);
+        }
+
+        // all expired context should NOT exist in cache
+        for (AuthorizationContext expiredContext : expiredContexts) {
+            AuthorizationContext cachedContext = host.getAuthorizationContext(null, expiredContext.getToken());
+            assertThat(cachedContext).isNull();
+        }
+    }
+
+    private AuthorizationContext createAuthContext(ServiceHost host, String subject, long expiration) throws Exception {
+        Claims.Builder builder = new Claims.Builder();
+        builder.setIssuer(AuthenticationConstants.DEFAULT_ISSUER);
+        builder.setSubject(subject);
+        builder.setExpirationTime(expiration);
+
+        Claims claims = builder.getResult();
+        String token = host.getTokenSigner().sign(claims);
+        AuthorizationContext.Builder ab = AuthorizationContext.Builder.create();
+        ab.setClaims(claims);
+        ab.setToken(token);
+
+        return ab.getResult();
     }
 
     @Test

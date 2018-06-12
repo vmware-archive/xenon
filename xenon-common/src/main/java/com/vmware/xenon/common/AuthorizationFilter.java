@@ -13,11 +13,14 @@
 
 package com.vmware.xenon.common;
 
+import static java.util.stream.Collectors.toSet;
+
 import java.net.URI;
 import java.security.GeneralSecurityException;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -78,6 +81,45 @@ public class AuthorizationFilter implements Filter {
         h.getManagementService().adjustStat(
                 ServiceHostManagementService.STAT_NAME_AUTHORIZATION_CACHE_SIZE,
                 this.authorizationContextCache.size());
+    }
+
+    /**
+     * Delete expired entries in cache.
+     *
+     * @return cleared tokens
+     */
+    public Set<String> clearExpiredContextCache() {
+
+        long now = Utils.getSystemNowMicrosUtc();
+        Set<AuthorizationContext> expiredContexts = this.authorizationContextCache.entrySet().stream()
+                .filter(entry -> {
+                    Long expirationTime = entry.getValue().getClaims().getExpirationTime();
+                    return expirationTime != null && TimeUnit.SECONDS.toMicros(expirationTime) <= now;
+                })
+                .map(Entry::getValue)
+                .collect(toSet());
+
+        Set<String> expiredTokens = new HashSet<>();
+        synchronized (this) {
+
+            for (AuthorizationContext expiredContext : expiredContexts) {
+                String user = expiredContext.getClaims().getSubject();
+                String token = expiredContext.getToken();
+
+                Set<String> tokens = this.userLinkToTokenMap.get(user);
+                tokens.remove(token);
+
+                if (tokens.isEmpty()) {
+                    this.userLinkToTokenMap.remove(user);
+                }
+
+                expiredTokens.add(token);
+            }
+
+            this.authorizationContextCache.keySet().removeAll(expiredTokens);
+        }
+
+        return expiredTokens;
     }
 
     public AuthorizationContext getAuthorizationContext(String token) {

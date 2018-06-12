@@ -6,6 +6,11 @@
   For backward compatibility, `xenon.NettyHttpClientRequestHandler.disableQueryStringLogging` flag is added.
   To exclude query string in request log, set `true` to this flag.
 
+* Add periodic cleanup for expired token cache entries.
+  This feature is enabled when authorization is enabled and cleanup task interval is set (default=30min).
+  `--expiredTokenCleanupIntervalSeconds` program argument is added to control the cleanup interval. 
+  When 0 is set, this feature is disabled. 
+
 
 ## 1.6.11
 
