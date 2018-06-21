@@ -8,6 +8,15 @@
   if ported from v1.6.2. When registered, this service runs on `/management/legacy-migration-tasks` endpoint
   by default.
 
+* Keep the original `documentUpdateTimeMicros` in newly migrated deleted documents.
+  Previously, when deleted document is migrated, the new deleted document in destination cluster has 
+  `documentUpdateTimeMicros` field updated to the migration time. 
+  The behavior is changed to retain original `documentUpdateTimeMicros` in new cluster for deleted documents
+  created from migration. 
+  For backward compatibility, `xenon.StatefulService.retainDeleteUpdateTimeInMigration` flag is added. 
+  Default is set to `true`. If it is set to `false`, `documentUpdateTimeMicros` field of deleted document in
+  destination cluster will have updated time at migration time.(old behavior)
+
 * Add request query string in request log.
   For backward compatibility, `xenon.NettyHttpClientRequestHandler.disableQueryStringLogging` flag is added.
   To exclude query string in request log, set `true` to this flag.

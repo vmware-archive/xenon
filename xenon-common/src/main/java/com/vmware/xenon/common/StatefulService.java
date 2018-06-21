@@ -81,6 +81,17 @@ public class StatefulService implements Service {
             false
     );
 
+    /**
+     * When this flag is set to true(default), DELETE operation from migration does NOT update the documentUpdateTimeMicros field.
+     *
+     * If value is set to false, the documentUpdateTimeMicros will be updated. (pre 1.6.12 behavior)
+     */
+    private static boolean RETAIN_DELETE_UPDATETIME_IN_MIGRATION = XenonConfiguration.bool(
+            StatefulService.class,
+            "retainDeleteUpdateTimeInMigration",
+            true
+    );
+
     private final RuntimeContext context = new RuntimeContext();
 
     public StatefulService(Class<? extends ServiceDocument> stateType) {
@@ -1385,12 +1396,25 @@ public class StatefulService implements Service {
                 cachedState.documentEpoch = this.context.epoch;
             }
 
+            // For migrating deleted document, preserve document update time from previous version document(cachedState).
+            // The previous version document is created by migration POST based on the deleted document came from
+            // INCLUDE_DELETED query option. Thus, the previous version document has proper update time(time that the
+            // document is deleted). Propagating the updatetime from previous version(cached version) to current version
+            // makes appropriately reflect the delete time for deleted document in migration.
+            boolean preserveDocUpdateTime = op.hasPragmaDirective(Operation.PRAGMA_DIRECTIVE_FROM_MIGRATION_TASK) &&
+                    op.getAction() == Action.DELETE &&
+                    hasOption(ServiceOption.PERSISTENCE) &&
+                    RETAIN_DELETE_UPDATETIME_IN_MIGRATION;
+
             // Update version only if request came directly from client (which also means local
             // node is owner for OWNER_SELECTION enabled services
             synchronized (this.context) {
                 this.context.version++;
                 cachedState.documentVersion = this.context.version;
-                cachedState.documentUpdateTimeMicros = time;
+
+                if (!preserveDocUpdateTime) {
+                    cachedState.documentUpdateTimeMicros = time;
+                }
             }
 
             op.linkState(cachedState);

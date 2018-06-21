@@ -576,13 +576,20 @@ public class TestMigrationTaskService extends BasicReusableHostTestCase {
         assertEquals(Long.valueOf(30), queryResult.results.documentCount);
 
         // verify deleted ones exist
-        for (String deletedSelfLink : deletedSelfLinks) {
+        for (ExampleServiceState sourceDeletedState : deleted) {
+            String deletedSelfLink = sourceDeletedState.documentSelfLink;
             Object docObj = queryResult.results.documents.get(deletedSelfLink);
             String message = format("deleted document=%s should be migrated.", deletedSelfLink);
             assertNotNull(message, docObj);
             ExampleServiceState doc = Utils.fromJson(docObj, ExampleServiceState.class);
+
+            // verify action
             message = format("deleted document=%s should be migrated and marked as DELETE.", deletedSelfLink);
             assertEquals(message, Action.DELETE.toString(), doc.documentUpdateAction);
+
+            // verify update time
+            message = format("deleted document=%s should have original documentUpdateTimeMicros.", deletedSelfLink);
+            assertEquals(message, sourceDeletedState.documentUpdateTimeMicros, doc.documentUpdateTimeMicros);
         }
 
         // verify created one exist
