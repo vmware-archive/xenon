@@ -2,6 +2,12 @@
 
 ## 1.6.12-SNAPSHOT
 
+* Add `LegacyMigrationTaskService`(copy of `MigrationTaskService` from v1.6.2)
+  Since v1.6.3, migration logic has changed to use broadcast owner-selected query.
+  To support migration from old xenon versions that only work with old migration behavior, `MigrationTaskService`
+  if ported from v1.6.2. When registered, this service runs on `/management/legacy-migration-tasks` endpoint
+  by default.
+
 * Add request query string in request log.
   For backward compatibility, `xenon.NettyHttpClientRequestHandler.disableQueryStringLogging` flag is added.
   To exclude query string in request log, set `true` to this flag.
