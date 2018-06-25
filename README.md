@@ -373,3 +373,8 @@ the CLA process, please refer to our [FAQ](https://cla.vmware.com/faq).
 
 ## 4.1.1 Pull Request Guide
 TBD
+
+# 5.0 Related Projects
+
+- [dCentralized Systems Core Engine](https://github.com/dCentralizedSystems/core)
+
