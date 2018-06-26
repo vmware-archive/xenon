@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.6.12-SNAPSHOT
+## 1.6.12
 
 * Add `LegacyMigrationTaskService`(copy of `MigrationTaskService` from v1.6.2)
   Since v1.6.3, migration logic has changed to use broadcast owner-selected query.
