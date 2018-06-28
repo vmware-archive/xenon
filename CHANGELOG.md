@@ -1,11 +1,27 @@
 # CHANGELOG
 
+## 1.6.13-SNAPSHOT
+
+* Make forwarding operation expiration time configurable.
+  The timeout of forwarding operation is calculated by original operation's timeout divide by the devisor(previously it is hardcoded to 10).
+  It is updated to a configurable positive integer flag, `xenon.ForwardRequestFilter.forwardOpExpirationDivisor`.
+  Default value is updated to 5 from 10.
+  (e.g: 60sec timeout operation will set 12sec(60/5) for forwarding requests)
+
+* Add a servicehost callback for forwarding request retry.
+  Added a callback method, `ServiceHost#shouldRetryRequestForwarding()`.
+  When `ForwardingRequestFilter` determines to perform retry, this callback is called and override the decision of
+  whether to perform retry or not.
+  The callback has a default logic that checks type of request for timeout. This logic is disabled by default.
+  To enable this check, set true on `xenon.ServiceHost.inspectForwardingRetry`.
+
+
 ## 1.6.12
 
 * Add `LegacyMigrationTaskService`(copy of `MigrationTaskService` from v1.6.2)
   Since v1.6.3, migration logic has changed to use broadcast owner-selected query.
   To support migration from old xenon versions that only work with old migration behavior, `MigrationTaskService`
-  if ported from v1.6.2. When registered, this service runs on `/management/legacy-migration-tasks` endpoint
+  is ported from v1.6.2. When registered, this service runs on `/management/legacy-migration-tasks` endpoint
   by default.
 
 * Keep the original `documentUpdateTimeMicros` in newly migrated deleted documents.

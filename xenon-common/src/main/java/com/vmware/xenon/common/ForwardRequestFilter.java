@@ -26,6 +26,7 @@ import com.vmware.xenon.common.OperationProcessingChain.OperationProcessingConte
 import com.vmware.xenon.common.Service.Action;
 import com.vmware.xenon.common.Service.ServiceOption;
 import com.vmware.xenon.common.ServiceErrorResponse.ErrorDetail;
+import com.vmware.xenon.common.config.XenonConfiguration;
 
 /**
  * This filter forwards the operation to the owner host, if needed.
@@ -34,6 +35,17 @@ import com.vmware.xenon.common.ServiceErrorResponse.ErrorDetail;
  * subsequent filters to use.
  */
 public class ForwardRequestFilter implements Filter {
+
+    /**
+     * Divisor to determine expiration for forwarding operation.
+     *
+     * Forwarding operation is set expiration by dividing original operation's timeout by this divisor.
+     */
+    public static final int FORWARD_OP_EXPIRATION_DIVISOR = Math.max(1, XenonConfiguration.integer(
+            ForwardRequestFilter.class,
+            "forwardOpExpirationDivisor",
+            5
+    ));
 
     @Override
     public FilterReturnCode processRequest(Operation op, OperationProcessingContext context) {
@@ -185,7 +197,7 @@ public class ForwardRequestFilter implements Filter {
         // and retries, to whatever peer we select, on each retry.
         ServiceHost host = context.getHost();
         forwardOp.setExpiration(Utils.fromNowMicrosUtc(
-                 host.getOperationTimeoutMicros() / 10));
+                host.getOperationTimeoutMicros() / FORWARD_OP_EXPIRATION_DIVISOR));
         forwardOp.setUri(SelectOwnerResponse.buildUriToOwner(rsp, op));
 
         prepareForwardRequest(forwardOp);
@@ -227,6 +239,11 @@ public class ForwardRequestFilter implements Filter {
             op.setBodyNoCloning(fo.getBodyRaw())
                     .fail(new CancellationException("Expired at " + op.getExpirationMicrosUtc()));
             return;
+        }
+
+        // callback to the ServiceHost to determine whether to perform request retry
+        if (shouldRetry) {
+            shouldRetry = context.getHost().shouldRetryRequestForwarding(op, fo, fe);
         }
 
         if (!shouldRetry) {

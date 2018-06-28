@@ -411,6 +411,18 @@ public class ServiceHost implements ServiceRequestSender {
     public static final long DEFAULT_EXPIRED_TOKEN_CLEANUP_INTERVAL_SECONDS = TimeUnit.MINUTES.toSeconds(30);
 
     /**
+     * Flag to perform extra inspection to determine whether to perform retry on failed forwarding request.
+     * Default is set to false. (existing behavior)
+     * When this is set to true, only safe operations(consider to be idempotent) will be retried at timeout.
+     */
+    public static final boolean INSPECT_FORWARDING_RETRY = XenonConfiguration.bool(
+            ServiceHost.class,
+            "inspectForwardingRetry",
+            false
+    );
+
+
+    /**
      * Request rate limiting configuration and real time statistics
      */
     public static class RequestRateInfo {
@@ -5990,6 +6002,46 @@ public class ServiceHost implements ServiceRequestSender {
 
     protected void scheduleExpiredContextCacheCleanup() {
         scheduleCore(this::performExpiredContextCacheCleanup, this.state.expiredTokenCleanupIntervalSeconds, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Callback from {@link ForwardRequestFilter} to determine whether to perform retry of forwarding request.
+     *
+     * This method is only called when {@link ForwardRequestFilter} determined to retry the forwarding request.
+     * By returning {@code false}, original request will fail instead of retrying the forwarding request.
+     * Subclass can override this method to control the forwarding request retry.
+     *
+     * @param originalOp original request
+     * @param failedOp   failed forwarding request
+     * @param failure    failure of forwarding request
+     * @return whether to perform retry
+     */
+    protected boolean shouldRetryRequestForwarding(Operation originalOp, Operation failedOp, Throwable failure) {
+
+        if (!INSPECT_FORWARDING_RETRY) {
+            // not inspect operation (default and existing behavior)
+            // proceed to perform retry
+            return true;
+        }
+
+        if (failedOp.getStatusCode() == Operation.STATUS_CODE_TIMEOUT) {
+
+            if (originalOp.getAction() == Action.GET) {
+                // since GET is idempotent, perform retry
+                return true;
+            } else if (originalOp.getAction() == Action.POST) {
+                String path = originalOp.getUri().getPath();
+                if (ServiceUriPaths.CORE_QUERY_TASKS.equals(path) || ServiceUriPaths.CORE_LOCAL_QUERY_TASKS.equals(path)) {
+                    // creation of query task should be able to retry
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // perform retry
+        return true;
     }
 
 }
