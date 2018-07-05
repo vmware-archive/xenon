@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.6.13-SNAPSHOT
+## 1.6.13
 
 * Make forwarding operation expiration time configurable.
   The timeout of forwarding operation is calculated by original operation's timeout divide by the devisor(previously it is hardcoded to 10).
