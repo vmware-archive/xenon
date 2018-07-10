@@ -2,6 +2,8 @@
 
 ## 1.6.14-SNAPSHOT
 
+* When node is NOT started, return 503 instead of 404.
+
 
 ## 1.6.13
 

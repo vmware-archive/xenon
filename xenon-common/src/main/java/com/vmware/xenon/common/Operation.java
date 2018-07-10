@@ -455,6 +455,17 @@ public class Operation implements Cloneable {
                         + documentSelfLink));
     }
 
+    public static void failServerNotAvailable(Operation inboundOp) {
+        Throwable e = new IllegalStateException("Server unavailable");
+
+        inboundOp.setStatusCode(Operation.STATUS_CODE_UNAVAILABLE);
+        ServiceErrorResponse rsp = new ServiceErrorResponse();
+        rsp.message = e.getMessage();
+        rsp.details = EnumSet.of(ServiceErrorResponse.ErrorDetail.SHOULD_RETRY);
+        rsp.statusCode = inboundOp.getStatusCode();
+        inboundOp.fail(e, rsp);
+    }
+
     // HTTP Header definitions
     public static final String REFERER_HEADER = "referer";
     public static final String CONNECTION_HEADER = "connection";

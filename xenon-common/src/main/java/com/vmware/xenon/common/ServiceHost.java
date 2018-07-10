@@ -3893,7 +3893,7 @@ public class ServiceHost implements ServiceRequestSender {
         }
 
         if (!this.state.isStarted) {
-            Operation.failServiceNotFound(inboundOp);
+            Operation.failServerNotAvailable(inboundOp);
             return true;
         }
 
