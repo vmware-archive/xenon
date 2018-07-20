@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 1.5.4_9
+
+From changelog:
+
+* Fix auth check for non-persisted stateful service on document-index GET.
+  Auth check for remote GET access on document-index service was introduced at xenon 1.5.5 but had
+  an issue for non-persisted stateful service when auth check query has a condition against
+  document body. It is now fixed in this version.
+  
+* Enforce auth check for remote GET access on document-index service
+
+
+
 ## 1.5.4-CR6
 
 * Support for l10n message files located in jars
