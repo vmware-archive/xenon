@@ -131,6 +131,15 @@ public class NettyHttpServerInitializer extends ChannelInitializer<SocketChannel
         NettyLoggingUtil.setupNettyLogging();
     }
 
+    public NettyHttpServerInitializer(NettyHttpListener listener, ServiceHost host) {
+        this(listener,
+                host,
+                listener.getSSLContext(),
+                listener.getResponsePayloadSizeLimit(),
+                listener.getSecureAuthCookie(),
+                listener.getCorsConfig());
+    }
+
     /**
      * initChannel is called by Netty when a channel is first used.
      */

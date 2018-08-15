@@ -16,6 +16,58 @@
   The operations using the closed channel will fail for http2 after default 2 second.
   The delay can be configured by `xenon.NettyHttpServiceClient.waitSecondsToFailOpsOnClosedConnection".
 
+* Add a way to skip aggressive uri query decoding per service path.
+
+  In `NettyHttpClientRequestHandler`, it aggressively decodes uri query and mishandles parameter that
+  contains `&`(`&26`).
+
+  For example, for url: `/core/examples?foo=a%3DA%26b%3DB&bar=BAR`
+
+  Expected parameters are:
+  - foo=a%3DA%26b%3DB (a=A&b=B)
+  - bar=BAR
+
+  However, it was parsed as:
+  - foo=a=A
+  - b=B
+  - bar=BAR
+
+  To workaround this aggressive uri decoding, `NettyHttpClientRequestHandler` added a set of service paths
+  (`getSkipDecodingPaths()`) to skip decoding.
+
+  To configure this `skipDecodingPaths` set, you could override `configureHttpListener()` in your service host
+  implementation as followings:
+
+  ```
+    @Override
+    protected void configureHttpListener(ServiceRequestListener httpListener) {
+
+        NettyHttpListener nettyHttpListener = (NettyHttpListener) httpListener;
+
+        // specify customized server initializer
+        NettyHttpServerInitializer serverInitializer = new NettyHttpServerInitializer(nettyHttpListener, this) {
+            @Override
+            public void initChannel(SocketChannel ch) {
+                // call original impl to setup all handlers
+                super.initChannel(ch);
+
+                // retrieve target handler
+                ChannelPipeline p = ch.pipeline();
+                NettyHttpClientRequestHandler nettyHttpClientRequestHandler = (NettyHttpClientRequestHandler) p.get(HTTP_REQUEST_HANDLER);
+
+                // add service path to skip aggressive decoding
+                nettyHttpClientRequestHandler.getSkipDecodingPaths().add(ExampleService.FACTORY_LINK);
+            }
+        };
+        nettyHttpListener.setChildChannelHandler(serverInitializer);
+  ```
+
+  You could retrieve original uri query (`foo=a%3DA%26b%3DB&bar=BAR`) by calling:
+
+  ```
+    uri.getRawQuery();
+  ```
+
 
 ## 1.6.13
 

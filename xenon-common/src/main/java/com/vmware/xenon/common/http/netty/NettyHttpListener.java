@@ -298,4 +298,7 @@ public class NettyHttpListener implements ServiceRequestListener {
         this.corsConfig = corsConfig;
     }
 
+    public CorsConfig getCorsConfig() {
+        return this.corsConfig;
+    }
 }

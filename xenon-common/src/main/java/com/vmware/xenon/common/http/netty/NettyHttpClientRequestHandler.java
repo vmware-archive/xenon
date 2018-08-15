@@ -17,7 +17,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -114,6 +116,8 @@ public class NettyHttpClientRequestHandler extends SimpleChannelInboundHandler<O
     private NettyHttpListener listener;
 
     private boolean secureAuthCookie;
+
+    private Set<String> skipDecodingPaths = new HashSet<>();
 
     public NettyHttpClientRequestHandler(ServiceHost host, NettyHttpListener listener,
             SslHandler sslHandler, int responsePayloadSizeLimit, boolean secureAuthCookie) {
@@ -247,21 +251,29 @@ public class NettyHttpClientRequestHandler extends SimpleChannelInboundHandler<O
         if (!request.isForwarded() && !request.isFromReplication()) {
             // do conservative parsing, normalization and decoding for non peer requests
             res = res.normalize();
-            String orig = res.getQuery();
-            if (orig != null && !orig.isEmpty()) {
-                String decodedQuery = QueryStringDecoder.decodeComponent(orig);
-                if (decodedQuery != orig) {
-                    // something was really decoded, rebuild with the decoded query
-                    res = UriUtils.buildSafeUri(
-                            res.getScheme(),
-                            res.getUserInfo(),
-                            res.getHost(),
-                            res.getPort(),
-                            res.getPath(),
-                            decodedQuery,
-                            res.getFragment());
+
+            // check whether to perform decoding on query path of uri.
+            String servicePath = UriUtils.normalizeUriPath(res.getPath());
+            if (!this.skipDecodingPaths.contains(servicePath)) {
+
+                // perform decoding (existing behavior)
+                String orig = res.getQuery();
+                if (orig != null && !orig.isEmpty()) {
+                    String decodedQuery = QueryStringDecoder.decodeComponent(orig);
+                    if (decodedQuery != orig) {
+                        // something was really decoded, rebuild with the decoded query
+                        res = UriUtils.buildSafeUri(
+                                res.getScheme(),
+                                res.getUserInfo(),
+                                res.getHost(),
+                                res.getPort(),
+                                res.getPath(),
+                                decodedQuery,
+                                res.getFragment());
+                    }
                 }
             }
+
         }
 
         return res;
@@ -681,4 +693,9 @@ public class NettyHttpClientRequestHandler extends SimpleChannelInboundHandler<O
             future.addListener(ChannelFutureListener.CLOSE);
         }
     }
+
+    public Set<String> getSkipDecodingPaths() {
+        return this.skipDecodingPaths;
+    }
+
 }
