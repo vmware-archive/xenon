@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.6.14-SNAPSHOT
+## 1.6.14
 
 * When node is NOT started, return 503 instead of 404.
 
