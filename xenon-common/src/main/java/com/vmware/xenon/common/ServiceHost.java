@@ -64,6 +64,7 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
@@ -3420,7 +3421,7 @@ public class ServiceHost implements ServiceRequestSender {
         this.serviceSynchTracker.setFactoriesAvailabilityIfOwner(isAvailable);
     }
 
-    void loadServiceState(Service s, Operation op) {
+    protected void loadServiceState(Service s, Operation op) {
         ServiceDocument state = this.serviceResourceTracker.getCachedServiceState(s, op);
 
         // Clone state if it might change while processing
@@ -4979,7 +4980,7 @@ public class ServiceHost implements ServiceRequestSender {
         }
     }
 
-    enum MaintenanceStage {
+    protected enum MaintenanceStage {
         UTILS, MEMORY, IO, NODE_SELECTORS, SERVICE
     }
 
@@ -5004,7 +5005,7 @@ public class ServiceHost implements ServiceRequestSender {
      * Initiates periodic maintenance for a service. Called on service start or when maintenance is
      * dynamically toggled on
      */
-    void scheduleServiceMaintenance(Service s) {
+    protected void scheduleServiceMaintenance(Service s) {
         if (!s.hasOption(ServiceOption.PERIODIC_MAINTENANCE)) {
             return;
         }
@@ -5016,7 +5017,7 @@ public class ServiceHost implements ServiceRequestSender {
      * state machine must be active per host, at any time. Maintenance is re-scheduled
      * when the final stage is complete.
      */
-    void performMaintenanceStage(Operation post, MaintenanceStage stage, long deadline) {
+    protected void performMaintenanceStage(Operation post, MaintenanceStage stage, long deadline) {
         try {
             long now = Utils.getSystemNowMicrosUtc();
 
@@ -5139,7 +5140,7 @@ public class ServiceHost implements ServiceRequestSender {
         this.client = client;
     }
 
-    void saveServiceState(Service s, Operation op, ServiceDocument state) {
+    protected void saveServiceState(Service s, Operation op, ServiceDocument state) {
         // If this request doesn't originate from replication (which might happen asynchronously, i.e. through
         // (re-)synchronization after a node group change), don't update the documentAuthPrincipalLink because
         // it will be set to the system user. The specified state is expected to have the documentAuthPrincipalLink
