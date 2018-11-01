@@ -5025,7 +5025,7 @@ public class ServiceHost implements ServiceRequestSender {
         }
     }
 
-    enum MaintenanceStage {
+    protected enum MaintenanceStage {
         UTILS, MEMORY, IO, NODE_SELECTORS, SERVICE
     }
 
