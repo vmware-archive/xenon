@@ -2,6 +2,14 @@
 
 ## 1.6.17-SNAPSHOT
 
+* Introduced ServiceOption.WRAP_ERROR_RESPONSE. 
+  Xenon services that are using sendWithDeferredResult() to communicate
+  with one another or the outside world do not typically receive in the
+  callback the failure body and status code in case of error. For such
+  services now there exists the option to toggle
+  ServiceOption.WRAP_ERROR_RESPONSE. This will force the the deferred
+  result completion stage to wrap the original error response
+  body and code in a new exception type and propagate it to the user
 
 ## 1.6.16
 
