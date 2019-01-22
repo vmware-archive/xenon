@@ -44,7 +44,7 @@ RELEASE_TAG_NAME=${RELEASE_BRANCH_NAME}-release
 echo "Creating branch ${RELEASE_BRANCH_NAME}"
 if [ "$DRY_RUN" == "true" ]; then
   echo Would execute:
-  echo ssh -p 29418 review.ec.eng.vmware.com gerrit create-branch xenon ${RELEASE_BRANCH_NAME} ${COMMIT}
+  echo "ssh -p 29418 review.ec.eng.vmware.com gerrit create-branch xenon ${RELEASE_BRANCH_NAME} ${COMMIT}"
 else
   ssh -p 29418 review.ec.eng.vmware.com gerrit create-branch xenon ${RELEASE_BRANCH_NAME} ${COMMIT}
 fi
@@ -54,8 +54,8 @@ echo
 echo "Creating tag ${RELEASE_TAG_NAME}"
 if [ "$DRY_RUN" == "true" ]; then
   echo Would execute:
-  echo git tag -am "Tagging ${RELEASE_BRANCH_NAME}" ${RELEASE_TAG_NAME} ${COMMIT}
-  echo git push origin ${RELEASE_TAG_NAME} HEAD:refs/heads/${RELEASE_BRANCH_NAME}
+  echo "git tag -am 'Tagging ${RELEASE_BRANCH_NAME}' ${RELEASE_TAG_NAME} ${COMMIT}"
+  echo "git push origin ${RELEASE_TAG_NAME} HEAD:refs/heads/${RELEASE_BRANCH_NAME}"
 else
   git tag -am "Tagging ${RELEASE_BRANCH_NAME}" ${RELEASE_TAG_NAME} ${COMMIT}
   git push origin ${RELEASE_TAG_NAME} HEAD:refs/heads/${RELEASE_BRANCH_NAME}

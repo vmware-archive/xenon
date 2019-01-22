@@ -18,11 +18,10 @@ XENON_LOCAL_REPO=$(git rev-parse --show-toplevel)
 CHANGE_LOG_FILE=CHANGELOG.md
 
 shopt -s expand_aliases
-if [ "$(uname)" == "Darwin" ]; then
-  alias sedi="sed -i ''"
-else
-  alias sedi="sed -i"
-fi
+case $(sed2 --version 2>&1) in
+  *GNU*) alias sedi="sed -i";;
+  *) alias sedi="sed -i ''";;
+esac
 
 if [ "${NEXT_DEV_VERSION}:-" == "" ]; then
   echo Must specify NEXT_DEV_VERSION
@@ -52,8 +51,9 @@ if ! git branch --contains ${COMMIT} -r | grep  origin/${BRANCH}; then
   exit 1
 fi
 
+
 # compute release version from pom
-CURRENT_VERSION=$(head -10 pom.xml | grep '<version>' | sed 's/^.*>\(.*\)<.*$/\1/')
+CURRENT_VERSION=$(head -10 pom.xml | grep '<version>' | sed -e 's/^.*>\(.*\)<.*$/\1/')
 RELEASE_VERSION=${CURRENT_VERSION%-SNAPSHOT}
 
 echo Preparing release of ${RELEASE_VERSION} from ${CURRENT_VERSION}
@@ -61,14 +61,14 @@ echo You are going to release ${RELEASE_VERSION} from ${COMMIT}
 git checkout -b prepare-release-${RELEASE_VERSION}
 
 # create release version
-sedi "s/${CURRENT_VERSION}/${RELEASE_VERSION}/" ${CHANGE_LOG_FILE}
+sedi -e "s/${CURRENT_VERSION}/${RELEASE_VERSION}/" ${CHANGE_LOG_FILE}
 ./mvnw versions:set -DgenerateBackupPoms=false -DnewVersion=${RELEASE_VERSION}
 git commit -a -m "Mark ${RELEASE_VERSION} for release"
 
 
 # create next developmenet version
-sedi "1d" ${CHANGE_LOG_FILE}
-sedi "1i\\
+sedi -e "1d" ${CHANGE_LOG_FILE}
+sedi -e "1i\\
 # CHANGELOG\\
 \\
 ## ${NEXT_DEV_VERSION}\\
