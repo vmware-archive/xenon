@@ -1,6 +1,11 @@
 # CHANGELOG
 
-## 1.6.16-SNAPSHOT
+## 1.6.16
+
+* Bumping up netty to 4.1.29.Final
+
+* Improved logging and bug fixes
+
 
 ## 1.6.15
 
@@ -103,11 +108,11 @@
   by default.
 
 * Keep the original `documentUpdateTimeMicros` in newly migrated deleted documents.
-  Previously, when deleted document is migrated, the new deleted document in destination cluster has 
-  `documentUpdateTimeMicros` field updated to the migration time. 
+  Previously, when deleted document is migrated, the new deleted document in destination cluster has
+  `documentUpdateTimeMicros` field updated to the migration time.
   The behavior is changed to retain original `documentUpdateTimeMicros` in new cluster for deleted documents
-  created from migration. 
-  For backward compatibility, `xenon.StatefulService.retainDeleteUpdateTimeInMigration` flag is added. 
+  created from migration.
+  For backward compatibility, `xenon.StatefulService.retainDeleteUpdateTimeInMigration` flag is added.
   Default is set to `true`. If it is set to `false`, `documentUpdateTimeMicros` field of deleted document in
   destination cluster will have updated time at migration time.(old behavior)
 
@@ -117,9 +122,9 @@
 
 * Add periodic cleanup for expired token cache entries.
   This feature is enabled when authorization is enabled and cleanup task interval is set (default=30min).
-  `--expiredTokenCleanupIntervalSeconds` program argument is added to control the cleanup interval. 
-  When 0 is set, this feature is disabled. 
-  
+  `--expiredTokenCleanupIntervalSeconds` program argument is added to control the cleanup interval.
+  When 0 is set, this feature is disabled.
+
 * Change netty bad context clean up log level to 'fine' from 'info'
 
 
@@ -384,7 +389,7 @@
         // enable CORS
         ((NettyHttpListener) httpListener).setCorsConfig(corsConfig);
     }
-  ``` 
+  ```
 
 ## 1.6.1
 
@@ -434,7 +439,7 @@
   of remote or local op.
   Since HTTP spec defines above behavior only for GET. It is guaranteed response body is set to null for
   GET request. However, current behavior for other actions are xenon specific and may change in future.
-  Therefore, it is not advised to use 304 status code other than GET request. 
+  Therefore, it is not advised to use 304 status code other than GET request.
 
 * Breaking change: To skip indexing document modification, changed to use new pragma directive
   `Operation.PRAGMA_DIRECTIVE_STATE_NOT_MODIFIED` instead of `Operation.STATUS_CODE_NOT_MODIFIED`.
@@ -442,9 +447,9 @@
   index/cache update for stateful service.
   Since using 304 to imply data modification for update is not correct(described above), now it has
   changed to use `Operation.PRAGMA_DIRECTIVE_STATE_NOT_MODIFIED`.
-  This change affected `UserService`, `UserGroupService`, `ResourceGroupService`, `RoleService`, and 
+  This change affected `UserService`, `UserGroupService`, `ResourceGroupService`, `RoleService`, and
   `TenantService`. When these service receives PUT with same body, they were returning 304 before.
-  Now, instead they return 200 with response body without updating persisted documents(no version increase).   
+  Now, instead they return 200 with response body without updating persisted documents(no version increase).
   Also, patch request to `ServiceHostManagementService` now returns 200 instead of 304.
 
  * Provide configurable replication quorum which decides the success and failure threshold.
@@ -524,7 +529,7 @@
 
   https://www.pivotaltracker.com/n/projects/1471320/stories/143529775
 
-* MigrationTaskService supports migrating deleted documents. When query spec includes 
+* MigrationTaskService supports migrating deleted documents. When query spec includes
   "INCLUDE_DELETED" option, migration task first posts the document, then deletes
   it in destination nodes.
 
@@ -536,7 +541,7 @@
   ServiceHost.setRequestLoggingInfo OR by making a PATCH to ServiceHostManagementService.
 
 * Enable odata `$skip` support on factory get.
-  e.g.: 
+  e.g.:
     /core/examples?$skip=5
     /core/examples?$skip=5&$limit=10
     /core/examples?$skip=5&$top=2
@@ -641,7 +646,7 @@
   As a result of this fields which had the 'SerializeName' annotation
   may no longer be properly indexed as the field name has changed.
 
-  See: https://www.pivotaltracker.com/story/show/148644281  
+  See: https://www.pivotaltracker.com/story/show/148644281
 
 ## 1.5.1
 
