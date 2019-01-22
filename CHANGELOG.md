@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 1.6.17-SNAPSHOT
+
+
 ## 1.6.16
 
 * Bumping up netty to 4.1.29.Final
