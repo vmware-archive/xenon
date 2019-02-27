@@ -513,6 +513,8 @@ public interface Service extends ServiceRequestSender {
                     error = new ServiceErrorResponse();
                     if (Operation.MEDIA_TYPE_APPLICATION_JSON.equals(response.getContentType())) {
                         error.message = Utils.toJson(response.getBodyRaw());
+                    } else {
+                        error.message = response.getBody(String.class);
                     }
                 }
                 error.statusCode = response.getStatusCode();

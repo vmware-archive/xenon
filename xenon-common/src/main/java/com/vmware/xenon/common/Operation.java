@@ -1031,7 +1031,17 @@ public class Operation implements Cloneable {
         if (!hasBody()) {
             return null;
         }
-        ServiceErrorResponse rsp = getBody(ServiceErrorResponse.class);
+
+        ServiceErrorResponse rsp;
+        try {
+            rsp = getBody(ServiceErrorResponse.class);
+        } catch (IllegalArgumentException e) {
+            // Unrecognized content-type or unparsable json
+            rsp = new ServiceErrorResponse();
+            rsp.statusCode = getStatusCode();
+            rsp.message = e.getLocalizedMessage() + " '" + getBody(String.class) + "'";
+        }
+
         if (rsp.message == null && rsp.statusCode == 0) {
             // very likely not a error response body
             return null;
