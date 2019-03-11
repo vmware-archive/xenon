@@ -317,8 +317,8 @@ public class ServiceHost implements ServiceRequestSender {
 
     }
 
-    protected static final LogFormatter LOG_FORMATTER = new LogFormatter();
-    protected static final LogFormatter COLOR_LOG_FORMATTER = new ColorLogFormatter();
+    protected final LogFormatter LOG_FORMATTER = new LogFormatter();
+    protected final LogFormatter COLOR_LOG_FORMATTER = new ColorLogFormatter();
 
     public static final String SERVICE_HOST_STATE_FILE = "serviceHostState.json";
 
@@ -703,7 +703,7 @@ public class ServiceHost implements ServiceRequestSender {
      */
     protected ServiceHost initialize(String[] args, Arguments hostArgs) throws Throwable {
         CommandLineArgumentParser.parse(hostArgs, args);
-        CommandLineArgumentParser.parse(COLOR_LOG_FORMATTER, args);
+        CommandLineArgumentParser.parse(this.COLOR_LOG_FORMATTER, args);
         initialize(hostArgs);
         return this;
 
@@ -996,7 +996,7 @@ public class ServiceHost implements ServiceRequestSender {
             File logFile = new File(storageSandboxDir, this.getClass().getSimpleName() + "."
                     + getPort() + ".%g.log");
             this.handler = new FileHandler(logFile.getAbsolutePath(), 1024 * 1024 * 10, 1);
-            this.handler.setFormatter(LOG_FORMATTER);
+            this.handler.setFormatter(this.LOG_FORMATTER);
             this.logger.getParent().addHandler(this.handler);
 
             String path = logFile.toString().replace("%g", "0");
@@ -1011,9 +1011,9 @@ public class ServiceHost implements ServiceRequestSender {
     protected void configureLoggerFormatter(Logger logger) {
         for (java.util.logging.Handler h : logger.getParent().getHandlers()) {
             if (h instanceof ConsoleHandler) {
-                h.setFormatter(COLOR_LOG_FORMATTER);
+                h.setFormatter(this.COLOR_LOG_FORMATTER);
             } else {
-                h.setFormatter(LOG_FORMATTER);
+                h.setFormatter(this.LOG_FORMATTER);
             }
         }
     }
