@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
@@ -1039,7 +1040,13 @@ public class Operation implements Cloneable {
             // Unrecognized content-type or unparsable json
             rsp = new ServiceErrorResponse();
             rsp.statusCode = getStatusCode();
-            rsp.message = e.getLocalizedMessage() + " '" + getBody(String.class) + "'";
+            if (this.contentType != null
+                    && this.contentType.contains(MEDIA_TYPE_APPLICATION_JSON)) {
+                rsp.message = e.getLocalizedMessage() + " '" + getBody(String.class) + "'";
+            } else {
+                // some remote services return plain text error - the body is the message
+                rsp.message = getBody(String.class);
+            }
         }
 
         if (rsp.message == null && rsp.statusCode == 0) {
@@ -1366,9 +1373,18 @@ public class Operation implements Cloneable {
     }
 
     public void fail(Throwable e) {
+        while (e instanceof CompletionException) {
+            Throwable prevEx = e;
+            e = e.getCause();
+            if (prevEx == e) {
+                break;
+            }
+        }
+
         if (e instanceof WrappedDeferredResultException) {
-            this.statusCode = ((WrappedDeferredResultException) e).statusCode;
-            fail(e, ((WrappedDeferredResultException) e).failureBody);
+            WrappedDeferredResultException wdre = (WrappedDeferredResultException) e;
+            this.statusCode = wdre.statusCode;
+            fail(e, wdre.failureBody);
         } else {
             fail(e, null);
         }
