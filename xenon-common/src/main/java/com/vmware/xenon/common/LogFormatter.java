@@ -32,8 +32,15 @@ public class LogFormatter extends Formatter {
     private static boolean LOG_DATE_FIRST = Boolean.valueOf(
             System.getProperty(LOG_DATE_FIRST_PROPERTY, LOG_DATE_FIRST_DEFAULT));
 
-    private static final DateTimeFormatter DEFAULT_FORMAT = DateTimeFormatter
-            .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    private static final String LOG_DATE_SPACE_SEPARATED_PROPERTY = Utils.PROPERTY_NAME_PREFIX +
+            "LogFormatter.LOG_SPACE_SEPARATED";
+    private static boolean LOG_DATE_SPACE_SEPARATED = Boolean.valueOf(
+            System.getProperty(LOG_DATE_SPACE_SEPARATED_PROPERTY, "false"));
+
+    private static final DateTimeFormatter DEFAULT_FORMAT = DateTimeFormatter.ofPattern(
+            LOG_DATE_SPACE_SEPARATED
+                    ? "yyyy-MM-dd'T'HH:mm:ss.SSS'Z' "
+                    : "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
     /**
      * When enabled, use {@link Formatter#formatMessage(LogRecord)}" on message of received {@link LogRecord}.
