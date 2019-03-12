@@ -18,7 +18,7 @@ XENON_LOCAL_REPO=$(git rev-parse --show-toplevel)
 CHANGE_LOG_FILE=CHANGELOG.md
 
 shopt -s expand_aliases
-case $(sed2 --version 2>&1) in
+case $(sed --version 2>&1) in
   *GNU*) alias sedi="sed -i";;
   *) alias sedi="sed -i ''";;
 esac
@@ -35,13 +35,14 @@ fi
 cd ${XENON_LOCAL_REPO}
 
 # check clean or not
-if [ -z "$(git status --porcelain)" ]; then
+git update-index -q --refresh
+if [ -z "$( git diff-index --name-only HEAD -- | grep -v '^CHANGELOG.md$' )" ]; then
   # Working directory clean
   echo "${XENON_LOCAL_REPO} is clean"
 else
   # Uncommitted changes
   echo "${XENON_LOCAL_REPO} is dirty"
-  exit 1;
+  exit 1
 fi
 
 git fetch origin

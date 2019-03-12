@@ -1,6 +1,9 @@
 # CHANGELOG
 
-## 1.6.17-SNAPSHOT
+## 1.6.17
+
+* Add support for SNI in SSL client requests
+  Can be disabled with xenon.NettyHttpClientRequestInitializer.sni.enable=false
 
 * Introduced context attributes map in the OperationContext.
   The attributes map can be used for storing arbitrary data.
@@ -8,7 +11,7 @@
   chains, managing the TL lifecycle from one async operation to
   another.
 
-* Introduced ServiceOption.WRAP_ERROR_RESPONSE. 
+* Introduced ServiceOption.WRAP_ERROR_RESPONSE.
   Xenon services that are using sendWithDeferredResult() to communicate
   with one another or the outside world do not typically receive in the
   callback the failure body and status code in case of error. For such
@@ -16,6 +19,11 @@
   ServiceOption.WRAP_ERROR_RESPONSE. This will force the the deferred
   result completion stage to wrap the original error response
   body and code in a new exception type and propagate it to the user
+
+* Allow to separate the date in the logs with space
+  Disabled by default. Controlled from xenon.LogFormatter.LOG_SPACE_SEPARATED
+  property (useful when xenon.LogFormatter.LOG_DATE_FIRST=true)
+
 
 ## 1.6.16
 
