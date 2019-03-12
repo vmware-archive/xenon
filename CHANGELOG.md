@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 1.6.18-SNAPSHOT
+
+
 ## 1.6.17
 
 * Add support for SNI in SSL client requests
