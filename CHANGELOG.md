@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 1.6.19-SNAPSHOT
+
+
 ## 1.6.18
 * Umwrap CompletionException
 * Bump maven plugins
