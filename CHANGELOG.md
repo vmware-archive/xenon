@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 1.6.20-SNAPSHOT
+
+
 ## 1.6.19
 * Fixes in the logging
 
