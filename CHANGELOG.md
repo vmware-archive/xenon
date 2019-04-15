@@ -1,7 +1,7 @@
 # CHANGELOG
 
-## 1.6.19-SNAPSHOT
-
+## 1.6.19
+* Fixes in the logging
 
 ## 1.6.18
 * Umwrap CompletionException
