@@ -209,7 +209,13 @@ public class ODataQueryVisitor {
                     q.setNumericRange(r);
 
                 } else {
-                    q.setTermMatchValue(((String) rightSide).replace("\'", ""));
+                    q.setTermMatchValue(((String) rightSide)
+                            // replace single quote with empty string
+                            .replaceAll("(?<!\')\'(?!\')", "")
+                            // replace double quotes '' with a singe quote '
+                            // double quotes are used for escaping
+                            .replace("\'\'", "\'")
+                    );
 
                     if (((String) rightSide).contains("*")) {
                         q.setTermMatchType(QueryTerm.MatchType.WILDCARD);

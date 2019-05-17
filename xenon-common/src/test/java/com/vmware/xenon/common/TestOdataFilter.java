@@ -46,6 +46,21 @@ public class TestOdataFilter {
     }
 
     @Test
+    public void testSimpleQueryWithEscapedQuote() throws Throwable {
+
+        Query expected = new Query().setTermPropertyName("name").setTermMatchValue("foo's");
+        expected.occurance = Query.Occurance.MUST_OCCUR;
+
+        String odataFilter = String.format("%s eq '%s'", expected.term.propertyName,
+                "foo''s");
+        Query actual = toQuery(odataFilter);
+
+        assertQueriesEqual(actual, expected);
+        // MatchType must be set
+        assertEquals(MatchType.TERM, actual.term.matchType);
+    }
+
+    @Test
     public void testSimpleBooleanQuery() throws Throwable {
         Query expected = new Query();
 
