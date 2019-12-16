@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.5.4_10
+
+* Close file handlers opened during creating backup to the local file system.
+
 ## 1.5.4_9
 
 From changelog:
